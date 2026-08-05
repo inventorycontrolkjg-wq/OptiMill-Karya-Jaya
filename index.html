@@ -673,6 +673,7 @@ onAuthStateChanged(auth, async (user) => {
 
         if(role === "gudang"){
             document.getElementById("dashboard-gudang").style.display = "block";
+            pantauPermintaanSaya(user.uid);
         } else if(role === "purchasing"){
             document.getElementById("dashboard-purchasing").style.display = "block";
         } else if(role === "pimpinan"){
@@ -689,6 +690,11 @@ onAuthStateChanged(auth, async (user) => {
 
         loginScreen.style.display = "flex";
         appScreen.style.display = "none";
+
+        if(unsubPermintaan){
+            unsubPermintaan();
+            unsubPermintaan = null;
+        }
 
     }
 
