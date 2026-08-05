@@ -296,6 +296,130 @@ table.tbl td{
 @media (max-width:900px){
     .grid-2{ grid-template-columns:1fr; }
 }
+
+/* ============== MODUL: FORM PERMINTAAN BARANG / OPB (redesign) ============== */
+
+.opb-header-grid{
+    display:grid;
+    grid-template-columns:repeat(5, 1fr);
+    gap:14px;
+    margin-bottom:14px;
+}
+
+.opb-kategori-grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:14px;
+    margin-bottom:14px;
+}
+
+.opb-note-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    margin-bottom:22px;
+}
+
+@media (max-width:1100px){
+    .opb-header-grid{ grid-template-columns:repeat(2,1fr); }
+    .opb-kategori-grid{ grid-template-columns:repeat(2,1fr); }
+    .opb-note-grid{ grid-template-columns:1fr; }
+}
+
+.file-drop{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    border:1.5px dashed #cfd8e3;
+    border-radius:9px;
+    background:#fafbfc;
+    padding:18px 12px;
+    font-size:12.5px;
+    color:#8d8d8d;
+    cursor:pointer;
+    min-height:70px;
+}
+
+.file-drop small{ color:#b3b3b3; }
+.file-drop.has-file{ border-color:#1565c0; color:#1565c0; background:#f0f6fd; }
+
+.opb-items-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:12px;
+}
+
+.opb-items-header h3{ margin:0; font-size:14.5px; }
+
+.btn-secondary{
+    background:#eef4fc;
+    border:1px solid #cfe0f5;
+    color:#1565c0;
+    font-size:12.5px;
+    font-weight:600;
+    padding:8px 14px;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.opb-items-table input, .opb-items-table select{
+    padding:8px 9px;
+    font-size:12.5px;
+}
+
+.btn-remove-item{
+    background:#fff0f0;
+    color:#c62828;
+    border:1px solid #ffd6d6;
+    border-radius:7px;
+    width:30px;
+    height:30px;
+    cursor:pointer;
+    font-size:13px;
+}
+
+.opb-totals{
+    display:flex;
+    gap:26px;
+    justify-content:flex-end;
+    padding:14px 4px 4px;
+    font-size:11.5px;
+    color:#8d8d8d;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.3px;
+}
+
+.opb-totals strong{
+    color:#1565c0;
+    font-size:14px;
+    margin-left:6px;
+}
+
+.opb-required-note{
+    font-size:12px;
+    color:#c62828;
+    margin:14px 0;
+}
+
+#pb-submit{ width:auto; padding:12px 26px; }
+
+@media (max-width:640px){
+    .opb-items-table thead{ display:none; }
+    .opb-items-table, .opb-items-table tbody, .opb-items-table tr, .opb-items-table td{
+        display:block;
+        width:100%;
+    }
+    .opb-items-table tr{
+        border:1px solid #edf0f2;
+        border-radius:10px;
+        padding:10px;
+        margin-bottom:10px;
+    }
+    .opb-items-table td{ border-bottom:none; padding:5px 0; }
+}
 </style>
 </head>
 <body>
@@ -349,66 +473,113 @@ table.tbl td{
         <div id="dashboard-gudang" style="display:none;">
 
             <div class="page-header">
-                <h2>Permintaan Barang</h2>
-                <p>Ajukan permintaan barang untuk diproses purchasing</p>
+                <h2>📋 Form Permintaan Barang / OPB</h2>
+                <p>Input permintaan barang atau pekerjaan untuk diproses purchasing</p>
             </div>
 
-            <div class="grid-2">
+            <div class="panel">
 
-                <div class="panel">
-                    <h3>Ajukan Permintaan Baru</h3>
+                <div class="form-msg" id="permintaan-msg"></div>
 
-                    <div class="form-msg" id="permintaan-msg"></div>
-
+                <div class="opb-header-grid">
                     <div class="form-group">
-                        <label>Nama Barang</label>
-                        <input id="pb-nama" placeholder="Contoh: Oli mesin SAE 40">
+                        <label>Tanggal Input *</label>
+                        <input type="date" id="opb-tanggal">
                     </div>
-
                     <div class="form-group">
-                        <label>Jumlah</label>
-                        <input id="pb-jumlah" type="number" min="1" placeholder="Contoh: 10">
+                        <label>No. PR</label>
+                        <input type="text" id="opb-no-pr" value="Otomatis saat disimpan" disabled>
                     </div>
-
                     <div class="form-group">
-                        <label>Satuan</label>
-                        <select id="pb-satuan">
-                            <option value="">Pilih satuan</option>
-                            <option>Pcs</option>
-                            <option>Box</option>
-                            <option>Kg</option>
-                            <option>Liter</option>
-                            <option>Unit</option>
-                            <option>Lainnya</option>
-                        </select>
+                        <label>Pembuat / Peminta *</label>
+                        <input type="text" id="opb-pembuat" placeholder="Nama pembuat permintaan">
                     </div>
-
                     <div class="form-group">
-                        <label>Keterangan (opsional)</label>
-                        <textarea id="pb-keterangan" placeholder="Catatan tambahan, misalnya kebutuhan mendesak atau spesifikasi barang"></textarea>
+                        <label>Divisi *</label>
+                        <select id="opb-divisi"></select>
                     </div>
-
-                    <button class="btn-primary" id="pb-submit" onclick="ajukanPermintaan()">Ajukan Permintaan</button>
+                    <div class="form-group">
+                        <label>Untuk *</label>
+                        <select id="opb-untuk"></select>
+                    </div>
                 </div>
 
-                <div class="panel">
-                    <h3>Permintaan yang Saya Ajukan</h3>
-
-                    <table class="tbl">
-                        <thead>
-                            <tr>
-                                <th>Tanggal</th>
-                                <th>Barang</th>
-                                <th>Jumlah</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="pb-list-body"></tbody>
-                    </table>
-
-                    <div class="empty-state" id="pb-empty" style="display:none;">Belum ada permintaan yang diajukan.</div>
+                <div class="opb-kategori-grid">
+                    <div class="form-group">
+                        <label>Kategori 1</label>
+                        <select id="opb-kategori1"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Kategori 2</label>
+                        <select id="opb-kategori2"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Kategori 3</label>
+                        <select id="opb-kategori3"></select>
+                    </div>
                 </div>
 
+                <div class="opb-note-grid">
+                    <div class="form-group">
+                        <label>Keterangan Tambahan</label>
+                        <textarea id="opb-keterangan" placeholder="Tambahkan keterangan (opsional)..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Lampiran (opsional)</label>
+                        <label class="file-drop" id="opb-lampiran-drop" for="opb-lampiran">
+                            <span id="opb-lampiran-label">📎 Klik atau pilih file di sini<br><small>PDF, JPG, PNG, Excel (Maks. 5MB)</small></span>
+                        </label>
+                        <input type="file" id="opb-lampiran" accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx" style="display:none;" onchange="pilihLampiran()">
+                    </div>
+                </div>
+
+                <div class="opb-items-header">
+                    <h3>Daftar Barang / Pekerjaan</h3>
+                    <button class="btn-secondary" type="button" onclick="tambahBarisOpb()">+ Tambah Barang</button>
+                </div>
+
+                <table class="tbl opb-items-table">
+                    <thead>
+                        <tr>
+                            <th style="width:34px;">No</th>
+                            <th>Nama Barang</th>
+                            <th style="width:130px;">Jumlah Diminta *</th>
+                            <th style="width:110px;">Satuan *</th>
+                            <th style="width:120px;">Stock Saat Ini</th>
+                            <th style="width:50px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="opb-items-body"></tbody>
+                </table>
+
+                <div class="opb-totals">
+                    <span>TOTAL ITEM <strong id="opb-total-item">0</strong></span>
+                    <span>TOTAL JUMLAH <strong id="opb-total-jumlah">0</strong></span>
+                </div>
+
+                <div class="opb-required-note">* Wajib diisi</div>
+
+                <button class="btn-primary" id="pb-submit" onclick="ajukanPermintaan()">Ajukan Permintaan</button>
+
+            </div>
+
+            <div class="panel" style="margin-top:18px;">
+                <h3>Permintaan yang Saya Ajukan</h3>
+
+                <table class="tbl">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>No. PR</th>
+                            <th>Barang</th>
+                            <th>Total Jumlah</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pb-list-body"></tbody>
+                </table>
+
+                <div class="empty-state" id="pb-empty" style="display:none;">Belum ada permintaan yang diajukan.</div>
             </div>
 
         </div>
@@ -471,8 +642,15 @@ import {
     where,
     orderBy,
     onSnapshot,
-    serverTimestamp
+    serverTimestamp,
+    runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+    getStorage,
+    ref as storageRef,
+    uploadBytes,
+    getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 // =========================================================
 // GANTI BAGIAN INI DENGAN CONFIG DARI FIREBASE CONSOLE KAMU
@@ -490,6 +668,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 // =========================================================
 // LOGIN
@@ -529,31 +708,180 @@ window.logout = function(){
 }
 
 // =========================================================
-// MODUL GUDANG: PERMINTAAN BARANG
+// MODUL GUDANG: FORM PERMINTAAN BARANG / OPB
 // =========================================================
 let unsubPermintaan = null;
+let opbRowCount = 0;
+let opbFileTerpilih = null;
+
+// -------- Master data dropdown (edit di sini sesuai kebutuhan) --------
+const OPB_DIVISI = ["Gudang Sparepart", "Produksi", "Maintenance", "Quality Control", "Gudang Bahan Baku"];
+const OPB_UNTUK = ["Safety Stock", "Kebutuhan Produksi", "Perbaikan / Maintenance", "Proyek Khusus", "Lainnya"];
+const OPB_KATEGORI1 = ["Produksi", "Non-Produksi", "ATK", "Sparepart"];
+const OPB_KATEGORI2 = ["Stock", "Non-Stock", "Emergency"];
+const OPB_KATEGORI3 = ["Mekanik", "Elektrik", "Umum"];
+const OPB_SATUAN = ["BH", "Pcs", "Box", "Kg", "Liter", "Unit", "Meter", "Roll"];
+
+function isiSelect(id, opsi, placeholder){
+    const el = document.getElementById(id);
+    el.innerHTML = `<option value="">${placeholder}</option>` + opsi.map(o => `<option value="${o}">${o}</option>`).join("");
+}
+
+function isiSelectItem(id, opsi){
+    return `<option value="">-</option>` + opsi.map(o => `<option value="${o}">${o}</option>`).join("");
+}
+
+function siapkanDropdownOpb(){
+    isiSelect("opb-divisi", OPB_DIVISI, "Pilih divisi");
+    isiSelect("opb-untuk", OPB_UNTUK, "Pilih peruntukan");
+    isiSelect("opb-kategori1", OPB_KATEGORI1, "Pilih kategori");
+    isiSelect("opb-kategori2", OPB_KATEGORI2, "Pilih kategori");
+    isiSelect("opb-kategori3", OPB_KATEGORI3, "Pilih kategori");
+}
+
+function buatBarisOpbHTML(id){
+    return `
+        <tr id="opb-row-${id}">
+            <td class="opb-row-no">-</td>
+            <td><input type="text" id="opb-nama-${id}" placeholder="Nama barang"></td>
+            <td><input type="number" min="1" id="opb-jumlah-${id}" oninput="hitungTotalOpb()"></td>
+            <td><select id="opb-satuan-${id}">${isiSelectItem("x", OPB_SATUAN)}</select></td>
+            <td><input type="number" min="0" id="opb-stock-${id}" placeholder="0"></td>
+            <td><button class="btn-remove-item" type="button" onclick="hapusBarisOpb(${id})" title="Hapus baris">✕</button></td>
+        </tr>
+    `;
+}
+
+function nomoriUlangBarisOpb(){
+    const rows = document.querySelectorAll("#opb-items-body tr");
+    rows.forEach((row, i) => {
+        row.querySelector(".opb-row-no").textContent = i + 1;
+    });
+}
+
+window.tambahBarisOpb = function(){
+    opbRowCount++;
+    document.getElementById("opb-items-body").insertAdjacentHTML("beforeend", buatBarisOpbHTML(opbRowCount));
+    nomoriUlangBarisOpb();
+}
+
+window.hapusBarisOpb = function(id){
+    const row = document.getElementById(`opb-row-${id}`);
+    if(row) row.remove();
+    nomoriUlangBarisOpb();
+    hitungTotalOpb();
+}
+
+window.hitungTotalOpb = function(){
+    const rows = document.querySelectorAll("#opb-items-body tr");
+    let totalJumlah = 0;
+    rows.forEach(row => {
+        const id = row.id.replace("opb-row-", "");
+        const val = Number(document.getElementById(`opb-jumlah-${id}`).value) || 0;
+        totalJumlah += val;
+    });
+    document.getElementById("opb-total-item").textContent = rows.length;
+    document.getElementById("opb-total-jumlah").textContent = totalJumlah;
+}
+
+window.pilihLampiran = function(){
+    const input = document.getElementById("opb-lampiran");
+    const dropEl = document.getElementById("opb-lampiran-drop");
+    const labelEl = document.getElementById("opb-lampiran-label");
+
+    if(input.files && input.files[0]){
+        opbFileTerpilih = input.files[0];
+        if(opbFileTerpilih.size > 5 * 1024 * 1024){
+            alert("Ukuran file maksimal 5MB.");
+            input.value = "";
+            opbFileTerpilih = null;
+            return;
+        }
+        dropEl.classList.add("has-file");
+        labelEl.innerHTML = `📎 ${opbFileTerpilih.name}<br><small>Klik untuk ganti file</small>`;
+    }
+}
+
+function resetFormOpb(){
+    document.getElementById("opb-items-body").innerHTML = "";
+    document.getElementById("opb-tanggal").value = new Date().toISOString().slice(0,10);
+    document.getElementById("opb-no-pr").value = "Otomatis saat disimpan";
+    document.getElementById("opb-pembuat").value = "";
+    document.getElementById("opb-divisi").value = "";
+    document.getElementById("opb-untuk").value = "";
+    document.getElementById("opb-kategori1").value = "";
+    document.getElementById("opb-kategori2").value = "";
+    document.getElementById("opb-kategori3").value = "";
+    document.getElementById("opb-keterangan").value = "";
+    document.getElementById("opb-lampiran").value = "";
+    document.getElementById("opb-lampiran-drop").classList.remove("has-file");
+    document.getElementById("opb-lampiran-label").innerHTML = "📎 Klik atau pilih file di sini<br><small>PDF, JPG, PNG, Excel (Maks. 5MB)</small>";
+    opbFileTerpilih = null;
+    opbRowCount = 0;
+    window.tambahBarisOpb();
+    hitungTotalOpb();
+}
+
+// Generate No. PR otomatis pakai counter per tahun di koleksi "counters"
+async function generateNoPR(tahun){
+    const counterRef = doc(db, "counters", `pr_${tahun}`);
+    const nomorBerikutnya = await runTransaction(db, async (tx) => {
+        const snap = await tx.get(counterRef);
+        const next = snap.exists() ? (snap.data().terakhir || 0) + 1 : 1;
+        tx.set(counterRef, { terakhir: next }, { merge: true });
+        return next;
+    });
+    return `PRM-${tahun}-${String(nomorBerikutnya).padStart(4, "0")}`;
+}
 
 window.ajukanPermintaan = async function(){
 
-    const nama = document.getElementById("pb-nama").value.trim();
-    const jumlah = document.getElementById("pb-jumlah").value;
-    const satuan = document.getElementById("pb-satuan").value;
-    const keterangan = document.getElementById("pb-keterangan").value.trim();
     const msgEl = document.getElementById("permintaan-msg");
     const btn = document.getElementById("pb-submit");
-
     msgEl.style.display = "none";
     msgEl.className = "form-msg";
 
-    if(nama === "" || jumlah === "" || satuan === ""){
-        msgEl.textContent = "Nama barang, jumlah, dan satuan wajib diisi.";
+    const tanggal = document.getElementById("opb-tanggal").value;
+    const pembuat = document.getElementById("opb-pembuat").value.trim();
+    const divisi = document.getElementById("opb-divisi").value;
+    const untuk = document.getElementById("opb-untuk").value;
+    const kategori1 = document.getElementById("opb-kategori1").value;
+    const kategori2 = document.getElementById("opb-kategori2").value;
+    const kategori3 = document.getElementById("opb-kategori3").value;
+    const keterangan = document.getElementById("opb-keterangan").value.trim();
+
+    const rows = document.querySelectorAll("#opb-items-body tr");
+    const items = [];
+    let totalJumlah = 0;
+
+    rows.forEach(row => {
+        const id = row.id.replace("opb-row-", "");
+        const nama = document.getElementById(`opb-nama-${id}`).value.trim();
+        const jumlah = document.getElementById(`opb-jumlah-${id}`).value;
+        const satuan = document.getElementById(`opb-satuan-${id}`).value;
+        const stock = document.getElementById(`opb-stock-${id}`).value;
+
+        if(nama !== "" && jumlah !== "" && satuan !== ""){
+            const jml = Number(jumlah);
+            items.push({
+                nama_barang: nama,
+                jumlah_diminta: jml,
+                satuan: satuan,
+                stock_saat_ini: stock === "" ? null : Number(stock)
+            });
+            totalJumlah += jml;
+        }
+    });
+
+    if(!tanggal || pembuat === "" || divisi === "" || untuk === ""){
+        msgEl.textContent = "Tanggal, Pembuat/Peminta, Divisi, dan Untuk wajib diisi.";
         msgEl.classList.add("err");
         msgEl.style.display = "block";
         return;
     }
 
-    if(Number(jumlah) <= 0){
-        msgEl.textContent = "Jumlah harus lebih dari 0.";
+    if(items.length === 0){
+        msgEl.textContent = "Isi minimal satu barang (nama, jumlah, dan satuan wajib diisi).";
         msgEl.classList.add("err");
         msgEl.style.display = "block";
         return;
@@ -564,25 +892,46 @@ window.ajukanPermintaan = async function(){
 
     try{
 
+        const tahun = new Date(tanggal).getFullYear();
+        const noPR = await generateNoPR(tahun);
+
+        let lampiranUrl = null;
+        if(opbFileTerpilih){
+            try{
+                const fileRef = storageRef(storage, `lampiran_permintaan/${noPR}/${opbFileTerpilih.name}`);
+                await uploadBytes(fileRef, opbFileTerpilih);
+                lampiranUrl = await getDownloadURL(fileRef);
+            } catch(uploadErr){
+                console.error("Gagal upload lampiran:", uploadErr);
+                // Permintaan tetap dilanjutkan tanpa lampiran kalau upload gagal
+            }
+        }
+
         await addDoc(collection(db, "permintaan_barang"), {
-            nama_barang: nama,
-            jumlah: Number(jumlah),
-            satuan: satuan,
+            no_pr: noPR,
+            tanggal_input: tanggal,
+            pembuat: pembuat,
+            divisi: divisi,
+            untuk: untuk,
+            kategori1: kategori1,
+            kategori2: kategori2,
+            kategori3: kategori3,
             keterangan: keterangan,
+            lampiran_url: lampiranUrl,
+            items: items,
+            total_item: items.length,
+            total_jumlah: totalJumlah,
             status: "menunggu",
             dibuat_oleh_uid: auth.currentUser.uid,
             dibuat_oleh_email: auth.currentUser.email,
             created_at: serverTimestamp()
         });
 
-        document.getElementById("pb-nama").value = "";
-        document.getElementById("pb-jumlah").value = "";
-        document.getElementById("pb-satuan").selectedIndex = 0;
-        document.getElementById("pb-keterangan").value = "";
-
-        msgEl.textContent = "Permintaan berhasil diajukan.";
+        msgEl.textContent = `Permintaan ${noPR} berhasil diajukan.`;
         msgEl.classList.add("ok");
         msgEl.style.display = "block";
+
+        resetFormOpb();
 
     } catch(e){
         msgEl.textContent = "Gagal menyimpan: " + e.message;
@@ -627,11 +976,16 @@ function pantauPermintaanSaya(uid){
             const status = d.status || "menunggu";
             const labelStatus = status === "disetujui" ? "Disetujui" : (status === "ditolak" ? "Ditolak" : "Menunggu");
 
+            const items = d.items || [];
+            let ringkasBarang = items.length ? items[0].nama_barang : "-";
+            if(items.length > 1) ringkasBarang += ` +${items.length - 1} lainnya`;
+
             html += `
 <tr>
     <td>${tgl}</td>
-    <td>${d.nama_barang}</td>
-    <td>${d.jumlah} ${d.satuan}</td>
+    <td>${d.no_pr || "-"}</td>
+    <td>${ringkasBarang}</td>
+    <td>${d.total_jumlah ?? "-"}</td>
     <td><span class="status-pill ${status}">${labelStatus}</span></td>
 </tr>
 `;
@@ -673,6 +1027,8 @@ onAuthStateChanged(auth, async (user) => {
 
         if(role === "gudang"){
             document.getElementById("dashboard-gudang").style.display = "block";
+            siapkanDropdownOpb();
+            resetFormOpb();
             pantauPermintaanSaya(user.uid);
         } else if(role === "purchasing"){
             document.getElementById("dashboard-purchasing").style.display = "block";
