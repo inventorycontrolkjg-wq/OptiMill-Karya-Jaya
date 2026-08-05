@@ -381,8 +381,12 @@ onAuthStateChanged(auth, async (user) => {
         document.getElementById("user-email").textContent = user.email;
 
         // Ambil role dari koleksi Firestore: users/{uid}
+        console.log("DEBUG - UID yang sedang login:", user.uid);
         const snap = await getDoc(doc(db, "users", user.uid));
+        console.log("DEBUG - Dokumen ditemukan?", snap.exists());
+        console.log("DEBUG - Isi dokumen:", snap.exists() ? snap.data() : "(tidak ada)");
         const role = snap.exists() ? snap.data().role : null;
+        console.log("DEBUG - Role terbaca:", role);
 
         document.getElementById("dashboard-gudang").style.display = "none";
         document.getElementById("dashboard-purchasing").style.display = "none";
