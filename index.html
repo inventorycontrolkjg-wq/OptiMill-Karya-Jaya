@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Purchasing &amp; Finance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+*{ box-sizing:border-box; }
+
+body{
+    margin:0;
+    font-family:'Lexend',sans-serif;
+    background:#f4f6fa;
+    color:#222;
+    min-height:100vh;
+}
+
+.center-wrap{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+}
+
+.login-card{
+    background:#fff;
+    border-radius:16px;
+    padding:32px 28px;
+    width:100%;
+    max-width:380px;
+    box-shadow:0 4px 20px rgba(0,0,0,.06);
+}
+
+.login-card .brand-icon{
+    width:56px;
+    height:56px;
+    background:#1565c0;
+    border-radius:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:26px;
+    color:#fff;
+    margin:0 auto 14px;
+}
+
+.login-card h2{
+    text-align:center;
+    margin:0 0 4px;
+    font-size:19px;
+}
+
+.login-card p.sub{
+    text-align:center;
+    margin:0 0 24px;
+    font-size:13px;
+    color:#8d8d8d;
+}
+
+.form-group{ margin-bottom:14px; }
+
+.form-group label{
+    display:block;
+    font-size:12.5px;
+    font-weight:600;
+    color:#555;
+    margin-bottom:6px;
+}
+
+input{
+    width:100%;
+    padding:11px 13px;
+    font-size:13.5px;
+    border:1px solid #e2e2e2;
+    border-radius:9px;
+    background:#fafafa;
+    font-family:'Lexend',sans-serif;
+}
+
+input:focus{
+    outline:none;
+    border-color:#1565c0;
+    background:#fff;
+}
+
+button.btn-login{
+    width:100%;
+    padding:13px;
+    font-size:14px;
+    font-weight:600;
+    background:#1565c0;
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    margin-top:6px;
+}
+
+button.btn-login:hover{ background:#0e4c94; }
+button.btn-login:disabled{ background:#9db8d8; cursor:not-allowed; }
+
+.login-error{
+    display:none;
+    background:#ffebee;
+    color:#c62828;
+    font-size:12.5px;
+    padding:10px 12px;
+    border-radius:8px;
+    margin-bottom:14px;
+}
+
+/* ============== APP SHELL (setelah login) ============== */
+
+.app{
+    display:none;
+    min-height:100vh;
+}
+
+.topbar{
+    background:#fff;
+    border-bottom:1px solid #edf0f2;
+    padding:14px 22px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.topbar .app-title{
+    font-weight:700;
+    font-size:15px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.topbar .app-title .dot{
+    width:34px; height:34px;
+    background:#1565c0;
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-size:15px;
+}
+
+.topbar .user-info{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    font-size:13px;
+    color:#555;
+}
+
+.role-badge{
+    background:#e3f2fd;
+    color:#1565c0;
+    font-size:11px;
+    font-weight:700;
+    padding:3px 10px;
+    border-radius:999px;
+    text-transform:uppercase;
+    letter-spacing:.3px;
+}
+
+.btn-logout{
+    background:#f4f6fa;
+    border:1px solid #e2e2e2;
+    color:#555;
+    font-size:12.5px;
+    padding:7px 14px;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.content{
+    padding:30px;
+}
+
+.placeholder-panel{
+    background:#fff;
+    border-radius:16px;
+    padding:40px;
+    text-align:center;
+    box-shadow:0 2px 10px rgba(0,0,0,.05);
+}
+
+.placeholder-panel .icon{ font-size:40px; margin-bottom:12px; }
+.placeholder-panel h3{ margin:0 0 8px; }
+.placeholder-panel p{ color:#8d8d8d; font-size:13.5px; margin:0; }
+
+.no-role-msg{
+    display:none;
+    text-align:center;
+    padding:60px 20px;
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================= -->
+<!-- LAYAR LOGIN -->
+<!-- ============================================= -->
+<div class="center-wrap" id="login-screen">
+    <div class="login-card">
+        <div class="brand-icon">🧾</div>
+        <h2>Purchasing &amp; Finance</h2>
+        <p class="sub">Masuk untuk melanjutkan</p>
+
+        <div class="login-error" id="login-error"></div>
+
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="email" placeholder="nama@perusahaan.com" autocomplete="username">
+        </div>
+
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+
+        <button class="btn-login" id="btn-login" onclick="login()">Masuk</button>
+    </div>
+</div>
+
+<!-- ============================================= -->
+<!-- APP SHELL (setelah login berhasil) -->
+<!-- ============================================= -->
+<div class="app" id="app-screen">
+
+    <div class="topbar">
+        <div class="app-title">
+            <div class="dot">🧾</div>
+            Purchasing &amp; Finance
+        </div>
+        <div class="user-info">
+            <span id="user-email"></span>
+            <span class="role-badge" id="user-role-badge">-</span>
+            <button class="btn-logout" onclick="logout()">Keluar</button>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <!-- Placeholder per role, modul sebenarnya menyusul di tahap berikutnya -->
+
+        <div id="dashboard-gudang" style="display:none;">
+            <div class="placeholder-panel">
+                <div class="icon">📦</div>
+                <h3>Dashboard Gudang / Pabrik</h3>
+                <p>Modul input permintaan barang (order) akan dibangun di tahap berikutnya.</p>
+            </div>
+        </div>
+
+        <div id="dashboard-purchasing" style="display:none;">
+            <div class="placeholder-panel">
+                <div class="icon">🛒</div>
+                <h3>Dashboard Purchasing</h3>
+                <p>Modul laporan pembelian &amp; pembuatan PO akan dibangun di tahap berikutnya.</p>
+            </div>
+        </div>
+
+        <div id="dashboard-pimpinan" style="display:none;">
+            <div class="placeholder-panel">
+                <div class="icon">✅</div>
+                <h3>Dashboard Pimpinan</h3>
+                <p>Modul approval PO akan dibangun di tahap berikutnya.</p>
+            </div>
+        </div>
+
+        <div id="dashboard-finance" style="display:none;">
+            <div class="placeholder-panel">
+                <div class="icon">💳</div>
+                <h3>Dashboard Finance</h3>
+                <p>Modul proses pembayaran faktur (cash / credit / belum dibayar) akan dibangun di tahap berikutnya.</p>
+            </div>
+        </div>
+
+        <div class="no-role-msg" id="no-role-msg">
+            <div class="placeholder-panel">
+                <div class="icon">⚠️</div>
+                <h3>Akun belum punya role</h3>
+                <p>Hubungi admin untuk mengatur role akun ini (gudang / purchasing / pimpinan / finance) di Firestore.</p>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ============================================= -->
+<!-- FIREBASE -->
+<!-- ============================================= -->
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+    getAuth,
+    signInWithEmailAndPassword,
+    onAuthStateChanged,
+    signOut
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+    getFirestore,
+    doc,
+    getDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// =========================================================
+// GANTI BAGIAN INI DENGAN CONFIG DARI FIREBASE CONSOLE KAMU
+// (Project settings -> Your apps -> config)
+// =========================================================
+const firebaseConfig = {
+    apiKey: "AIzaSyAXavsVLrY0ymIyaFEgf2q5fgFdrGGWem0",
+    authDomain: "optimill-karya-jaya.firebaseapp.com",
+    projectId: "optimill-karya-jaya",
+    storageBucket: "optimill-karya-jaya.firebasestorage.app",
+    messagingSenderId: "562710596736",
+    appId: "1:562710596736:web:5b9a8ad89352abc300ea65"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// =========================================================
+// LOGIN
+// =========================================================
+window.login = async function(){
+
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    const errEl = document.getElementById("login-error");
+    const btn = document.getElementById("btn-login");
+
+    errEl.style.display = "none";
+
+    if(email === "" || password === ""){
+        errEl.textContent = "Email dan password wajib diisi.";
+        errEl.style.display = "block";
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Memproses...";
+
+    try{
+        await signInWithEmailAndPassword(auth, email, password);
+    } catch(e){
+        errEl.textContent = "Email atau password salah.";
+        errEl.style.display = "block";
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "Masuk";
+    }
+
+}
+
+window.logout = function(){
+    signOut(auth);
+}
+
+// =========================================================
+// PANTAU STATUS LOGIN & TAMPILKAN DASHBOARD SESUAI ROLE
+// =========================================================
+onAuthStateChanged(auth, async (user) => {
+
+    const loginScreen = document.getElementById("login-screen");
+    const appScreen = document.getElementById("app-screen");
+
+    if(user){
+
+        loginScreen.style.display = "none";
+        appScreen.style.display = "block";
+
+        document.getElementById("user-email").textContent = user.email;
+
+        // Ambil role dari koleksi Firestore: users/{uid}
+        const snap = await getDoc(doc(db, "users", user.uid));
+        const role = snap.exists() ? snap.data().role : null;
+
+        document.getElementById("dashboard-gudang").style.display = "none";
+        document.getElementById("dashboard-purchasing").style.display = "none";
+        document.getElementById("dashboard-pimpinan").style.display = "none";
+        document.getElementById("dashboard-finance").style.display = "none";
+        document.getElementById("no-role-msg").style.display = "none";
+
+        if(role === "gudang"){
+            document.getElementById("dashboard-gudang").style.display = "block";
+        } else if(role === "purchasing"){
+            document.getElementById("dashboard-purchasing").style.display = "block";
+        } else if(role === "pimpinan"){
+            document.getElementById("dashboard-pimpinan").style.display = "block";
+        } else if(role === "finance"){
+            document.getElementById("dashboard-finance").style.display = "block";
+        } else {
+            document.getElementById("no-role-msg").style.display = "block";
+        }
+
+        document.getElementById("user-role-badge").textContent = role || "belum diatur";
+
+    } else {
+
+        loginScreen.style.display = "flex";
+        appScreen.style.display = "none";
+
+    }
+
+});
+
+</script>
+
+</body>
+</html>
