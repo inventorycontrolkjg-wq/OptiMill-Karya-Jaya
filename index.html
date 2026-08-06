@@ -89,7 +89,7 @@ input:focus, select:focus, textarea:focus{
     background:#fff;
 }
 
-input:disabled{ color:#1565c0; font-weight:600; background:#f0f6fd; }
+input:disabled, select:disabled{ color:#1565c0; font-weight:600; background:#f0f6fd; cursor:not-allowed; }
 
 textarea{ resize:vertical; min-height:70px; }
 
@@ -1167,23 +1167,21 @@ window.importMasterBarangMassal = async function(){
 window.autoisiSatuan = function(id){
     const namaEl = document.getElementById(`opb-nama-${id}`);
     const satuanEl = document.getElementById(`opb-satuan-${id}`);
-    const satuanDefault = masterBarangMap[namaEl.value];
-    if(satuanDefault && satuanEl.value === ""){
-        // Cocokkan case-insensitive dengan opsi yang ada di dropdown
-        const opsiCocok = Array.from(satuanEl.options).find(
-            opt => opt.value.toLowerCase() === satuanDefault.trim().toLowerCase()
-        );
-        if(opsiCocok){
-            satuanEl.value = opsiCocok.value;
-        } else {
-            // Jaga-jaga: kalau satuannya belum ada di dropdown, tambahkan otomatis
-            const opt = document.createElement("option");
-            opt.value = satuanDefault.trim();
-            opt.textContent = satuanDefault.trim();
-            satuanEl.appendChild(opt);
-            satuanEl.value = satuanDefault.trim();
-        }
+    const nama = namaEl.value.trim();
+    const satuanDefault = masterBarangMap[nama];
+
+    if(!nama || satuanDefault === undefined){
+        // Nama kosong atau belum/tidak cocok dengan Master Barang -> kosongkan satuan
+        satuanEl.innerHTML = `<option value="">-</option>`;
+        satuanEl.value = "";
+        return;
     }
+
+    const satuanBersih = (satuanDefault || "").trim();
+    satuanEl.innerHTML = satuanBersih
+        ? `<option value="${satuanBersih}">${satuanBersih}</option>`
+        : `<option value="">-</option>`;
+    satuanEl.value = satuanBersih;
 }
 
 function buatBarisOpbHTML(id){
@@ -1192,7 +1190,7 @@ function buatBarisOpbHTML(id){
             <td class="opb-row-no">-</td>
             <td><input type="text" id="opb-nama-${id}" list="master-barang-datalist" placeholder="Nama barang" oninput="autoisiSatuan(${id})"></td>
             <td><input type="number" min="1" id="opb-jumlah-${id}" oninput="hitungTotalOpb()"></td>
-            <td><select id="opb-satuan-${id}">${isiSelectItem("x", daftarSatuanGabungan())}</select></td>
+            <td><select id="opb-satuan-${id}" disabled><option value="">-</option></select></td>
             <td><input type="number" min="0" id="opb-stock-${id}" placeholder="0"></td>
             <td><button class="btn-remove-item" type="button" onclick="hapusBarisOpb(${id})" title="Hapus baris">✕</button></td>
         </tr>
