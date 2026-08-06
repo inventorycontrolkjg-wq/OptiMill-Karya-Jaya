@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
 *{ box-sizing:border-box; }
@@ -445,6 +446,53 @@ table.tbl td{
     }
     .opb-items-table td{ border-bottom:none; padding:5px 0; }
 }
+
+/* ============== MODUL: IMPORT MASTER BARANG ============== */
+
+.mb-upload-box{
+    border:1.5px dashed #cfd8e3;
+    border-radius:10px;
+    padding:20px;
+    background:#fafbfc;
+    margin-bottom:16px;
+}
+
+.mb-upload-box input[type="file"]{
+    background:#fff;
+}
+
+.mb-hint{
+    font-size:12px;
+    color:#8d8d8d;
+    margin:8px 0 0;
+}
+
+.mb-hint code{
+    background:#eef4fc;
+    color:#1565c0;
+    padding:1px 6px;
+    border-radius:5px;
+    font-size:11.5px;
+}
+
+.mb-actions{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+    margin-bottom:8px;
+}
+
+.mb-actions .btn-primary{ width:auto; padding:11px 20px; margin-top:0; }
+.mb-actions .btn-primary:disabled{ background:#c9d8ec; }
+
+.mb-counter{
+    font-size:12.5px;
+    color:#8d8d8d;
+    margin-bottom:16px;
+}
+
+.mb-counter strong{ color:#1565c0; }
 </style>
 </head>
 <body>
@@ -662,6 +710,50 @@ table.tbl td{
             </div>
 
             <!-- ============================================= -->
+            <!-- GUDANG: IMPORT MASTER BARANG -->
+            <!-- ============================================= -->
+            <div class="page" id="page-import-master-barang">
+
+                <div class="page-header">
+                    <h2>📥 Import Master Barang</h2>
+                    <p>Upload file Excel/CSV berisi daftar barang untuk diimpor sekaligus ke Master Barang</p>
+                </div>
+
+                <div class="panel">
+
+                    <div class="mb-counter">Total barang di Master Barang saat ini: <strong id="mb-total-count">-</strong></div>
+
+                    <div class="mb-upload-box">
+                        <input type="file" id="mb-file" accept=".csv,.xlsx,.xls">
+                        <p class="mb-hint">
+                            Baris pertama file harus jadi <b>header kolom</b>, minimal ada kolom <code>nama</code> dan <code>satuan</code>.
+                            Kolom <code>kategori</code> boleh ditambahkan (opsional). Nama kolom tidak case-sensitive.
+                        </p>
+                    </div>
+
+                    <div class="mb-actions">
+                        <button class="btn-primary" type="button" onclick="prosesFileMasterBarang()">Baca File</button>
+                        <button class="btn-primary" type="button" id="mb-import-btn" onclick="importMasterBarangMassal()" disabled>Import ke Firestore</button>
+                    </div>
+
+                    <div class="form-msg" id="mb-parse-status"></div>
+                    <div class="form-msg" id="mb-import-status"></div>
+
+                    <div id="mb-preview-wrap" style="display:none; margin-top:18px;">
+                        <p class="mb-hint" id="mb-preview-count"></p>
+                        <table class="tbl">
+                            <thead>
+                                <tr><th style="width:34px;">No</th><th>Nama</th><th>Satuan</th><th>Kategori</th></tr>
+                            </thead>
+                            <tbody id="mb-preview-body"></tbody>
+                        </table>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- ============================================= -->
             <!-- ROLE LAIN (placeholder, belum ada sub-menu) -->
             <!-- ============================================= -->
             <div class="page" id="page-purchasing-dashboard">
@@ -727,7 +819,8 @@ import {
     orderBy,
     onSnapshot,
     serverTimestamp,
-    runTransaction
+    runTransaction,
+    writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
     getStorage,
@@ -803,7 +896,8 @@ const NAV_ITEMS = {
         { id:"list-pengeluaran", label:"📃 List Pengeluaran" },
         { id:"list-penerimaan", label:"📃 List Penerimaan" },
         { id:"history", label:"🕒 History Keluar/Masuk" },
-        { id:"inventory-control", label:"📦 Inventory Control" }
+        { id:"inventory-control", label:"📦 Inventory Control" },
+        { id:"import-master-barang", label:"📥 Import Master Barang" }
     ],
     purchasing: [
         { id:"purchasing-dashboard", label:"🛒 Dashboard" }
@@ -841,6 +935,10 @@ window.showPage = function(id){
     }
     if(id === "list-permintaan"){
         pantauSemuaPermintaan();
+    }
+    if(id === "import-master-barang"){
+        pantauMasterBarang();
+        resetImportMasterBarang();
     }
 
 }
@@ -893,7 +991,159 @@ function pantauMasterBarang(){
         });
         const dl = document.getElementById("master-barang-datalist");
         if(dl) dl.innerHTML = optionsHtml;
+        const countEl = document.getElementById("mb-total-count");
+        if(countEl) countEl.textContent = snap.size;
     }, (err) => console.error("Gagal memuat master barang:", err));
+}
+
+// -------- Import Master Barang massal (Excel/CSV) --------
+let masterBarangFileData = [];
+
+function resetImportMasterBarang(){
+    masterBarangFileData = [];
+    document.getElementById("mb-file").value = "";
+    document.getElementById("mb-parse-status").style.display = "none";
+    document.getElementById("mb-import-status").style.display = "none";
+    document.getElementById("mb-preview-wrap").style.display = "none";
+    document.getElementById("mb-import-btn").disabled = true;
+}
+
+window.prosesFileMasterBarang = function(){
+
+    const fileInput = document.getElementById("mb-file");
+    const statusEl = document.getElementById("mb-parse-status");
+    const file = fileInput.files[0];
+
+    statusEl.style.display = "none";
+    statusEl.className = "form-msg";
+    document.getElementById("mb-import-status").style.display = "none";
+
+    if(!file){
+        statusEl.textContent = "Pilih file Excel/CSV dulu.";
+        statusEl.classList.add("err");
+        statusEl.style.display = "block";
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function(e){
+        try{
+            const data = new Uint8Array(e.target.result);
+            const wb = XLSX.read(data, { type: "array" });
+            const sheet = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+            const bersih = [];
+            rows.forEach(r => {
+                // Ambil kolom secara case-insensitive
+                const cari = (target) => {
+                    const key = Object.keys(r).find(k => k.trim().toLowerCase() === target);
+                    return key ? String(r[key]).trim() : "";
+                };
+                const nama = cari("nama");
+                const satuan = cari("satuan");
+                const kategori = cari("kategori");
+
+                if(nama !== ""){
+                    bersih.push({ nama, satuan_default: satuan, kategori });
+                }
+            });
+
+            if(bersih.length === 0){
+                statusEl.textContent = "Tidak ada baris valid ditemukan. Pastikan ada kolom 'nama'.";
+                statusEl.classList.add("err");
+                statusEl.style.display = "block";
+                document.getElementById("mb-preview-wrap").style.display = "none";
+                document.getElementById("mb-import-btn").disabled = true;
+                return;
+            }
+
+            masterBarangFileData = bersih;
+
+            const previewBody = document.getElementById("mb-preview-body");
+            previewBody.innerHTML = bersih.slice(0, 10).map((it, i) => `
+                <tr><td>${i + 1}</td><td>${it.nama}</td><td>${it.satuan_default || "-"}</td><td>${it.kategori || "-"}</td></tr>
+            `).join("");
+
+            document.getElementById("mb-preview-count").textContent =
+                `${bersih.length} barang terbaca dari file` + (bersih.length > 10 ? " (menampilkan 10 baris pertama sebagai contoh)." : ".");
+            document.getElementById("mb-preview-wrap").style.display = "block";
+            document.getElementById("mb-import-btn").disabled = false;
+
+        } catch(err){
+            statusEl.textContent = "Gagal membaca file: " + err.message;
+            statusEl.classList.add("err");
+            statusEl.style.display = "block";
+        }
+    };
+
+    reader.readAsArrayBuffer(file);
+
+}
+
+function slugBarang(nama){
+    return nama.toLowerCase().trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-+|-+$)/g, "")
+        .slice(0, 140);
+}
+
+window.importMasterBarangMassal = async function(){
+
+    const items = masterBarangFileData;
+    const statusEl = document.getElementById("mb-import-status");
+    const btn = document.getElementById("mb-import-btn");
+
+    if(!items || items.length === 0) return;
+
+    btn.disabled = true;
+    btn.textContent = "Mengimpor...";
+    statusEl.className = "form-msg";
+    statusEl.style.display = "block";
+
+    let sukses = 0;
+    let gagal = 0;
+    const ukuranBatch = 400; // aman di bawah limit 500 operasi per batch Firestore
+
+    for(let i = 0; i < items.length; i += ukuranBatch){
+
+        const chunk = items.slice(i, i + ukuranBatch);
+        const batch = writeBatch(db);
+        let jumlahDiBatchIni = 0;
+
+        chunk.forEach(it => {
+            const id = slugBarang(it.nama);
+            if(!id){ gagal++; return; }
+            const ref = doc(db, "master_barang", id);
+            batch.set(ref, {
+                nama: it.nama,
+                satuan_default: it.satuan_default || "",
+                kategori: it.kategori || "",
+                updated_at: serverTimestamp()
+            }, { merge: true });
+            jumlahDiBatchIni++;
+        });
+
+        try{
+            await batch.commit();
+            sukses += jumlahDiBatchIni;
+        } catch(err){
+            console.error("Gagal commit batch:", err);
+            gagal += jumlahDiBatchIni;
+        }
+
+        statusEl.textContent = `Mengimpor... ${Math.min(i + ukuranBatch, items.length)} / ${items.length}`;
+        statusEl.classList.remove("err", "ok");
+    }
+
+    statusEl.textContent = `Selesai. ${sukses} barang berhasil diimpor` + (gagal > 0 ? `, ${gagal} gagal.` : ".");
+    statusEl.className = "form-msg " + (sukses > 0 ? "ok" : "err");
+    statusEl.style.display = "block";
+
+    btn.disabled = false;
+    btn.textContent = "Import ke Firestore";
+
 }
 
 window.autoisiSatuan = function(id){
