@@ -467,154 +467,6 @@ table.tbl td{
 }
 
 .mb-counter strong{ color:#1565c0; }
-
-/* ============== CETAK / PRINT PERMINTAAN BARANG ============== */
-
-.btn-print{
-    background:#f4f6fa;
-    border:1px solid #e2e2e2;
-    color:#1565c0;
-    font-size:12px;
-    font-weight:600;
-    padding:6px 12px;
-    border-radius:7px;
-    cursor:pointer;
-}
-
-#print-area{ display:none; }
-
-.print-doc{
-    font-family:'Lexend', sans-serif;
-    color:#222;
-    max-width:800px;
-    margin:0 auto;
-}
-
-.print-doc .print-header{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    border-bottom:3px solid #1565c0;
-    padding-bottom:14px;
-    margin-bottom:18px;
-}
-
-.print-doc .print-header h1{
-    margin:0 0 4px;
-    font-size:19px;
-    color:#1565c0;
-}
-
-.print-doc .print-header p{
-    margin:0;
-    font-size:12px;
-    color:#666;
-}
-
-.print-doc .print-nopr{
-    text-align:right;
-}
-
-.print-doc .print-nopr .label{
-    font-size:11px;
-    color:#8d8d8d;
-    text-transform:uppercase;
-    letter-spacing:.4px;
-}
-
-.print-doc .print-nopr .value{
-    font-size:18px;
-    font-weight:700;
-    color:#1565c0;
-}
-
-.print-doc .print-info{
-    display:grid;
-    grid-template-columns:repeat(3, 1fr);
-    gap:12px 20px;
-    margin-bottom:20px;
-    font-size:12.5px;
-}
-
-.print-doc .print-info .label{
-    color:#8d8d8d;
-    font-size:10.5px;
-    text-transform:uppercase;
-    letter-spacing:.3px;
-    margin-bottom:2px;
-}
-
-.print-doc .print-info .value{
-    font-weight:600;
-}
-
-.print-doc table.print-items{
-    width:100%;
-    border-collapse:collapse;
-    margin-bottom:16px;
-    font-size:12.5px;
-}
-
-.print-doc table.print-items th{
-    background:#f4f6fa;
-    text-align:left;
-    padding:8px 10px;
-    border:1px solid #ddd;
-    font-size:11px;
-    text-transform:uppercase;
-    color:#555;
-}
-
-.print-doc table.print-items td{
-    padding:8px 10px;
-    border:1px solid #ddd;
-}
-
-.print-doc .print-total-row td{
-    font-weight:700;
-    background:#fafbfc;
-}
-
-.print-doc .print-keterangan{
-    font-size:12.5px;
-    margin-bottom:26px;
-}
-
-.print-doc .print-keterangan .label{
-    color:#8d8d8d;
-    font-size:10.5px;
-    text-transform:uppercase;
-    letter-spacing:.3px;
-    margin-bottom:3px;
-}
-
-.print-doc .print-signatures{
-    display:grid;
-    grid-template-columns:repeat(3, 1fr);
-    gap:16px;
-    margin-top:50px;
-    text-align:center;
-    font-size:12px;
-}
-
-.print-doc .print-signatures .sign-line{
-    margin-top:60px;
-    border-top:1px solid #333;
-    padding-top:6px;
-}
-
-@media print{
-    body *{ visibility:hidden; }
-    #print-area, #print-area *{ visibility:visible; }
-    #print-area{
-        display:block !important;
-        position:absolute;
-        top:0; left:0;
-        width:100%;
-        padding:20px;
-    }
-    @page{ margin:15mm; }
-}
 </style>
 </head>
 <body>
@@ -780,7 +632,6 @@ table.tbl td{
                                 <th>Barang</th>
                                 <th>Total Jumlah</th>
                                 <th>Status</th>
-                                <th style="width:70px;"></th>
                             </tr>
                         </thead>
                         <tbody id="pb-list-body"></tbody>
@@ -1497,20 +1348,16 @@ function pantauSemuaPermintaan(){
         if(snapshot.empty){
             tbody.innerHTML = "";
             emptyEl.style.display = "block";
-            semuaPermintaanMap = {};
             return;
         }
 
         emptyEl.style.display = "none";
 
         let html = "";
-        semuaPermintaanMap = {};
 
         snapshot.forEach((docSnap) => {
 
             const d = docSnap.data();
-            semuaPermintaanMap[docSnap.id] = d;
-
             const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
             const status = d.status || "menunggu";
             const labelStatus = status === "disetujui" ? "Disetujui" : (status === "ditolak" ? "Ditolak" : "Menunggu");
@@ -1527,7 +1374,6 @@ function pantauSemuaPermintaan(){
     <td>${ringkasBarang}</td>
     <td>${d.total_jumlah ?? "-"}</td>
     <td><span class="status-pill ${status}">${labelStatus}</span></td>
-    <td><button class="btn-print" type="button" onclick="cetakPermintaan('${docSnap.id}')">🖨️ Cetak</button></td>
 </tr>
 `;
 
@@ -1584,11 +1430,6 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 </script>
-
-<!-- ============================================= -->
-<!-- AREA CETAK (hanya tampil saat print, disi lewat JS) -->
-<!-- ============================================= -->
-<div id="print-area"></div>
 
 </body>
 </html>
