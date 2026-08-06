@@ -768,6 +768,13 @@ table.tbl td{
                         </p>
                     </div>
 
+                    <div class="form-group" style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+                        <input type="checkbox" id="mb-hapus-dulu" style="width:auto;">
+                        <label for="mb-hapus-dulu" style="margin:0; font-weight:500; font-size:12.5px; color:#555; cursor:pointer;">
+                            Hapus SEMUA data Master Barang yang lama sebelum import (pakai ini kalau file baru dimaksudkan jadi pengganti penuh)
+                        </label>
+                    </div>
+
                     <div class="mb-actions">
                         <button class="btn-primary" type="button" onclick="prosesFileMasterBarang()">Baca File</button>
                         <button class="btn-primary" type="button" id="mb-import-btn" onclick="importMasterBarangMassal()" disabled>Import ke Firestore</button>
@@ -854,6 +861,7 @@ import {
     getFirestore,
     doc,
     getDoc,
+    getDocs,
     collection,
     addDoc,
     query,
@@ -1142,11 +1150,32 @@ function slugBarang(nama){
         .slice(0, 140);
 }
 
+async function hapusSemuaMasterBarang(statusEl){
+
+    statusEl.textContent = "Menghapus data lama...";
+    statusEl.className = "form-msg";
+    statusEl.style.display = "block";
+
+    const snap = await getDocs(collection(db, "master_barang"));
+    const semuaDoc = snap.docs;
+    const ukuranBatch = 400;
+
+    for(let i = 0; i < semuaDoc.length; i += ukuranBatch){
+        const chunk = semuaDoc.slice(i, i + ukuranBatch);
+        const batch = writeBatch(db);
+        chunk.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+        statusEl.textContent = `Menghapus data lama... ${Math.min(i + ukuranBatch, semuaDoc.length)} / ${semuaDoc.length}`;
+    }
+
+}
+
 window.importMasterBarangMassal = async function(){
 
     const items = masterBarangFileData;
     const statusEl = document.getElementById("mb-import-status");
     const btn = document.getElementById("mb-import-btn");
+    const hapusDulu = document.getElementById("mb-hapus-dulu").checked;
 
     if(!items || items.length === 0) return;
 
@@ -1154,6 +1183,18 @@ window.importMasterBarangMassal = async function(){
     btn.textContent = "Mengimpor...";
     statusEl.className = "form-msg";
     statusEl.style.display = "block";
+
+    if(hapusDulu){
+        try{
+            await hapusSemuaMasterBarang(statusEl);
+        } catch(err){
+            statusEl.textContent = "Gagal menghapus data lama: " + err.message;
+            statusEl.className = "form-msg err";
+            btn.disabled = false;
+            btn.textContent = "Import ke Firestore";
+            return;
+        }
+    }
 
     let sukses = 0;
     let gagal = 0;
