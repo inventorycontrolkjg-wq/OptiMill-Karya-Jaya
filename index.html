@@ -339,36 +339,10 @@ table.tbl td{
     margin-bottom:14px;
 }
 
-.opb-note-grid{
-    display:grid;
-    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
-    gap:14px;
-    margin-bottom:22px;
-}
-
 @media (max-width:1100px){
     .opb-header-grid{ grid-template-columns:repeat(2,1fr); }
     .opb-kategori-grid{ grid-template-columns:repeat(2,1fr); }
-    .opb-note-grid{ grid-template-columns:1fr; }
 }
-
-.file-drop{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
-    border:1.5px dashed #cfd8e3;
-    border-radius:9px;
-    background:#fafbfc;
-    padding:18px 12px;
-    font-size:12.5px;
-    color:#8d8d8d;
-    cursor:pointer;
-    min-height:70px;
-}
-
-.file-drop small{ color:#b3b3b3; }
-.file-drop.has-file{ border-color:#1565c0; color:#1565c0; background:#f0f6fd; }
 
 .opb-items-header{
     display:flex;
@@ -599,18 +573,9 @@ table.tbl td{
                         </div>
                     </div>
 
-                    <div class="opb-note-grid">
-                        <div class="form-group">
-                            <label>Keterangan Tambahan</label>
-                            <textarea id="opb-keterangan" placeholder="Tambahkan keterangan (opsional)..."></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Lampiran (opsional)</label>
-                            <label class="file-drop" id="opb-lampiran-drop" for="opb-lampiran">
-                                <span id="opb-lampiran-label">📎 Klik atau pilih file di sini<br><small>PDF, JPG, PNG, Excel (Maks. 5MB)</small></span>
-                            </label>
-                            <input type="file" id="opb-lampiran" accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx" style="display:none;" onchange="pilihLampiran()">
-                        </div>
+                    <div class="form-group">
+                        <label>Keterangan Tambahan</label>
+                        <textarea id="opb-keterangan" placeholder="Tambahkan keterangan (opsional)..."></textarea>
                     </div>
 
                     <div class="opb-items-header">
@@ -822,12 +787,6 @@ import {
     runTransaction,
     writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import {
-    getStorage,
-    ref as storageRef,
-    uploadBytes,
-    getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 // =========================================================
 // GANTI BAGIAN INI DENGAN CONFIG DARI FIREBASE CONSOLE KAMU
@@ -845,7 +804,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app);
 
 // =========================================================
 // LOGIN
@@ -949,7 +907,6 @@ window.showPage = function(id){
 let unsubPermintaan = null;
 let unsubMasterBarang = null;
 let opbRowCount = 0;
-let opbFileTerpilih = null;
 let masterBarangMap = {};
 let masterBarangSatuanSet = new Set();
 
@@ -1229,24 +1186,6 @@ window.hitungTotalOpb = function(){
     document.getElementById("opb-total-jumlah").textContent = totalJumlah;
 }
 
-window.pilihLampiran = function(){
-    const input = document.getElementById("opb-lampiran");
-    const dropEl = document.getElementById("opb-lampiran-drop");
-    const labelEl = document.getElementById("opb-lampiran-label");
-
-    if(input.files && input.files[0]){
-        opbFileTerpilih = input.files[0];
-        if(opbFileTerpilih.size > 5 * 1024 * 1024){
-            alert("Ukuran file maksimal 5MB.");
-            input.value = "";
-            opbFileTerpilih = null;
-            return;
-        }
-        dropEl.classList.add("has-file");
-        labelEl.innerHTML = `📎 ${opbFileTerpilih.name}<br><small>Klik untuk ganti file</small>`;
-    }
-}
-
 // -------- No. PR: preview (tanpa nge-commit counter) & final (commit saat submit) --------
 async function previewNoPR(tahun){
     try{
@@ -1287,10 +1226,6 @@ function resetFormOpb(){
     document.getElementById("opb-kategori2").value = "";
     document.getElementById("opb-kategori3").value = "";
     document.getElementById("opb-keterangan").value = "";
-    document.getElementById("opb-lampiran").value = "";
-    document.getElementById("opb-lampiran-drop").classList.remove("has-file");
-    document.getElementById("opb-lampiran-label").innerHTML = "📎 Klik atau pilih file di sini<br><small>PDF, JPG, PNG, Excel (Maks. 5MB)</small>";
-    opbFileTerpilih = null;
     opbRowCount = 0;
     pantauMasterBarang();
     window.tambahBarisOpb();
@@ -1359,18 +1294,6 @@ window.ajukanPermintaan = async function(){
         const tahun = new Date(tanggal).getFullYear();
         const noPR = await generateNoPR(tahun);
 
-        let lampiranUrl = null;
-        if(opbFileTerpilih){
-            try{
-                const fileRef = storageRef(storage, `lampiran_permintaan/${noPR}/${opbFileTerpilih.name}`);
-                await uploadBytes(fileRef, opbFileTerpilih);
-                lampiranUrl = await getDownloadURL(fileRef);
-            } catch(uploadErr){
-                console.error("Gagal upload lampiran:", uploadErr);
-                // Permintaan tetap dilanjutkan tanpa lampiran kalau upload gagal
-            }
-        }
-
         await addDoc(collection(db, "permintaan_barang"), {
             no_pr: noPR,
             tanggal_input: tanggal,
@@ -1381,7 +1304,6 @@ window.ajukanPermintaan = async function(){
             kategori2: kategori2,
             kategori3: kategori3,
             keterangan: keterangan,
-            lampiran_url: lampiranUrl,
             items: items,
             total_item: items.length,
             total_jumlah: totalJumlah,
