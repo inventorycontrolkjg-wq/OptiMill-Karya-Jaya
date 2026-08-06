@@ -885,8 +885,31 @@ table.tbl td{
             </div>
 
             <div class="page" id="page-list-pengeluaran">
-                <div class="page-header"><h2>📃 List Pengeluaran</h2><p>Riwayat barang keluar dari gudang</p></div>
-                <div class="placeholder-panel"><div class="icon">📃</div><h3>Segera Hadir</h3><p>Modul list pengeluaran barang akan dibangun di tahap berikutnya.</p></div>
+
+                <div class="page-header">
+                    <h2>📃 List Pengeluaran</h2>
+                    <p>Riwayat barang keluar dari gudang (BKB)</p>
+                </div>
+
+                <div class="panel">
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>No. BKB</th>
+                                <th>Diambil Oleh</th>
+                                <th>Divisi</th>
+                                <th>Barang</th>
+                                <th>Total Jumlah</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bkb-list-body"></tbody>
+                    </table>
+                    <div class="empty-state" id="bkb-list-empty" style="display:none;">Belum ada barang yang keluar / diambil dari gudang.</div>
+                </div>
+
             </div>
 
             <div class="page" id="page-list-penerimaan">
@@ -1136,6 +1159,9 @@ window.showPage = function(id){
     }
     if(id === "list-permintaan"){
         pantauSemuaPermintaan();
+    }
+    if(id === "list-pengeluaran"){
+        pantauSemuaPengeluaran();
     }
     if(id === "input-pemakaian"){
         siapkanDropdownBkb();
@@ -1744,6 +1770,153 @@ window.cetakPermintaan = function(id){
         <div class="sign-box">Dibuat oleh<div class="line">${d.pembuat || "-"}</div></div>
         <div class="sign-box">Diketahui / Disetujui<div class="line">Pimpinan</div></div>
         <div class="sign-box">Diterima<div class="line">Purchasing</div></div>
+    </div>
+
+    <div class="print-footer-note">Dicetak dari sistem Purchasing &amp; Finance - ${new Date().toLocaleString("id-ID")}</div>
+
+</div>`;
+
+    document.getElementById("print-area").innerHTML = html;
+    document.body.classList.add("printing-mode");
+
+    window.print();
+
+    setTimeout(() => {
+        document.body.classList.remove("printing-mode");
+    }, 500);
+
+}
+
+// -------- List Pengeluaran (semua BKB, bukan cuma milik sendiri) --------
+let unsubPengeluaran = null;
+let semuaPengeluaranMap = {};
+
+function pantauSemuaPengeluaran(){
+
+    if(unsubPengeluaran) unsubPengeluaran();
+
+    const q = query(
+        collection(db, "pengambilan_barang"),
+        orderBy("created_at", "desc")
+    );
+
+    unsubPengeluaran = onSnapshot(q, (snapshot) => {
+
+        const tbody = document.getElementById("bkb-list-body");
+        const emptyEl = document.getElementById("bkb-list-empty");
+
+        if(snapshot.empty){
+            tbody.innerHTML = "";
+            emptyEl.style.display = "block";
+            return;
+        }
+
+        emptyEl.style.display = "none";
+
+        let html = "";
+        semuaPengeluaranMap = {};
+
+        snapshot.forEach((docSnap) => {
+
+            const d = docSnap.data();
+            semuaPengeluaranMap[docSnap.id] = d;
+
+            const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : (d.tanggal || "-");
+            const status = d.status || "submit";
+            const labelStatus = status === "draft" ? "Draft" : "Submitted";
+
+            const items = d.items || [];
+            let ringkasBarang = items.length ? items[0].nama_barang : "-";
+            if(items.length > 1) ringkasBarang += ` +${items.length - 1} lainnya`;
+
+            html += `
+<tr>
+    <td>${tgl}</td>
+    <td>${d.no_bkb || "-"}</td>
+    <td>${d.nama_user || d.dibuat_oleh_email || "-"}</td>
+    <td>${d.divisi || "-"}</td>
+    <td>${ringkasBarang}</td>
+    <td>${d.total_jumlah ?? "-"}</td>
+    <td><span class="status-pill ${status === 'draft' ? 'menunggu' : 'disetujui'}">${labelStatus}</span></td>
+    <td><button class="btn-icon-print" type="button" onclick="cetakBKB('${docSnap.id}')">🖨️ Cetak</button></td>
+</tr>
+`;
+
+        });
+
+        tbody.innerHTML = html;
+
+    }, (err) => {
+        console.error("Gagal memuat data pengeluaran:", err);
+    });
+
+}
+
+// -------- Cetak dokumen BKB (mirip cetak permintaan) --------
+window.cetakBKB = function(id){
+
+    const d = semuaPengeluaranMap[id];
+    if(!d){
+        alert("Data tidak ditemukan, coba refresh halaman.");
+        return;
+    }
+
+    const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"long", year:"numeric" }) : (d.tanggal || "-");
+    const status = d.status || "submit";
+    const labelStatus = status === "draft" ? "Draft" : "Submitted";
+    const items = d.items || [];
+
+    const baris = items.map((it, i) => `
+<tr>
+    <td class="num">${i + 1}</td>
+    <td>${it.nama_barang || "-"}</td>
+    <td class="num">${it.jumlah ?? "-"}</td>
+    <td class="num">${it.satuan || "-"}</td>
+    <td class="num">${it.stok_saat_ini ?? "-"}</td>
+</tr>`).join("");
+
+    const html = `
+<div class="print-doc">
+
+    <div class="print-head">
+        <div>
+            <h1>OptiMill Karya Jaya</h1>
+            <p>Bukti Kirim / Keluar Barang (BKB)</p>
+        </div>
+        <div class="print-nopr">
+            <div class="label">No. BKB</div>
+            <div class="value">${d.no_bkb || "-"}</div>
+        </div>
+    </div>
+
+    <div class="print-info-grid">
+        <div><span class="lbl">Tanggal</span><span class="val">${tgl}</span></div>
+        <div><span class="lbl">Jam</span><span class="val">${d.jam || "-"}</span></div>
+        <div><span class="lbl">Nama User</span><span class="val">${d.nama_user || "-"}</span></div>
+        <div><span class="lbl">Status</span><span class="val">${labelStatus}</span></div>
+        <div><span class="lbl">Divisi</span><span class="val">${d.divisi || "-"}</span></div>
+        <div><span class="lbl">Untuk</span><span class="val">${d.untuk || "-"}</span></div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width:34px;">No</th>
+                <th>Nama Barang</th>
+                <th style="width:90px;">Jumlah</th>
+                <th style="width:80px;">Satuan</th>
+                <th style="width:100px;">Stock Saat Ini</th>
+            </tr>
+        </thead>
+        <tbody>${baris}</tbody>
+    </table>
+
+    <div class="print-totals">Total Item: ${d.total_item ?? items.length} &nbsp; | &nbsp; Total Jumlah: ${d.total_jumlah ?? "-"}</div>
+
+    <div class="print-sign-grid">
+        <div class="sign-box">Diambil oleh<div class="line">${d.nama_user || "-"}</div></div>
+        <div class="sign-box">Diketahui / Disetujui<div class="line">Kepala Gudang</div></div>
+        <div class="sign-box">Diserahkan oleh<div class="line">Gudang</div></div>
     </div>
 
     <div class="print-footer-note">Dicetak dari sistem Purchasing &amp; Finance - ${new Date().toLocaleString("id-ID")}</div>
