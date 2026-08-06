@@ -538,6 +538,87 @@ table.tbl td{
 }
 
 .mb-counter strong{ color:#1565c0; }
+
+/* ============== MODUL: FORM PENGAMBILAN BARANG / BKB ============== */
+
+.field-icon-wrap{ position:relative; }
+.field-icon-wrap input{ padding-right:34px; }
+.field-icon-wrap .field-icon{
+    position:absolute;
+    right:12px;
+    top:50%;
+    transform:translateY(-50%);
+    font-size:14px;
+    color:#8d8d8d;
+    pointer-events:none;
+}
+
+.bkb-section-title{
+    font-size:14px;
+    font-weight:700;
+    margin:0 0 14px;
+    color:#222;
+}
+
+.bkb-stok-value{ color:#2e7d32; font-weight:700; }
+.bkb-stok-value.kosong{ color:#9a9a9a; font-weight:500; }
+
+.btn-remove-filled{
+    background:#e53935;
+    color:#fff;
+    border:none;
+    border-radius:7px;
+    width:32px;
+    height:32px;
+    cursor:pointer;
+    font-size:13px;
+}
+.btn-remove-filled:hover{ background:#c62828; }
+
+.btn-outline{
+    background:#fff;
+    border:1px solid #cfd8e3;
+    color:#444;
+    font-size:13px;
+    font-weight:600;
+    padding:11px 20px;
+    border-radius:9px;
+    cursor:pointer;
+}
+.btn-outline:hover{ background:#f4f6fa; }
+.btn-outline:disabled{ color:#aaa; cursor:not-allowed; }
+
+.btn-success{
+    background:#2e7d32;
+    color:#fff;
+    border:none;
+    font-size:13px;
+    font-weight:600;
+    padding:11px 20px;
+    border-radius:9px;
+    cursor:pointer;
+}
+.btn-success:hover{ background:#256428; }
+.btn-success:disabled{ background:#a5c9a8; cursor:not-allowed; }
+
+.bkb-actions-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:18px;
+    flex-wrap:wrap;
+    gap:12px;
+}
+
+.bkb-actions-row .bkb-actions-right{
+    display:flex;
+    gap:10px;
+}
+
+@media (max-width:640px){
+    .bkb-actions-row{ flex-direction:column; align-items:stretch; }
+    .bkb-actions-row .bkb-actions-right{ flex-direction:column; }
+}
 </style>
 </head>
 <body>
@@ -714,11 +795,88 @@ table.tbl td{
             </div>
 
             <!-- ============================================= -->
-            <!-- GUDANG: PLACEHOLDER MODUL LAIN -->
+            <!-- GUDANG: FORM PENGAMBILAN BARANG / BKB -->
             <!-- ============================================= -->
             <div class="page" id="page-input-pemakaian">
-                <div class="page-header"><h2>📤 Input Pemakaian</h2><p>Catat pemakaian barang dari gudang</p></div>
-                <div class="placeholder-panel"><div class="icon">📤</div><h3>Segera Hadir</h3><p>Modul input pemakaian barang akan dibangun di tahap berikutnya.</p></div>
+
+                <div class="page-header">
+                    <h2>📋 Form Pengambilan Barang (BKB)</h2>
+                    <p>Catat pengambilan / pemakaian barang dari gudang</p>
+                </div>
+
+                <div class="panel">
+
+                    <div class="form-msg" id="bkb-msg"></div>
+
+                    <h3 class="bkb-section-title">Informasi Umum</h3>
+
+                    <div class="opb-header-grid">
+                        <div class="form-group">
+                            <label>No BKB</label>
+                            <div class="field-icon-wrap">
+                                <input type="text" id="bkb-no" disabled>
+                                <span class="field-icon">🔒</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Tanggal</label>
+                            <div class="field-icon-wrap">
+                                <input type="date" id="bkb-tanggal" disabled>
+                                <span class="field-icon">📅</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Jam</label>
+                            <div class="field-icon-wrap">
+                                <input type="text" id="bkb-jam" disabled>
+                                <span class="field-icon">🕐</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Nama User</label>
+                            <select id="bkb-nama-user" disabled></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Divisi</label>
+                            <select id="bkb-divisi"></select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Untuk</label>
+                        <textarea id="bkb-untuk" placeholder="Contoh: Perbaikan Mesin Packing"></textarea>
+                    </div>
+
+                    <div class="opb-items-header">
+                        <h3 class="bkb-section-title" style="margin:0;">Detail Barang</h3>
+                    </div>
+
+                    <table class="tbl opb-items-table">
+                        <thead>
+                            <tr>
+                                <th style="width:34px;">No</th>
+                                <th>Nama Barang</th>
+                                <th style="width:110px;">Jumlah</th>
+                                <th style="width:90px;">Satuan</th>
+                                <th style="width:130px;">Stok Saat Ini</th>
+                                <th style="width:60px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bkb-items-body"></tbody>
+                    </table>
+
+                    <button class="btn-secondary" type="button" onclick="tambahBarisBkb()">+ Tambah Barang</button>
+
+                    <div class="bkb-actions-row">
+                        <div></div>
+                        <div class="bkb-actions-right">
+                            <button class="btn-outline" type="button" id="bkb-draft" onclick="simpanDraftBkb()">↻ Simpan Draft</button>
+                            <button class="btn-success" type="button" id="bkb-submit" onclick="submitPengambilanBarang()">➤ Submit Permintaan</button>
+                        </div>
+                    </div>
+
+                </div>
+
             </div>
 
             <div class="page" id="page-input-penerimaan">
@@ -933,7 +1091,7 @@ window.logout = function(){
 const NAV_ITEMS = {
     gudang: [
         { id:"input-permintaan", label:"📝 Input Permintaan" },
-        { id:"input-pemakaian", label:"📤 Input Pemakaian" },
+        { id:"input-pemakaian", label:"📤 Pengambilan Barang (BKB)" },
         { id:"input-penerimaan", label:"📥 Input Penerimaan" },
         { id:"list-permintaan", label:"📋 List Permintaan" },
         { id:"list-pengeluaran", label:"📃 List Pengeluaran" },
@@ -978,6 +1136,13 @@ window.showPage = function(id){
     }
     if(id === "list-permintaan"){
         pantauSemuaPermintaan();
+    }
+    if(id === "input-pemakaian"){
+        siapkanDropdownBkb();
+        pantauMasterBarang();
+        resetFormBkb();
+    } else {
+        hentikanJamBkb();
     }
     if(id === "import-master-barang"){
         pantauMasterBarang();
@@ -1042,11 +1207,13 @@ function pantauMasterBarang(){
     const q = query(collection(db, "master_barang"), orderBy("nama"));
     unsubMasterBarang = onSnapshot(q, (snap) => {
         masterBarangMap = {};
+        masterBarangStokMap = {};
         masterBarangSatuanSet = new Set();
         let optionsHtml = "";
         snap.forEach(docSnap => {
             const d = docSnap.data();
             masterBarangMap[d.nama] = d.satuan_default || "";
+            masterBarangStokMap[d.nama] = (d.stok !== undefined ? d.stok : null);
             if(d.satuan_default) masterBarangSatuanSet.add(d.satuan_default.trim());
             optionsHtml += `<option value="${d.nama}"></option>`;
         });
@@ -1595,6 +1762,275 @@ window.cetakPermintaan = function(id){
 }
 
 // =========================================================
+// MODUL GUDANG: FORM PENGAMBILAN BARANG / BKB
+// =========================================================
+let bkbRowCount = 0;
+let currentUserNama = "";
+let currentUserDivisiDefault = "";
+let masterBarangStokMap = {};
+let bkbJamInterval = null;
+
+function siapkanDropdownBkb(){
+    isiSelect("bkb-divisi", OPB_DIVISI, "Pilih divisi");
+    if(currentUserDivisiDefault) document.getElementById("bkb-divisi").value = currentUserDivisiDefault;
+
+    const userSelect = document.getElementById("bkb-nama-user");
+    const nama = currentUserNama || (auth.currentUser ? auth.currentUser.email : "");
+    userSelect.innerHTML = `<option value="${nama}">${nama}</option>`;
+    userSelect.value = nama;
+}
+
+function jalankanJamBkb(){
+    const jamEl = document.getElementById("bkb-jam");
+    if(!jamEl) return;
+    const update = () => {
+        jamEl.value = new Date().toLocaleTimeString("id-ID", { hour12:false });
+    };
+    update();
+    hentikanJamBkb();
+    bkbJamInterval = setInterval(update, 1000);
+}
+
+function hentikanJamBkb(){
+    if(bkbJamInterval){
+        clearInterval(bkbJamInterval);
+        bkbJamInterval = null;
+    }
+}
+
+function buatBarisBkbHTML(id){
+    return `
+        <tr id="bkb-row-${id}">
+            <td class="bkb-row-no">-</td>
+            <td><input type="text" id="bkb-nama-${id}" list="master-barang-datalist" placeholder="Nama barang" oninput="autoisiSatuanBkb(${id})"></td>
+            <td><input type="number" min="1" id="bkb-jumlah-${id}" oninput="hitungTotalBkb()"></td>
+            <td><select id="bkb-satuan-${id}" disabled><option value="">-</option></select></td>
+            <td id="bkb-stok-${id}"><span class="bkb-stok-value kosong">-</span></td>
+            <td><button class="btn-remove-filled" type="button" onclick="hapusBarisBkb(${id})" title="Hapus baris">🗑️</button></td>
+        </tr>
+    `;
+}
+
+function nomoriUlangBarisBkb(){
+    const rows = document.querySelectorAll("#bkb-items-body tr");
+    rows.forEach((row, i) => {
+        row.querySelector(".bkb-row-no").textContent = i + 1;
+    });
+}
+
+window.tambahBarisBkb = function(){
+    bkbRowCount++;
+    document.getElementById("bkb-items-body").insertAdjacentHTML("beforeend", buatBarisBkbHTML(bkbRowCount));
+    nomoriUlangBarisBkb();
+}
+
+window.hapusBarisBkb = function(id){
+    const row = document.getElementById(`bkb-row-${id}`);
+    if(row) row.remove();
+    nomoriUlangBarisBkb();
+    hitungTotalBkb();
+}
+
+window.autoisiSatuanBkb = function(id){
+    const namaEl = document.getElementById(`bkb-nama-${id}`);
+    const satuanEl = document.getElementById(`bkb-satuan-${id}`);
+    const stokEl = document.getElementById(`bkb-stok-${id}`);
+    const nama = namaEl.value.trim();
+    const satuanDefault = masterBarangMap[nama];
+
+    if(!nama || satuanDefault === undefined){
+        satuanEl.innerHTML = `<option value="">-</option>`;
+        satuanEl.value = "";
+        stokEl.innerHTML = `<span class="bkb-stok-value kosong">-</span>`;
+        return;
+    }
+
+    const satuanBersih = (satuanDefault || "").trim();
+    satuanEl.innerHTML = satuanBersih
+        ? `<option value="${satuanBersih}">${satuanBersih}</option>`
+        : `<option value="">-</option>`;
+    satuanEl.value = satuanBersih;
+
+    const stok = masterBarangStokMap[nama];
+    if(stok === undefined || stok === null || stok === ""){
+        stokEl.innerHTML = `<span class="bkb-stok-value kosong">-</span>`;
+    } else {
+        stokEl.innerHTML = `<span class="bkb-stok-value">${stok} ${satuanBersih}</span>`;
+    }
+}
+
+window.hitungTotalBkb = function(){
+    // Total dihitung untuk disimpan ke database (tidak ditampilkan di form, mengikuti tampilan referensi)
+}
+
+function ambilItemBkb(){
+    const rows = document.querySelectorAll("#bkb-items-body tr");
+    const items = [];
+    let totalJumlah = 0;
+
+    rows.forEach(row => {
+        const id = row.id.replace("bkb-row-", "");
+        const nama = document.getElementById(`bkb-nama-${id}`).value.trim();
+        const jumlah = document.getElementById(`bkb-jumlah-${id}`).value;
+        const satuan = document.getElementById(`bkb-satuan-${id}`).value;
+        const stok = masterBarangStokMap[nama];
+
+        if(nama !== "" && jumlah !== ""){
+            const jml = Number(jumlah);
+            items.push({
+                nama_barang: nama,
+                jumlah: jml,
+                satuan: satuan,
+                stok_saat_ini: (stok === undefined || stok === null || stok === "") ? null : Number(stok)
+            });
+            totalJumlah += jml;
+        }
+    });
+
+    return { items, totalJumlah };
+}
+
+// -------- No. BKB: preview (tanpa nge-commit counter) & final (commit saat submit) --------
+async function previewNoBKB(tahun){
+    try{
+        const counterRef = doc(db, "counters", `bkb_${tahun}`);
+        const snap = await getDoc(counterRef);
+        const next = snap.exists() ? (snap.data().terakhir || 0) + 1 : 1;
+        return `BKB-${tahun}-${String(next).padStart(4, "0")}`;
+    } catch(e){
+        return `BKB-${tahun}-????`;
+    }
+}
+
+async function generateNoBKB(tahun){
+    const counterRef = doc(db, "counters", `bkb_${tahun}`);
+    const nomorBerikutnya = await runTransaction(db, async (tx) => {
+        const snap = await tx.get(counterRef);
+        const next = snap.exists() ? (snap.data().terakhir || 0) + 1 : 1;
+        tx.set(counterRef, { terakhir: next }, { merge: true });
+        return next;
+    });
+    return `BKB-${tahun}-${String(nomorBerikutnya).padStart(4, "0")}`;
+}
+
+function resetFormBkb(){
+    document.getElementById("bkb-items-body").innerHTML = "";
+    document.getElementById("bkb-untuk").value = "";
+
+    const today = new Date();
+    document.getElementById("bkb-tanggal").value = today.toISOString().slice(0,10);
+
+    jalankanJamBkb();
+
+    const tahun = today.getFullYear();
+    previewNoBKB(tahun).then(no => {
+        document.getElementById("bkb-no").value = no;
+    });
+
+    bkbRowCount = 0;
+    window.tambahBarisBkb();
+
+    const msgEl = document.getElementById("bkb-msg");
+    msgEl.style.display = "none";
+    msgEl.className = "form-msg";
+}
+
+function validasiFormBkb(){
+    const divisi = document.getElementById("bkb-divisi").value;
+    const untuk = document.getElementById("bkb-untuk").value.trim();
+    const { items } = ambilItemBkb();
+
+    if(divisi === "" || untuk === ""){
+        return "Divisi dan Untuk wajib diisi.";
+    }
+    if(items.length === 0){
+        return "Isi minimal satu barang (nama barang dan jumlah wajib diisi).";
+    }
+    return null;
+}
+
+async function simpanBkb(status){
+
+    const msgEl = document.getElementById("bkb-msg");
+    const btnDraft = document.getElementById("bkb-draft");
+    const btnSubmit = document.getElementById("bkb-submit");
+
+    msgEl.style.display = "none";
+    msgEl.className = "form-msg";
+
+    const errorPesan = validasiFormBkb();
+    if(errorPesan){
+        msgEl.textContent = errorPesan;
+        msgEl.classList.add("err");
+        msgEl.style.display = "block";
+        return;
+    }
+
+    const tanggal = document.getElementById("bkb-tanggal").value;
+    const jam = document.getElementById("bkb-jam").value;
+    const namaUser = document.getElementById("bkb-nama-user").value;
+    const divisi = document.getElementById("bkb-divisi").value;
+    const untuk = document.getElementById("bkb-untuk").value.trim();
+    const { items, totalJumlah } = ambilItemBkb();
+
+    btnDraft.disabled = true;
+    btnSubmit.disabled = true;
+    const tombolAktif = status === "draft" ? btnDraft : btnSubmit;
+    const labelAsli = tombolAktif.textContent;
+    tombolAktif.textContent = "Menyimpan...";
+
+    try{
+
+        const tahun = new Date(tanggal).getFullYear();
+        const noBKB = await generateNoBKB(tahun);
+
+        await addDoc(collection(db, "pengambilan_barang"), {
+            no_bkb: noBKB,
+            tanggal: tanggal,
+            jam: jam,
+            nama_user: namaUser,
+            divisi: divisi,
+            untuk: untuk,
+            items: items,
+            total_item: items.length,
+            total_jumlah: totalJumlah,
+            status: status,
+            dibuat_oleh_uid: auth.currentUser.uid,
+            dibuat_oleh_email: auth.currentUser.email,
+            created_at: serverTimestamp()
+        });
+
+        msgEl.textContent = status === "draft"
+            ? `Draft ${noBKB} berhasil disimpan.`
+            : `Permintaan ${noBKB} berhasil diajukan.`;
+        msgEl.classList.add("ok");
+        msgEl.style.display = "block";
+
+        resetFormBkb();
+        siapkanDropdownBkb();
+
+    } catch(e){
+        msgEl.textContent = "Gagal menyimpan: " + e.message;
+        msgEl.classList.add("err");
+        msgEl.style.display = "block";
+    } finally {
+        btnDraft.disabled = false;
+        btnSubmit.disabled = false;
+        btnDraft.textContent = "↻ Simpan Draft";
+        btnSubmit.textContent = "➤ Submit Permintaan";
+    }
+
+}
+
+window.simpanDraftBkb = function(){
+    simpanBkb("draft");
+}
+
+window.submitPengambilanBarang = function(){
+    simpanBkb("diajukan");
+}
+
+// =========================================================
 // PANTAU STATUS LOGIN & TAMPILKAN DASHBOARD SESUAI ROLE
 // =========================================================
 onAuthStateChanged(auth, async (user) => {
@@ -1612,6 +2048,10 @@ onAuthStateChanged(auth, async (user) => {
         // Ambil role dari koleksi Firestore: users/{uid}
         const snap = await getDoc(doc(db, "users", user.uid));
         const role = snap.exists() ? snap.data().role : null;
+        const dataUser = snap.exists() ? snap.data() : {};
+
+        currentUserNama = dataUser.nama || user.email;
+        currentUserDivisiDefault = dataUser.divisi || "";
 
         document.getElementById("user-role-badge").textContent = role || "belum diatur";
 
