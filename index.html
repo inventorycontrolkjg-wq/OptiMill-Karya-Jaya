@@ -1954,7 +1954,12 @@ window.prosesFileMasterBarang = function(){
                 const nama = cari("nama");
                 const satuan = cari("satuan");
                 const kategori = cari("kategori");
-                const stokMentah = cari("stok");
+                // Terima berbagai nama kolom stok: "stok", "stock", "stock awal", "stok awal", dst.
+                const kolomStok = Object.keys(r).find(k => {
+                    const kl = k.trim().toLowerCase();
+                    return kl.includes("stok") || kl.includes("stock");
+                });
+                const stokMentah = kolomStok ? String(r[kolomStok]).trim() : "";
                 const stok = stokMentah !== "" && !isNaN(Number(stokMentah)) ? Number(stokMentah) : null;
                 // Terima berbagai nama kolom barcode: "barcode", "code barcode", "kode barcode", dst.
                 const kolomBarcode = Object.keys(r).find(k => k.trim().toLowerCase().includes("barcode"));
