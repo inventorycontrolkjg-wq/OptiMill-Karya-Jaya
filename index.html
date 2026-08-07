@@ -619,6 +619,121 @@ table.tbl td{
     .bkb-actions-row{ flex-direction:column; align-items:stretch; }
     .bkb-actions-row .bkb-actions-right{ flex-direction:column; }
 }
+
+/* ============== BARCODE SCAN FIELD ============== */
+
+.bkb-barcode-status{
+    font-size:11.5px;
+    margin-top:5px;
+    min-height:15px;
+}
+.bkb-barcode-status.ok{ color:#2e7d32; }
+.bkb-barcode-status.err{ color:#c62828; }
+
+.opb-items-table .btn-barcode-cell input{
+    font-family:'Lexend',sans-serif;
+}
+
+.bkb-namabarang-cell, .bkb-satuan-cell, .bkb-stok-cell{
+    font-size:12.5px;
+}
+.bkb-namabarang-cell.kosong, .bkb-satuan-cell.kosong, .bkb-stok-cell.kosong{
+    color:#b0b0b0;
+}
+
+/* ============== TANDA TANGAN (SIGNATURE) ============== */
+
+.btn-ttd{
+    background:#fff;
+    border:1.5px dashed #cfd8e3;
+    color:#1565c0;
+    font-size:11.5px;
+    font-weight:600;
+    padding:8px 10px;
+    border-radius:8px;
+    cursor:pointer;
+    white-space:nowrap;
+    width:100%;
+}
+.btn-ttd:hover{ background:#f4f6fa; }
+
+.ttd-thumb-wrap{
+    display:flex;
+    align-items:center;
+    gap:6px;
+}
+
+.ttd-thumb{
+    width:52px;
+    height:30px;
+    object-fit:contain;
+    border:1px solid #e2e2e2;
+    border-radius:6px;
+    background:#fff;
+    cursor:pointer;
+}
+
+.ttd-thumb-edit{
+    font-size:10.5px;
+    color:#1565c0;
+    cursor:pointer;
+    font-weight:600;
+    text-decoration:underline;
+}
+
+.ttd-modal-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(20,25,35,.55);
+    z-index:999;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+}
+.ttd-modal-overlay.active{ display:flex; }
+
+.ttd-modal-box{
+    background:#fff;
+    border-radius:16px;
+    width:100%;
+    max-width:460px;
+    padding:22px;
+}
+
+.ttd-modal-box h3{ margin:0 0 4px; font-size:15px; }
+.ttd-modal-box p.sub{ margin:0 0 14px; font-size:12px; color:#8d8d8d; }
+
+.ttd-canvas-wrap{
+    border:1.5px dashed #cfd8e3;
+    border-radius:10px;
+    background:#fafbfc;
+    margin-bottom:14px;
+    touch-action:none;
+}
+
+#ttd-canvas{
+    width:100%;
+    height:200px;
+    display:block;
+    cursor:crosshair;
+    border-radius:10px;
+}
+
+.ttd-modal-actions{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+.ttd-modal-actions .ttd-left{ display:flex; gap:10px; }
+
+.ttd-modal-actions button{
+    width:auto;
+    padding:10px 16px;
+    font-size:12.5px;
+}
 </style>
 </head>
 <body>
@@ -821,7 +936,7 @@ table.tbl td{
                         <div class="form-group">
                             <label>Tanggal</label>
                             <div class="field-icon-wrap">
-                                <input type="date" id="bkb-tanggal" disabled>
+                                <input type="text" id="bkb-tanggal" disabled>
                                 <span class="field-icon">📅</span>
                             </div>
                         </div>
@@ -833,9 +948,20 @@ table.tbl td{
                             </div>
                         </div>
                         <div class="form-group">
-                            <label>Nama User</label>
-                            <select id="bkb-nama-user" disabled></select>
+                            <label>Barcode ID Card</label>
+                            <div class="field-icon-wrap">
+                                <input type="text" id="bkb-barcode-user" placeholder="Scan ID card..." autocomplete="off" onkeydown="handleBarcodeUserKeydown(event)">
+                                <span class="field-icon">📇</span>
+                            </div>
+                            <div class="bkb-barcode-status" id="bkb-barcode-user-status"></div>
                         </div>
+                        <div class="form-group">
+                            <label>Nama User</label>
+                            <input type="text" id="bkb-nama-user" placeholder="- (scan ID card dulu)" disabled>
+                        </div>
+                    </div>
+
+                    <div class="opb-header-grid" style="grid-template-columns:repeat(3, minmax(0,1fr));">
                         <div class="form-group">
                             <label>Divisi</label>
                             <select id="bkb-divisi"></select>
@@ -855,11 +981,14 @@ table.tbl td{
                         <thead>
                             <tr>
                                 <th style="width:34px;">No</th>
+                                <th style="width:130px;">Barcode</th>
                                 <th>Nama Barang</th>
-                                <th style="width:110px;">Jumlah</th>
-                                <th style="width:90px;">Satuan</th>
-                                <th style="width:130px;">Stok Saat Ini</th>
-                                <th style="width:60px;">Aksi</th>
+                                <th style="width:90px;">Jumlah</th>
+                                <th style="width:80px;">Satuan</th>
+                                <th style="width:110px;">Stok Saat Ini</th>
+                                <th style="width:90px;">Tanda Tangan User</th>
+                                <th style="width:90px;">TTD Gudang</th>
+                                <th style="width:50px;">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="bkb-items-body"></tbody>
@@ -945,7 +1074,7 @@ table.tbl td{
                         <input type="file" id="mb-file" accept=".csv,.xlsx,.xls">
                         <p class="mb-hint">
                             Baris pertama file harus jadi <b>header kolom</b>, minimal ada kolom <code>nama</code> dan <code>satuan</code>.
-                            Kolom <code>kategori</code> boleh ditambahkan (opsional). Nama kolom tidak case-sensitive.
+                            Kolom <code>kategori</code> dan <code>barcode</code> boleh ditambahkan (opsional). Nama kolom tidak case-sensitive.
                         </p>
                     </div>
 
@@ -968,9 +1097,60 @@ table.tbl td{
                         <p class="mb-hint" id="mb-preview-count"></p>
                         <table class="tbl">
                             <thead>
-                                <tr><th style="width:34px;">No</th><th>Nama</th><th>Satuan</th><th>Kategori</th></tr>
+                                <tr><th style="width:34px;">No</th><th>Nama</th><th>Satuan</th><th>Kategori</th><th>Barcode</th></tr>
                             </thead>
                             <tbody id="mb-preview-body"></tbody>
+                        </table>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- ============================================= -->
+            <!-- GUDANG: IMPORT MASTER KARYAWAN -->
+            <!-- ============================================= -->
+            <div class="page" id="page-import-master-karyawan">
+
+                <div class="page-header">
+                    <h2>📥 Import Master Karyawan</h2>
+                    <p>Upload file Excel/CSV berisi daftar karyawan &amp; barcode ID card untuk fitur scan di Form Pengambilan Barang</p>
+                </div>
+
+                <div class="panel">
+
+                    <div class="mb-counter">Total karyawan di Master Karyawan saat ini: <strong id="mk-total-count">-</strong></div>
+
+                    <div class="mb-upload-box">
+                        <input type="file" id="mk-file" accept=".csv,.xlsx,.xls">
+                        <p class="mb-hint">
+                            Baris pertama file harus jadi <b>header kolom</b>, minimal ada kolom <code>nama</code> dan <code>barcode</code>.
+                            Kolom <code>bagian</code> (dipakai sebagai Divisi) dan <code>id card</code> boleh ditambahkan (opsional). Nama kolom tidak case-sensitive.
+                        </p>
+                    </div>
+
+                    <div class="form-group" style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+                        <input type="checkbox" id="mk-hapus-dulu" style="width:auto;">
+                        <label for="mk-hapus-dulu" style="margin:0; font-weight:500; font-size:12.5px; color:#555; cursor:pointer;">
+                            Hapus SEMUA data Master Karyawan yang lama sebelum import (pakai ini kalau file baru dimaksudkan jadi pengganti penuh)
+                        </label>
+                    </div>
+
+                    <div class="mb-actions">
+                        <button class="btn-primary" type="button" onclick="prosesFileMasterKaryawan()">Baca File</button>
+                        <button class="btn-primary" type="button" id="mk-import-btn" onclick="importMasterKaryawanMassal()" disabled>Import ke Firestore</button>
+                    </div>
+
+                    <div class="form-msg" id="mk-parse-status"></div>
+                    <div class="form-msg" id="mk-import-status"></div>
+
+                    <div id="mk-preview-wrap" style="display:none; margin-top:18px;">
+                        <p class="mb-hint" id="mk-preview-count"></p>
+                        <table class="tbl">
+                            <thead>
+                                <tr><th style="width:34px;">No</th><th>Bagian</th><th>Nama</th><th>ID Card</th><th>Barcode</th></tr>
+                            </thead>
+                            <tbody id="mk-preview-body"></tbody>
                         </table>
                     </div>
 
@@ -1027,6 +1207,26 @@ table.tbl td{
 <div id="print-area"></div>
 
 <!-- ============================================= -->
+<!-- MODAL TANDA TANGAN -->
+<!-- ============================================= -->
+<div class="ttd-modal-overlay" id="ttd-modal-overlay">
+    <div class="ttd-modal-box">
+        <h3 id="ttd-modal-title">Tanda Tangan</h3>
+        <p class="sub" id="ttd-modal-sub">Gambar tanda tangan di area bawah ini menggunakan mouse / jari / stylus.</p>
+        <div class="ttd-canvas-wrap">
+            <canvas id="ttd-canvas"></canvas>
+        </div>
+        <div class="ttd-modal-actions">
+            <div class="ttd-left">
+                <button class="btn-outline" type="button" onclick="bersihkanTtdCanvas()">Bersihkan</button>
+                <button class="btn-outline" type="button" onclick="tutupTtdModal()">Batal</button>
+            </div>
+            <button class="btn-success" type="button" onclick="simpanTtdCanvas()">✓ Simpan Tanda Tangan</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================= -->
 <!-- FIREBASE -->
 <!-- ============================================= -->
 <script type="module">
@@ -1048,6 +1248,7 @@ import {
     query,
     where,
     orderBy,
+    limit,
     onSnapshot,
     serverTimestamp,
     runTransaction,
@@ -1121,7 +1322,8 @@ const NAV_ITEMS = {
         { id:"list-penerimaan", label:"📃 List Penerimaan" },
         { id:"history", label:"🕒 History Keluar/Masuk" },
         { id:"inventory-control", label:"📦 Inventory Control" },
-        { id:"import-master-barang", label:"📥 Import Master Barang" }
+        { id:"import-master-barang", label:"📥 Import Master Barang" },
+        { id:"import-master-karyawan", label:"📥 Import Master Karyawan" }
     ],
     purchasing: [
         { id:"purchasing-dashboard", label:"🛒 Dashboard" }
@@ -1166,6 +1368,7 @@ window.showPage = function(id){
     if(id === "input-pemakaian"){
         siapkanDropdownBkb();
         pantauMasterBarang();
+        pantauMasterKaryawan();
         resetFormBkb();
     } else {
         hentikanJamBkb();
@@ -1173,6 +1376,10 @@ window.showPage = function(id){
     if(id === "import-master-barang"){
         pantauMasterBarang();
         resetImportMasterBarang();
+    }
+    if(id === "import-master-karyawan"){
+        pantauMasterKaryawan();
+        resetImportMasterKaryawan();
     }
 
 }
@@ -1186,6 +1393,7 @@ let unsubMasterBarang = null;
 let opbRowCount = 0;
 let masterBarangMap = {};
 let masterBarangSatuanSet = new Set();
+let masterBarangByBarcode = {}; // barcode -> { nama, satuan_default, stok }
 
 // -------- Master data dropdown (edit di sini sesuai kebutuhan) --------
 const OPB_DIVISI = ["Gudang Sparepart", "Produksi", "Maintenance", "Quality Control", "Gudang Bahan Baku"];
@@ -1227,7 +1435,7 @@ function siapkanDropdownOpb(){
     isiSelect("opb-kategori3", OPB_KATEGORI3, "Pilih kategori");
 }
 
-// -------- Master Barang (untuk autocomplete Nama Barang) --------
+// -------- Master Barang (untuk autocomplete Nama Barang & lookup barcode) --------
 function pantauMasterBarang(){
     if(unsubMasterBarang) return;
     const q = query(collection(db, "master_barang"), orderBy("nama"));
@@ -1235,12 +1443,20 @@ function pantauMasterBarang(){
         masterBarangMap = {};
         masterBarangStokMap = {};
         masterBarangSatuanSet = new Set();
+        masterBarangByBarcode = {};
         let optionsHtml = "";
         snap.forEach(docSnap => {
             const d = docSnap.data();
             masterBarangMap[d.nama] = d.satuan_default || "";
             masterBarangStokMap[d.nama] = (d.stok !== undefined ? d.stok : null);
             if(d.satuan_default) masterBarangSatuanSet.add(d.satuan_default.trim());
+            if(d.barcode){
+                masterBarangByBarcode[String(d.barcode).trim()] = {
+                    nama: d.nama,
+                    satuan_default: d.satuan_default || "",
+                    stok: (d.stok !== undefined ? d.stok : null)
+                };
+            }
             optionsHtml += `<option value="${d.nama}"></option>`;
         });
         const dl = document.getElementById("master-barang-datalist");
@@ -1298,9 +1514,12 @@ window.prosesFileMasterBarang = function(){
                 const nama = cari("nama");
                 const satuan = cari("satuan");
                 const kategori = cari("kategori");
+                // Terima berbagai nama kolom barcode: "barcode", "code barcode", "kode barcode", dst.
+                const kolomBarcode = Object.keys(r).find(k => k.trim().toLowerCase().includes("barcode"));
+                const barcode = kolomBarcode ? String(r[kolomBarcode]).trim() : "";
 
                 if(nama !== ""){
-                    bersih.push({ nama, satuan_default: satuan, kategori });
+                    bersih.push({ nama, satuan_default: satuan, kategori, barcode });
                 }
             });
 
@@ -1317,7 +1536,7 @@ window.prosesFileMasterBarang = function(){
 
             const previewBody = document.getElementById("mb-preview-body");
             previewBody.innerHTML = bersih.slice(0, 10).map((it, i) => `
-                <tr><td>${i + 1}</td><td>${it.nama}</td><td>${it.satuan_default || "-"}</td><td>${it.kategori || "-"}</td></tr>
+                <tr><td>${i + 1}</td><td>${it.nama}</td><td>${it.satuan_default || "-"}</td><td>${it.kategori || "-"}</td><td>${it.barcode || "-"}</td></tr>
             `).join("");
 
             document.getElementById("mb-preview-count").textContent =
@@ -1407,6 +1626,7 @@ window.importMasterBarangMassal = async function(){
                 nama: it.nama,
                 satuan_default: it.satuan_default || "",
                 kategori: it.kategori || "",
+                barcode: it.barcode || "",
                 updated_at: serverTimestamp()
             }, { merge: true });
             jumlahDiBatchIni++;
@@ -1425,6 +1645,219 @@ window.importMasterBarangMassal = async function(){
     }
 
     statusEl.textContent = `Selesai. ${sukses} barang berhasil diimpor` + (gagal > 0 ? `, ${gagal} gagal.` : ".");
+    statusEl.className = "form-msg " + (sukses > 0 ? "ok" : "err");
+    statusEl.style.display = "block";
+
+    btn.disabled = false;
+    btn.textContent = "Import ke Firestore";
+
+}
+
+// -------- Master Karyawan (untuk lookup barcode ID card di Form BKB) --------
+let unsubMasterKaryawan = null;
+let masterKaryawanByBarcode = {}; // barcode -> { nama, divisi, id_card }
+let masterKaryawanFileData = [];
+
+function pantauMasterKaryawan(){
+    if(unsubMasterKaryawan) return;
+    const q = query(collection(db, "master_karyawan"), orderBy("nama"));
+    unsubMasterKaryawan = onSnapshot(q, (snap) => {
+        masterKaryawanByBarcode = {};
+        snap.forEach(docSnap => {
+            const d = docSnap.data();
+            if(d.barcode){
+                masterKaryawanByBarcode[String(d.barcode).trim()] = {
+                    nama: d.nama || "-",
+                    divisi: d.divisi || "",
+                    id_card: d.id_card || ""
+                };
+            }
+        });
+        const countEl = document.getElementById("mk-total-count");
+        if(countEl) countEl.textContent = snap.size;
+    }, (err) => console.error("Gagal memuat master karyawan:", err));
+}
+
+function resetImportMasterKaryawan(){
+    masterKaryawanFileData = [];
+    const fileEl = document.getElementById("mk-file");
+    if(fileEl) fileEl.value = "";
+    document.getElementById("mk-parse-status").style.display = "none";
+    document.getElementById("mk-import-status").style.display = "none";
+    document.getElementById("mk-preview-wrap").style.display = "none";
+    document.getElementById("mk-import-btn").disabled = true;
+}
+
+window.prosesFileMasterKaryawan = function(){
+
+    const fileInput = document.getElementById("mk-file");
+    const statusEl = document.getElementById("mk-parse-status");
+    const file = fileInput.files[0];
+
+    statusEl.style.display = "none";
+    statusEl.className = "form-msg";
+    document.getElementById("mk-import-status").style.display = "none";
+
+    if(!file){
+        statusEl.textContent = "Pilih file Excel/CSV dulu.";
+        statusEl.classList.add("err");
+        statusEl.style.display = "block";
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function(e){
+        try{
+            const data = new Uint8Array(e.target.result);
+            const wb = XLSX.read(data, { type: "array" });
+            const sheet = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+            const bersih = [];
+            rows.forEach(r => {
+                const cariPersis = (target) => {
+                    const key = Object.keys(r).find(k => k.trim().toLowerCase() === target);
+                    return key ? String(r[key]).trim() : "";
+                };
+                const cariMengandung = (target) => {
+                    const key = Object.keys(r).find(k => k.trim().toLowerCase().includes(target));
+                    return key ? String(r[key]).trim() : "";
+                };
+
+                const bagian = cariPersis("bagian") || cariPersis("divisi");
+                const nama = cariPersis("nama");
+                const idCard = cariMengandung("id card") || cariPersis("idcard");
+                const barcode = cariMengandung("barcode");
+
+                if(nama !== ""){
+                    bersih.push({ bagian, nama, id_card: idCard, barcode });
+                }
+            });
+
+            if(bersih.length === 0){
+                statusEl.textContent = "Tidak ada baris valid ditemukan. Pastikan ada kolom 'nama'.";
+                statusEl.classList.add("err");
+                statusEl.style.display = "block";
+                document.getElementById("mk-preview-wrap").style.display = "none";
+                document.getElementById("mk-import-btn").disabled = true;
+                return;
+            }
+
+            masterKaryawanFileData = bersih;
+
+            const previewBody = document.getElementById("mk-preview-body");
+            previewBody.innerHTML = bersih.slice(0, 10).map((it, i) => `
+                <tr><td>${i + 1}</td><td>${it.bagian || "-"}</td><td>${it.nama}</td><td>${it.id_card || "-"}</td><td>${it.barcode || "-"}</td></tr>
+            `).join("");
+
+            document.getElementById("mk-preview-count").textContent =
+                `${bersih.length} karyawan terbaca dari file` + (bersih.length > 10 ? " (menampilkan 10 baris pertama sebagai contoh)." : ".");
+            document.getElementById("mk-preview-wrap").style.display = "block";
+            document.getElementById("mk-import-btn").disabled = false;
+
+        } catch(err){
+            statusEl.textContent = "Gagal membaca file: " + err.message;
+            statusEl.classList.add("err");
+            statusEl.style.display = "block";
+        }
+    };
+
+    reader.readAsArrayBuffer(file);
+
+}
+
+function slugKaryawan(barcode, nama){
+    const dasar = (barcode && barcode.trim()) ? barcode : nama;
+    return dasar.toLowerCase().trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-+|-+$)/g, "")
+        .slice(0, 140);
+}
+
+async function hapusSemuaMasterKaryawan(statusEl){
+
+    statusEl.textContent = "Menghapus data lama...";
+    statusEl.className = "form-msg";
+    statusEl.style.display = "block";
+
+    const snap = await getDocs(collection(db, "master_karyawan"));
+    const semuaDoc = snap.docs;
+    const ukuranBatch = 400;
+
+    for(let i = 0; i < semuaDoc.length; i += ukuranBatch){
+        const chunk = semuaDoc.slice(i, i + ukuranBatch);
+        const batch = writeBatch(db);
+        chunk.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+        statusEl.textContent = `Menghapus data lama... ${Math.min(i + ukuranBatch, semuaDoc.length)} / ${semuaDoc.length}`;
+    }
+
+}
+
+window.importMasterKaryawanMassal = async function(){
+
+    const items = masterKaryawanFileData;
+    const statusEl = document.getElementById("mk-import-status");
+    const btn = document.getElementById("mk-import-btn");
+    const hapusDulu = document.getElementById("mk-hapus-dulu").checked;
+
+    if(!items || items.length === 0) return;
+
+    btn.disabled = true;
+    btn.textContent = "Mengimpor...";
+    statusEl.className = "form-msg";
+    statusEl.style.display = "block";
+
+    if(hapusDulu){
+        try{
+            await hapusSemuaMasterKaryawan(statusEl);
+        } catch(err){
+            statusEl.textContent = "Gagal menghapus data lama: " + err.message;
+            statusEl.className = "form-msg err";
+            btn.disabled = false;
+            btn.textContent = "Import ke Firestore";
+            return;
+        }
+    }
+
+    let sukses = 0;
+    let gagal = 0;
+    const ukuranBatch = 400;
+
+    for(let i = 0; i < items.length; i += ukuranBatch){
+
+        const chunk = items.slice(i, i + ukuranBatch);
+        const batch = writeBatch(db);
+        let jumlahDiBatchIni = 0;
+
+        chunk.forEach(it => {
+            const id = slugKaryawan(it.barcode, it.nama);
+            if(!id){ gagal++; return; }
+            const ref = doc(db, "master_karyawan", id);
+            batch.set(ref, {
+                nama: it.nama,
+                divisi: it.bagian || "",
+                id_card: it.id_card || "",
+                barcode: it.barcode || "",
+                updated_at: serverTimestamp()
+            }, { merge: true });
+            jumlahDiBatchIni++;
+        });
+
+        try{
+            await batch.commit();
+            sukses += jumlahDiBatchIni;
+        } catch(err){
+            console.error("Gagal commit batch:", err);
+            gagal += jumlahDiBatchIni;
+        }
+
+        statusEl.textContent = `Mengimpor... ${Math.min(i + ukuranBatch, items.length)} / ${items.length}`;
+        statusEl.classList.remove("err", "ok");
+    }
+
+    statusEl.textContent = `Selesai. ${sukses} karyawan berhasil diimpor` + (gagal > 0 ? `, ${gagal} gagal.` : ".");
     statusEl.className = "form-msg " + (sukses > 0 ? "ok" : "err");
     statusEl.style.display = "block";
 
@@ -1875,6 +2308,22 @@ window.cetakBKB = function(id){
     <td class="num">${it.stok_saat_ini ?? "-"}</td>
 </tr>`).join("");
 
+    const ttdBaris = `
+<div class="print-sign-grid">
+    <div class="sign-box">
+        Diambil oleh (${d.nama_user || "-"})
+        ${items[0] && items[0].ttd_user ? `<img src="${items[0].ttd_user}" style="width:100%;max-width:160px;height:60px;object-fit:contain;margin-top:8px;">` : `<div class="line"></div>`}
+    </div>
+    <div class="sign-box">
+        Diketahui / Disetujui
+        <div class="line">Kepala Gudang</div>
+    </div>
+    <div class="sign-box">
+        Diserahkan oleh Gudang
+        ${items[0] && items[0].ttd_gudang ? `<img src="${items[0].ttd_gudang}" style="width:100%;max-width:160px;height:60px;object-fit:contain;margin-top:8px;">` : `<div class="line"></div>`}
+    </div>
+</div>`;
+
     const html = `
 <div class="print-doc">
 
@@ -1890,7 +2339,7 @@ window.cetakBKB = function(id){
     </div>
 
     <div class="print-info-grid">
-        <div><span class="lbl">Tanggal</span><span class="val">${tgl}</span></div>
+        <div><span class="lbl">Tanggal</span><span class="val">${d.tanggal_display || tgl}</span></div>
         <div><span class="lbl">Jam</span><span class="val">${d.jam || "-"}</span></div>
         <div><span class="lbl">Nama User</span><span class="val">${d.nama_user || "-"}</span></div>
         <div><span class="lbl">Status</span><span class="val">${labelStatus}</span></div>
@@ -1913,11 +2362,7 @@ window.cetakBKB = function(id){
 
     <div class="print-totals">Total Item: ${d.total_item ?? items.length} &nbsp; | &nbsp; Total Jumlah: ${d.total_jumlah ?? "-"}</div>
 
-    <div class="print-sign-grid">
-        <div class="sign-box">Diambil oleh<div class="line">${d.nama_user || "-"}</div></div>
-        <div class="sign-box">Diketahui / Disetujui<div class="line">Kepala Gudang</div></div>
-        <div class="sign-box">Diserahkan oleh<div class="line">Gudang</div></div>
-    </div>
+    ${ttdBaris}
 
     <div class="print-footer-note">Dicetak dari sistem Purchasing &amp; Finance - ${new Date().toLocaleString("id-ID")}</div>
 
@@ -1942,15 +2387,20 @@ let currentUserNama = "";
 let currentUserDivisiDefault = "";
 let masterBarangStokMap = {};
 let bkbJamInterval = null;
+let bkbScannedUser = null; // { barcode_id, nama, divisi }
+let bkbTanggalISO = "";    // tanggal asli (yyyy-mm-dd) untuk disimpan ke Firestore
+
+const BULAN_INDO = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+
+function formatTanggalIndo(isoStr){
+    if(!isoStr) return "-";
+    const d = new Date(isoStr + "T00:00:00");
+    return `${d.getDate()} ${BULAN_INDO[d.getMonth()]} ${d.getFullYear()}`;
+}
 
 function siapkanDropdownBkb(){
     isiSelect("bkb-divisi", OPB_DIVISI, "Pilih divisi");
     if(currentUserDivisiDefault) document.getElementById("bkb-divisi").value = currentUserDivisiDefault;
-
-    const userSelect = document.getElementById("bkb-nama-user");
-    const nama = currentUserNama || (auth.currentUser ? auth.currentUser.email : "");
-    userSelect.innerHTML = `<option value="${nama}">${nama}</option>`;
-    userSelect.value = nama;
 }
 
 function jalankanJamBkb(){
@@ -1971,17 +2421,124 @@ function hentikanJamBkb(){
     }
 }
 
+// -------- Scan Barcode ID Card -> cari karyawan di koleksi Firestore "master_karyawan" --------
+// Data koleksi ini diisi lewat menu "Import Master Karyawan" (upload Excel/CSV List User)
+window.handleBarcodeUserKeydown = function(ev){
+    if(ev.key !== "Enter") return;
+    ev.preventDefault();
+    cariUserByBarcode();
+}
+
+function cariUserByBarcode(){
+
+    const inputEl = document.getElementById("bkb-barcode-user");
+    const statusEl = document.getElementById("bkb-barcode-user-status");
+    const namaUserEl = document.getElementById("bkb-nama-user");
+    const kode = inputEl.value.trim();
+
+    statusEl.textContent = "";
+    statusEl.className = "bkb-barcode-status";
+
+    if(kode === ""){
+        return;
+    }
+
+    const data = masterKaryawanByBarcode[kode];
+
+    if(!data){
+        bkbScannedUser = null;
+        namaUserEl.value = "";
+        namaUserEl.placeholder = "- (tidak ditemukan)";
+        statusEl.textContent = "Barcode tidak dikenali / karyawan belum ada di Master Karyawan.";
+        statusEl.className = "bkb-barcode-status err";
+        return;
+    }
+
+    bkbScannedUser = {
+        barcode_id: kode,
+        nama: data.nama,
+        divisi: data.divisi
+    };
+
+    namaUserEl.value = bkbScannedUser.nama;
+    statusEl.textContent = `✓ Terverifikasi: ${bkbScannedUser.nama}`;
+    statusEl.className = "bkb-barcode-status ok";
+
+    if(bkbScannedUser.divisi){
+        document.getElementById("bkb-divisi").value = bkbScannedUser.divisi;
+    }
+
+}
+
+// -------- Scan Barcode Barang (per baris Detail Barang) --------
+window.handleBarcodeItemKeydown = function(ev, id){
+    if(ev.key !== "Enter") return;
+    ev.preventDefault();
+    isiBarisDariBarcode(id);
+}
+
+window.isiBarisDariBarcode = function(id){
+
+    const barcodeEl = document.getElementById(`bkb-barcode-${id}`);
+    const namaCell = document.getElementById(`bkb-namabarang-${id}`);
+    const satuanCell = document.getElementById(`bkb-satuan-${id}`);
+    const stokCell = document.getElementById(`bkb-stok-${id}`);
+    const jumlahEl = document.getElementById(`bkb-jumlah-${id}`);
+
+    const kode = barcodeEl.value.trim();
+
+    if(kode === ""){
+        return;
+    }
+
+    const data = masterBarangByBarcode[kode];
+
+    if(!data){
+        namaCell.textContent = "Tidak ditemukan";
+        namaCell.className = "bkb-namabarang-cell kosong";
+        satuanCell.innerHTML = `<span class="bkb-stok-value kosong">-</span>`;
+        stokCell.innerHTML = `<span class="bkb-stok-value kosong">-</span>`;
+        return;
+    }
+
+    namaCell.textContent = data.nama;
+    namaCell.className = "bkb-namabarang-cell";
+    namaCell.dataset.barcode = kode;
+
+    const satuanBersih = (data.satuan_default || "").trim();
+    satuanCell.innerHTML = satuanBersih
+        ? `<span class="bkb-stok-value">${satuanBersih}</span>`
+        : `<span class="bkb-stok-value kosong">-</span>`;
+
+    const stok = data.stok;
+    stokCell.innerHTML = (stok === undefined || stok === null || stok === "")
+        ? `<span class="bkb-stok-value kosong">-</span>`
+        : `<span class="bkb-stok-value">${stok} ${satuanBersih}</span>`;
+
+    if(!jumlahEl.value) jumlahEl.value = 1;
+    jumlahEl.focus();
+    jumlahEl.select();
+
+}
+
 function buatBarisBkbHTML(id){
     return `
         <tr id="bkb-row-${id}">
             <td class="bkb-row-no">-</td>
-            <td><input type="text" id="bkb-nama-${id}" list="master-barang-datalist" placeholder="Nama barang" oninput="autoisiSatuanBkb(${id})"></td>
-            <td><input type="number" min="1" id="bkb-jumlah-${id}" oninput="hitungTotalBkb()"></td>
-            <td><select id="bkb-satuan-${id}" disabled><option value="">-</option></select></td>
-            <td id="bkb-stok-${id}"><span class="bkb-stok-value kosong">-</span></td>
+            <td><input type="text" id="bkb-barcode-${id}" placeholder="Scan barcode..." autocomplete="off" onkeydown="handleBarcodeItemKeydown(event, ${id})"></td>
+            <td id="bkb-namabarang-${id}" class="bkb-namabarang-cell kosong">-</td>
+            <td><input type="number" min="1" id="bkb-jumlah-${id}"></td>
+            <td id="bkb-satuan-${id}" class="bkb-satuan-cell"><span class="bkb-stok-value kosong">-</span></td>
+            <td id="bkb-stok-${id}" class="bkb-stok-cell"><span class="bkb-stok-value kosong">-</span></td>
+            <td>${buatSelTtd(id, "user")}</td>
+            <td>${buatSelTtd(id, "gudang")}</td>
             <td><button class="btn-remove-filled" type="button" onclick="hapusBarisBkb(${id})" title="Hapus baris">🗑️</button></td>
         </tr>
     `;
+}
+
+function buatSelTtd(id, tipe){
+    return `<div id="bkb-ttd-${tipe}-${id}"><button class="btn-ttd" type="button" onclick="bukaTtdModal(${id}, '${tipe}')">✎ Tanda Tangan</button></div>`;
 }
 
 function nomoriUlangBarisBkb(){
@@ -2000,40 +2557,8 @@ window.tambahBarisBkb = function(){
 window.hapusBarisBkb = function(id){
     const row = document.getElementById(`bkb-row-${id}`);
     if(row) row.remove();
+    delete bkbSignatures[id];
     nomoriUlangBarisBkb();
-    hitungTotalBkb();
-}
-
-window.autoisiSatuanBkb = function(id){
-    const namaEl = document.getElementById(`bkb-nama-${id}`);
-    const satuanEl = document.getElementById(`bkb-satuan-${id}`);
-    const stokEl = document.getElementById(`bkb-stok-${id}`);
-    const nama = namaEl.value.trim();
-    const satuanDefault = masterBarangMap[nama];
-
-    if(!nama || satuanDefault === undefined){
-        satuanEl.innerHTML = `<option value="">-</option>`;
-        satuanEl.value = "";
-        stokEl.innerHTML = `<span class="bkb-stok-value kosong">-</span>`;
-        return;
-    }
-
-    const satuanBersih = (satuanDefault || "").trim();
-    satuanEl.innerHTML = satuanBersih
-        ? `<option value="${satuanBersih}">${satuanBersih}</option>`
-        : `<option value="">-</option>`;
-    satuanEl.value = satuanBersih;
-
-    const stok = masterBarangStokMap[nama];
-    if(stok === undefined || stok === null || stok === ""){
-        stokEl.innerHTML = `<span class="bkb-stok-value kosong">-</span>`;
-    } else {
-        stokEl.innerHTML = `<span class="bkb-stok-value">${stok} ${satuanBersih}</span>`;
-    }
-}
-
-window.hitungTotalBkb = function(){
-    // Total dihitung untuk disimpan ke database (tidak ditampilkan di form, mengikuti tampilan referensi)
 }
 
 function ambilItemBkb(){
@@ -2043,18 +2568,25 @@ function ambilItemBkb(){
 
     rows.forEach(row => {
         const id = row.id.replace("bkb-row-", "");
-        const nama = document.getElementById(`bkb-nama-${id}`).value.trim();
+        const barcode = document.getElementById(`bkb-barcode-${id}`).value.trim();
+        const namaCell = document.getElementById(`bkb-namabarang-${id}`);
+        const nama = namaCell.dataset.barcode ? namaCell.textContent.trim() : "";
         const jumlah = document.getElementById(`bkb-jumlah-${id}`).value;
-        const satuan = document.getElementById(`bkb-satuan-${id}`).value;
-        const stok = masterBarangStokMap[nama];
+        const dataBarcode = masterBarangByBarcode[barcode];
+        const satuan = dataBarcode ? (dataBarcode.satuan_default || "") : "";
+        const stok = dataBarcode ? dataBarcode.stok : null;
+        const sig = bkbSignatures[id] || {};
 
         if(nama !== "" && jumlah !== ""){
             const jml = Number(jumlah);
             items.push({
+                barcode: barcode,
                 nama_barang: nama,
                 jumlah: jml,
                 satuan: satuan,
-                stok_saat_ini: (stok === undefined || stok === null || stok === "") ? null : Number(stok)
+                stok_saat_ini: (stok === undefined || stok === null || stok === "") ? null : Number(stok),
+                ttd_user: sig.user || null,
+                ttd_gudang: sig.gudang || null
             });
             totalJumlah += jml;
         }
@@ -2063,44 +2595,61 @@ function ambilItemBkb(){
     return { items, totalJumlah };
 }
 
-// -------- No. BKB: preview (tanpa nge-commit counter) & final (commit saat submit) --------
-async function previewNoBKB(tahun){
+// -------- No. BKB: format Tahun/Bulan/Urutan, contoh 2608001 --------
+function komponenTahunBulan(tanggalISO){
+    const d = tanggalISO ? new Date(tanggalISO + "T00:00:00") : new Date();
+    const yy = String(d.getFullYear()).slice(-2);
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    return { yy, mm, key: `${yy}${mm}` };
+}
+
+async function previewNoBKB(tanggalISO){
     try{
-        const counterRef = doc(db, "counters", `bkb_${tahun}`);
+        const { yy, mm, key } = komponenTahunBulan(tanggalISO);
+        const counterRef = doc(db, "counters", `bkb_${key}`);
         const snap = await getDoc(counterRef);
         const next = snap.exists() ? (snap.data().terakhir || 0) + 1 : 1;
-        return `BKB-${tahun}-${String(next).padStart(4, "0")}`;
+        return `${yy}${mm}${String(next).padStart(3, "0")}`;
     } catch(e){
-        return `BKB-${tahun}-????`;
+        return `------`;
     }
 }
 
-async function generateNoBKB(tahun){
-    const counterRef = doc(db, "counters", `bkb_${tahun}`);
+async function generateNoBKB(tanggalISO){
+    const { yy, mm, key } = komponenTahunBulan(tanggalISO);
+    const counterRef = doc(db, "counters", `bkb_${key}`);
     const nomorBerikutnya = await runTransaction(db, async (tx) => {
         const snap = await tx.get(counterRef);
         const next = snap.exists() ? (snap.data().terakhir || 0) + 1 : 1;
         tx.set(counterRef, { terakhir: next }, { merge: true });
         return next;
     });
-    return `BKB-${tahun}-${String(nomorBerikutnya).padStart(4, "0")}`;
+    return `${yy}${mm}${String(nomorBerikutnya).padStart(3, "0")}`;
 }
 
 function resetFormBkb(){
     document.getElementById("bkb-items-body").innerHTML = "";
     document.getElementById("bkb-untuk").value = "";
 
+    document.getElementById("bkb-barcode-user").value = "";
+    document.getElementById("bkb-nama-user").value = "";
+    document.getElementById("bkb-nama-user").placeholder = "- (scan ID card dulu)";
+    document.getElementById("bkb-barcode-user-status").textContent = "";
+    document.getElementById("bkb-barcode-user-status").className = "bkb-barcode-status";
+    bkbScannedUser = null;
+
     const today = new Date();
-    document.getElementById("bkb-tanggal").value = today.toISOString().slice(0,10);
+    bkbTanggalISO = today.toISOString().slice(0,10);
+    document.getElementById("bkb-tanggal").value = formatTanggalIndo(bkbTanggalISO);
 
     jalankanJamBkb();
 
-    const tahun = today.getFullYear();
-    previewNoBKB(tahun).then(no => {
+    previewNoBKB(bkbTanggalISO).then(no => {
         document.getElementById("bkb-no").value = no;
     });
 
     bkbRowCount = 0;
+    bkbSignatures = {};
     window.tambahBarisBkb();
 
     const msgEl = document.getElementById("bkb-msg");
@@ -2113,11 +2662,14 @@ function validasiFormBkb(){
     const untuk = document.getElementById("bkb-untuk").value.trim();
     const { items } = ambilItemBkb();
 
+    if(!bkbScannedUser){
+        return "Scan Barcode ID Card terlebih dahulu untuk mengisi Nama User.";
+    }
     if(divisi === "" || untuk === ""){
         return "Divisi dan Untuk wajib diisi.";
     }
     if(items.length === 0){
-        return "Isi minimal satu barang (nama barang dan jumlah wajib diisi).";
+        return "Isi minimal satu barang (scan barcode barang dan isi jumlah).";
     }
     return null;
 }
@@ -2139,9 +2691,8 @@ async function simpanBkb(status){
         return;
     }
 
-    const tanggal = document.getElementById("bkb-tanggal").value;
     const jam = document.getElementById("bkb-jam").value;
-    const namaUser = document.getElementById("bkb-nama-user").value;
+    const namaUser = bkbScannedUser ? bkbScannedUser.nama : "";
     const divisi = document.getElementById("bkb-divisi").value;
     const untuk = document.getElementById("bkb-untuk").value.trim();
     const { items, totalJumlah } = ambilItemBkb();
@@ -2154,13 +2705,14 @@ async function simpanBkb(status){
 
     try{
 
-        const tahun = new Date(tanggal).getFullYear();
-        const noBKB = await generateNoBKB(tahun);
+        const noBKB = await generateNoBKB(bkbTanggalISO);
 
         await addDoc(collection(db, "pengambilan_barang"), {
             no_bkb: noBKB,
-            tanggal: tanggal,
+            tanggal: bkbTanggalISO,
+            tanggal_display: formatTanggalIndo(bkbTanggalISO),
             jam: jam,
+            barcode_id_user: bkbScannedUser ? bkbScannedUser.barcode_id : "",
             nama_user: namaUser,
             divisi: divisi,
             untuk: untuk,
@@ -2201,6 +2753,134 @@ window.simpanDraftBkb = function(){
 
 window.submitPengambilanBarang = function(){
     simpanBkb("diajukan");
+}
+
+// =========================================================
+// TANDA TANGAN DIGITAL (canvas signature pad)
+// =========================================================
+let bkbSignatures = {}; // { [rowId]: { user: base64 | null, gudang: base64 | null } }
+let ttdModalTarget = null; // { rowId, tipe }
+let ttdDrawing = false;
+let ttdCtx = null;
+let ttdLastX = 0, ttdLastY = 0;
+
+function siapkanCanvasTtd(){
+    const canvas = document.getElementById("ttd-canvas");
+    const wrap = canvas.parentElement;
+    const rect = wrap.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = rect.width * dpr;
+    canvas.height = 200 * dpr;
+
+    ttdCtx = canvas.getContext("2d");
+    ttdCtx.scale(dpr, dpr);
+    ttdCtx.lineWidth = 2.2;
+    ttdCtx.lineCap = "round";
+    ttdCtx.strokeStyle = "#1a1a1a";
+    ttdCtx.fillStyle = "#ffffff";
+    ttdCtx.fillRect(0, 0, rect.width, 200);
+}
+
+function posisiRelatif(canvas, ev){
+    const rect = canvas.getBoundingClientRect();
+    const titik = ev.touches ? ev.touches[0] : ev;
+    return {
+        x: titik.clientX - rect.left,
+        y: titik.clientY - rect.top
+    };
+}
+
+function pasangEventCanvasTtd(){
+    const canvas = document.getElementById("ttd-canvas");
+
+    const mulai = (ev) => {
+        ev.preventDefault();
+        ttdDrawing = true;
+        const p = posisiRelatif(canvas, ev);
+        ttdLastX = p.x; ttdLastY = p.y;
+    };
+    const gambar = (ev) => {
+        if(!ttdDrawing) return;
+        ev.preventDefault();
+        const p = posisiRelatif(canvas, ev);
+        ttdCtx.beginPath();
+        ttdCtx.moveTo(ttdLastX, ttdLastY);
+        ttdCtx.lineTo(p.x, p.y);
+        ttdCtx.stroke();
+        ttdLastX = p.x; ttdLastY = p.y;
+    };
+    const selesai = () => { ttdDrawing = false; };
+
+    canvas.onmousedown = mulai;
+    canvas.onmousemove = gambar;
+    canvas.onmouseup = selesai;
+    canvas.onmouseleave = selesai;
+    canvas.ontouchstart = mulai;
+    canvas.ontouchmove = gambar;
+    canvas.ontouchend = selesai;
+}
+
+window.bukaTtdModal = function(rowId, tipe){
+    ttdModalTarget = { rowId, tipe };
+    document.getElementById("ttd-modal-title").textContent =
+        tipe === "user" ? "Tanda Tangan User" : "Tanda Tangan Gudang";
+    document.getElementById("ttd-modal-sub").textContent =
+        (tipe === "user" ? "Diambil oleh (user yang mengambil barang)." : "Diserahkan oleh (petugas gudang).") +
+        " Gambar tanda tangan di area bawah ini.";
+
+    document.getElementById("ttd-modal-overlay").classList.add("active");
+
+    setTimeout(() => {
+        siapkanCanvasTtd();
+        pasangEventCanvasTtd();
+
+        const existing = bkbSignatures[rowId] && bkbSignatures[rowId][tipe];
+        if(existing){
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.getElementById("ttd-canvas");
+                const rect = canvas.parentElement.getBoundingClientRect();
+                ttdCtx.drawImage(img, 0, 0, rect.width, 200);
+            };
+            img.src = existing;
+        }
+    }, 30);
+}
+
+window.tutupTtdModal = function(){
+    document.getElementById("ttd-modal-overlay").classList.remove("active");
+    ttdModalTarget = null;
+}
+
+window.bersihkanTtdCanvas = function(){
+    if(!ttdCtx) return;
+    const canvas = document.getElementById("ttd-canvas");
+    const rect = canvas.parentElement.getBoundingClientRect();
+    ttdCtx.fillStyle = "#ffffff";
+    ttdCtx.fillRect(0, 0, rect.width, 200);
+}
+
+window.simpanTtdCanvas = function(){
+    if(!ttdModalTarget) return;
+    const { rowId, tipe } = ttdModalTarget;
+    const canvas = document.getElementById("ttd-canvas");
+    const dataUrl = canvas.toDataURL("image/png");
+
+    if(!bkbSignatures[rowId]) bkbSignatures[rowId] = {};
+    bkbSignatures[rowId][tipe] = dataUrl;
+
+    const wrap = document.getElementById(`bkb-ttd-${tipe}-${rowId}`);
+    if(wrap){
+        wrap.innerHTML = `
+            <div class="ttd-thumb-wrap">
+                <img class="ttd-thumb" src="${dataUrl}" onclick="bukaTtdModal(${rowId}, '${tipe}')">
+                <span class="ttd-thumb-edit" onclick="bukaTtdModal(${rowId}, '${tipe}')">Ubah</span>
+            </div>
+        `;
+    }
+
+    window.tutupTtdModal();
 }
 
 // =========================================================
