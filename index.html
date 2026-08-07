@@ -1182,8 +1182,31 @@ table.tbl td{
             </div>
 
             <div class="page" id="page-list-penerimaan">
-                <div class="page-header"><h2>📃 List Penerimaan</h2><p>Riwayat barang masuk ke gudang</p></div>
-                <div class="placeholder-panel"><div class="icon">📃</div><h3>Segera Hadir</h3><p>Modul list penerimaan barang akan dibangun di tahap berikutnya.</p></div>
+
+                <div class="page-header">
+                    <h2>📃 List Penerimaan</h2>
+                    <p>Riwayat barang masuk ke gudang</p>
+                </div>
+
+                <div class="panel">
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>No Penerimaan</th>
+                                <th>Supplier / Dari</th>
+                                <th>Diterima Oleh</th>
+                                <th>Barang</th>
+                                <th>Total Jumlah</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pnm-list-body"></tbody>
+                    </table>
+                    <div class="empty-state" id="pnm-list-empty" style="display:none;">Belum ada barang yang diterima ke gudang.</div>
+                </div>
+
             </div>
 
             <div class="page" id="page-history">
@@ -1521,6 +1544,13 @@ window.showPage = function(id){
     if(id === "import-master-karyawan"){
         pantauMasterKaryawan();
         resetImportMasterKaryawan();
+    }
+    if(id === "input-penerimaan"){
+        pantauMasterBarang();
+        resetFormPnm();
+    }
+    if(id === "list-penerimaan"){
+        pantauSemuaPenerimaan();
     }
 
 }
@@ -2976,6 +3006,427 @@ window.simpanDraftBkb = function(){
 
 window.submitPengambilanBarang = function(){
     simpanBkb("diajukan");
+}
+
+// =========================================================
+// MODUL GUDANG: FORM PENERIMAAN BARANG
+// =========================================================
+let pnmRowCount = 0;
+let unsubPenerimaan = null;
+let semuaPenerimaanMap = {};
+let pnmTanggalISO = "";
+
+function resetFormPnm(){
+    document.getElementById("pnm-items-body").innerHTML = "";
+    document.getElementById("pnm-supplier").value = "";
+    document.getElementById("pnm-referensi").value = "";
+    document.getElementById("pnm-penerima").value = "";
+    document.getElementById("pnm-keterangan").value = "";
+
+    pnmTanggalISO = new Date().toISOString().slice(0, 10);
+    document.getElementById("pnm-tanggal").value = pnmTanggalISO;
+    document.getElementById("pnm-no").value = "Otomatis saat disimpan";
+
+    document.getElementById("pnm-msg").style.display = "none";
+
+    pnmRowCount = 0;
+    window.tambahBarisPnm();
+}
+
+function buatBarisPnmHTML(id){
+    return `
+        <tr id="pnm-row-${id}">
+            <td class="pnm-row-no">-</td>
+            <td>
+                <div class="bkb-barcode-cell">
+                    <input type="text" id="pnm-barcode-${id}" placeholder="Scan barcode..." autocomplete="off" onkeydown="handleBarcodePnmKeydown(event, ${id})" onblur="isiBarisDariBarcodePnm(${id})">
+                    <button class="btn-cari-barcode" type="button" onclick="isiBarisDariBarcodePnm(${id})" title="Cari manual">🔍</button>
+                </div>
+            </td>
+            <td id="pnm-namabarang-${id}" class="bkb-namabarang-cell kosong">-</td>
+            <td><input type="number" min="1" id="pnm-jumlah-${id}" oninput="hitungStokSesudahPnm(${id})"></td>
+            <td id="pnm-satuan-${id}" class="bkb-satuan-cell"><span class="bkb-stok-value kosong">-</span></td>
+            <td id="pnm-stoksebelum-${id}" class="bkb-stok-cell"><span class="bkb-stok-value kosong">-</span></td>
+            <td id="pnm-stoksesudah-${id}" class="bkb-stok-cell"><span class="bkb-stok-value kosong">-</span></td>
+            <td><button class="btn-remove-filled" type="button" onclick="hapusBarisPnm(${id})" title="Hapus baris">🗑️</button></td>
+        </tr>
+    `;
+}
+
+function nomoriUlangBarisPnm(){
+    const rows = document.querySelectorAll("#pnm-items-body tr");
+    rows.forEach((row, i) => {
+        row.querySelector(".pnm-row-no").textContent = i + 1;
+    });
+}
+
+window.tambahBarisPnm = function(){
+    pnmRowCount++;
+    document.getElementById("pnm-items-body").insertAdjacentHTML("beforeend", buatBarisPnmHTML(pnmRowCount));
+    nomoriUlangBarisPnm();
+}
+
+window.hapusBarisPnm = function(id){
+    const row = document.getElementById(`pnm-row-${id}`);
+    if(row) row.remove();
+    nomoriUlangBarisPnm();
+}
+
+window.handleBarcodePnmKeydown = function(ev, id){
+    if(ev.key !== "Enter") return;
+    ev.preventDefault();
+    isiBarisDariBarcodePnm(id);
+}
+
+window.isiBarisDariBarcodePnm = function(id){
+
+    const barcodeEl = document.getElementById(`pnm-barcode-${id}`);
+    const namaCell = document.getElementById(`pnm-namabarang-${id}`);
+    const satuanCell = document.getElementById(`pnm-satuan-${id}`);
+    const sebelumCell = document.getElementById(`pnm-stoksebelum-${id}`);
+    const jumlahEl = document.getElementById(`pnm-jumlah-${id}`);
+
+    const kode = normalisasiKode(barcodeEl.value);
+    if(kode === "") return;
+
+    const data = masterBarangByBarcode[kode];
+
+    if(!data){
+        const jumlahData = Object.keys(masterBarangByBarcode).length;
+        namaCell.textContent = jumlahData === 0 ? "Master Barang belum termuat" : "Tidak ditemukan";
+        namaCell.className = "bkb-namabarang-cell kosong";
+        satuanCell.innerHTML = `<span class="bkb-stok-value kosong">-</span>`;
+        sebelumCell.innerHTML = `<span class="bkb-stok-value kosong">-</span>`;
+        return;
+    }
+
+    namaCell.textContent = data.nama;
+    namaCell.className = "bkb-namabarang-cell";
+    namaCell.dataset.barcode = kode;
+
+    const satuanBersih = (data.satuan_default || "").trim();
+    satuanCell.innerHTML = satuanBersih
+        ? `<span class="bkb-stok-value">${satuanBersih}</span>`
+        : `<span class="bkb-stok-value kosong">-</span>`;
+
+    const stok = (typeof data.stok === "number") ? data.stok : 0;
+    sebelumCell.dataset.stok = stok;
+    sebelumCell.innerHTML = `<span class="bkb-stok-value">${stok} ${satuanBersih}</span>`;
+
+    if(!jumlahEl.value) jumlahEl.value = 1;
+    jumlahEl.focus();
+    jumlahEl.select();
+    hitungStokSesudahPnm(id);
+
+}
+
+window.hitungStokSesudahPnm = function(id){
+    const sebelumCell = document.getElementById(`pnm-stoksebelum-${id}`);
+    const sesudahCell = document.getElementById(`pnm-stoksesudah-${id}`);
+    const jumlahEl = document.getElementById(`pnm-jumlah-${id}`);
+    if(!sebelumCell || !sesudahCell || !jumlahEl) return;
+
+    const stokStr = sebelumCell.dataset.stok;
+    if(stokStr === undefined){
+        sesudahCell.innerHTML = `<span class="bkb-stok-value kosong">-</span>`;
+        return;
+    }
+
+    const stokSebelum = Number(stokStr);
+    const jumlah = Number(jumlahEl.value) || 0;
+    sesudahCell.innerHTML = `<span class="bkb-stok-value">${stokSebelum + jumlah}</span>`;
+}
+
+function ambilItemPnm(){
+    const rows = document.querySelectorAll("#pnm-items-body tr");
+    const items = [];
+    let totalJumlah = 0;
+
+    rows.forEach(row => {
+        const id = row.id.replace("pnm-row-", "");
+        const barcode = document.getElementById(`pnm-barcode-${id}`).value.trim();
+        const namaCell = document.getElementById(`pnm-namabarang-${id}`);
+        const nama = namaCell.dataset.barcode ? namaCell.textContent.trim() : "";
+        const jumlah = document.getElementById(`pnm-jumlah-${id}`).value;
+        const dataBarcode = masterBarangByBarcode[normalisasiKode(barcode)];
+        const satuan = dataBarcode ? (dataBarcode.satuan_default || "") : "";
+        const stokSebelum = dataBarcode && typeof dataBarcode.stok === "number" ? dataBarcode.stok : 0;
+
+        if(nama !== "" && jumlah !== ""){
+            const jml = Number(jumlah);
+            items.push({
+                barcode: barcode,
+                nama_barang: nama,
+                jumlah: jml,
+                satuan: satuan,
+                stok_sebelum: stokSebelum,
+                stok_sesudah: stokSebelum + jml
+            });
+            totalJumlah += jml;
+        }
+    });
+
+    return { items, totalJumlah };
+}
+
+async function generateNoPenerimaan(tanggalISO){
+    const { yy, mm, key } = komponenTahunBulan(tanggalISO);
+    const counterRef = doc(db, "counters", `pnm_${key}`);
+    const nomorBerikutnya = await runTransaction(db, async (tx) => {
+        const snap = await tx.get(counterRef);
+        const next = snap.exists() ? (snap.data().terakhir || 0) + 1 : 1;
+        tx.set(counterRef, { terakhir: next }, { merge: true });
+        return next;
+    });
+    return `PNM${yy}${mm}${String(nomorBerikutnya).padStart(3, "0")}`;
+}
+
+function validasiFormPnm(status){
+    const supplier = document.getElementById("pnm-supplier").value.trim();
+    const penerima = document.getElementById("pnm-penerima").value.trim();
+    const { items } = ambilItemPnm();
+
+    if(supplier === "" || penerima === ""){
+        return "Supplier/Dari dan Diterima Oleh wajib diisi.";
+    }
+    if(items.length === 0){
+        return "Isi minimal satu barang (scan barcode barang dan isi jumlah diterima).";
+    }
+    return null;
+}
+
+async function simpanPnm(status){
+
+    const msgEl = document.getElementById("pnm-msg");
+    const btnDraft = document.getElementById("pnm-draft");
+    const btnSubmit = document.getElementById("pnm-submit");
+
+    msgEl.style.display = "none";
+    msgEl.className = "form-msg";
+
+    const errorPesan = validasiFormPnm(status);
+    if(errorPesan){
+        msgEl.textContent = errorPesan;
+        msgEl.classList.add("err");
+        msgEl.style.display = "block";
+        return;
+    }
+
+    const tanggal = document.getElementById("pnm-tanggal").value || pnmTanggalISO;
+    const supplier = document.getElementById("pnm-supplier").value.trim();
+    const referensi = document.getElementById("pnm-referensi").value.trim();
+    const penerima = document.getElementById("pnm-penerima").value.trim();
+    const keterangan = document.getElementById("pnm-keterangan").value.trim();
+    const { items, totalJumlah } = ambilItemPnm();
+
+    btnDraft.disabled = true;
+    btnSubmit.disabled = true;
+    const tombolAktif = status === "draft" ? btnDraft : btnSubmit;
+    const labelAsli = tombolAktif.textContent;
+    tombolAktif.textContent = "Menyimpan...";
+
+    try{
+
+        if(status !== "draft"){
+            await terapkanPerubahanStok(items, +1);
+        }
+
+        const noPnm = await generateNoPenerimaan(tanggal);
+
+        await addDoc(collection(db, "penerimaan_barang"), {
+            no_penerimaan: noPnm,
+            tanggal: tanggal,
+            tanggal_display: formatTanggalIndo(tanggal),
+            supplier: supplier,
+            referensi: referensi,
+            penerima: penerima,
+            keterangan: keterangan,
+            items: items,
+            total_item: items.length,
+            total_jumlah: totalJumlah,
+            status: status,
+            dibuat_oleh_uid: auth.currentUser.uid,
+            dibuat_oleh_email: auth.currentUser.email,
+            created_at: serverTimestamp()
+        });
+
+        msgEl.textContent = status === "draft"
+            ? `Draft ${noPnm} berhasil disimpan.`
+            : `Penerimaan ${noPnm} berhasil disimpan, stok Master Barang sudah diperbarui.`;
+        msgEl.classList.add("ok");
+        msgEl.style.display = "block";
+
+        resetFormPnm();
+
+    } catch(e){
+        msgEl.textContent = "Gagal menyimpan: " + e.message;
+        msgEl.classList.add("err");
+        msgEl.style.display = "block";
+    } finally {
+        btnDraft.disabled = false;
+        btnSubmit.disabled = false;
+        btnDraft.textContent = "↻ Simpan Draft";
+        btnSubmit.textContent = "➤ Submit Penerimaan";
+    }
+
+}
+
+window.simpanDraftPnm = function(){
+    simpanPnm("draft");
+}
+
+window.submitPenerimaan = function(){
+    simpanPnm("diajukan");
+}
+
+function pantauSemuaPenerimaan(){
+
+    if(unsubPenerimaan) unsubPenerimaan();
+
+    const q = query(
+        collection(db, "penerimaan_barang"),
+        orderBy("created_at", "desc")
+    );
+
+    unsubPenerimaan = onSnapshot(q, (snapshot) => {
+
+        const tbody = document.getElementById("pnm-list-body");
+        const emptyEl = document.getElementById("pnm-list-empty");
+
+        if(snapshot.empty){
+            tbody.innerHTML = "";
+            emptyEl.style.display = "block";
+            semuaPenerimaanMap = {};
+            return;
+        }
+
+        emptyEl.style.display = "none";
+
+        let html = "";
+        semuaPenerimaanMap = {};
+
+        snapshot.forEach((docSnap) => {
+
+            const d = docSnap.data();
+            semuaPenerimaanMap[docSnap.id] = d;
+
+            const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : (d.tanggal || "-");
+            const status = d.status || "diajukan";
+            const labelStatus = status === "draft" ? "Draft" : "Submitted";
+
+            const items = d.items || [];
+            let ringkasBarang = items.length ? items[0].nama_barang : "-";
+            if(items.length > 1) ringkasBarang += ` +${items.length - 1} lainnya`;
+
+            html += `
+<tr>
+    <td>${tgl}</td>
+    <td>${d.no_penerimaan || "-"}</td>
+    <td>${d.supplier || "-"}</td>
+    <td>${d.penerima || "-"}</td>
+    <td>${ringkasBarang}</td>
+    <td>${d.total_jumlah ?? "-"}</td>
+    <td><span class="status-pill ${status === 'draft' ? 'menunggu' : 'disetujui'}">${labelStatus}</span></td>
+    <td><button class="btn-icon-print" type="button" onclick="cetakPenerimaan('${docSnap.id}')">🖨️ Cetak</button></td>
+</tr>
+`;
+
+        });
+
+        tbody.innerHTML = html;
+
+    }, (err) => {
+        console.error("Gagal memuat data penerimaan:", err);
+    });
+
+}
+
+window.cetakPenerimaan = function(id){
+
+    const d = semuaPenerimaanMap[id];
+    if(!d){
+        alert("Data tidak ditemukan, coba refresh halaman.");
+        return;
+    }
+
+    const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"long", year:"numeric" }) : (d.tanggal || "-");
+    const status = d.status || "diajukan";
+    const labelStatus = status === "draft" ? "Draft" : "Submitted";
+    const items = d.items || [];
+
+    const baris = items.map((it, i) => `
+<tr>
+    <td class="num">${i + 1}</td>
+    <td>${it.nama_barang || "-"}</td>
+    <td class="num">${it.jumlah ?? "-"}</td>
+    <td class="num">${it.satuan || "-"}</td>
+    <td class="num">${it.stok_sebelum ?? "-"}</td>
+    <td class="num">${it.stok_sesudah ?? "-"}</td>
+</tr>`).join("");
+
+    const html = `
+<div class="print-doc">
+
+    <div class="print-head">
+        <div>
+            <h1>OptiMill Karya Jaya</h1>
+            <p>Bukti Penerimaan Barang</p>
+        </div>
+        <div class="print-nopr">
+            <div class="label">No. Penerimaan</div>
+            <div class="value">${d.no_penerimaan || "-"}</div>
+        </div>
+    </div>
+
+    <div class="print-info-grid">
+        <div><span class="lbl">Tanggal</span><span class="val">${d.tanggal_display || tgl}</span></div>
+        <div><span class="lbl">Status</span><span class="val">${labelStatus}</span></div>
+        <div><span class="lbl">Supplier / Dari</span><span class="val">${d.supplier || "-"}</span></div>
+        <div><span class="lbl">No Referensi</span><span class="val">${d.referensi || "-"}</span></div>
+        <div><span class="lbl">Diterima Oleh</span><span class="val">${d.penerima || "-"}</span></div>
+        <div><span class="lbl">Keterangan</span><span class="val">${d.keterangan || "-"}</span></div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width:34px;">No</th>
+                <th>Nama Barang</th>
+                <th style="width:90px;">Jumlah</th>
+                <th style="width:70px;">Satuan</th>
+                <th style="width:90px;">Stok Sebelum</th>
+                <th style="width:90px;">Stok Sesudah</th>
+            </tr>
+        </thead>
+        <tbody>${baris}</tbody>
+    </table>
+
+    <div class="print-totals">Total Item: ${d.total_item ?? items.length} &nbsp; | &nbsp; Total Jumlah: ${d.total_jumlah ?? "-"}</div>
+
+    <div class="print-sign-grid">
+        <div class="sign-box">
+            Diterima oleh
+            <div class="line">${d.penerima || "-"}</div>
+        </div>
+        <div class="sign-box">
+            Diketahui / Disetujui
+            <div class="line">Kepala Gudang</div>
+        </div>
+    </div>
+
+    <div class="print-footer-note">Dicetak dari sistem Purchasing &amp; Finance - ${new Date().toLocaleString("id-ID")}</div>
+
+</div>`;
+
+    document.getElementById("print-area").innerHTML = html;
+    document.body.classList.add("printing-mode");
+
+    window.print();
+
+    setTimeout(() => {
+        document.body.classList.remove("printing-mode");
+    }, 500);
+
 }
 
 // =========================================================
