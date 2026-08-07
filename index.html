@@ -539,6 +539,55 @@ table.tbl td{
 
 .mb-counter strong{ color:#1565c0; }
 
+/* ============== INVENTORY CONTROL ============== */
+
+.ic-stok-badge{
+    font-weight:700;
+    color:#2e7d32;
+}
+.ic-stok-badge.kosong{ color:#c62828; }
+
+.ic-edit-row{
+    display:flex;
+    gap:6px;
+    align-items:center;
+}
+.ic-edit-row input{
+    width:80px;
+    padding:6px 8px;
+    font-size:13px;
+}
+
+.btn-ic-edit{
+    background:#eef4fc;
+    border:1px solid #cfe0f5;
+    color:#1565c0;
+    font-size:11.5px;
+    font-weight:600;
+    padding:6px 12px;
+    border-radius:7px;
+    cursor:pointer;
+}
+.btn-ic-save{
+    background:#2e7d32;
+    border:none;
+    color:#fff;
+    font-size:11.5px;
+    font-weight:600;
+    padding:6px 10px;
+    border-radius:7px;
+    cursor:pointer;
+}
+.btn-ic-cancel{
+    background:#f4f6fa;
+    border:1px solid #e2e2e2;
+    color:#666;
+    font-size:11.5px;
+    padding:6px 10px;
+    border-radius:7px;
+    cursor:pointer;
+}
+
 /* ============== MODUL: FORM PENGAMBILAN BARANG / BKB ============== */
 
 .field-icon-wrap{ position:relative; }
@@ -1308,8 +1357,39 @@ table.tbl td{
             </div>
 
             <div class="page" id="page-inventory-control">
-                <div class="page-header"><h2>📦 Inventory Control</h2><p>Pantau stok barang di gudang</p></div>
-                <div class="placeholder-panel"><div class="icon">📦</div><h3>Segera Hadir</h3><p>Modul inventory control akan dibangun di tahap berikutnya.</p></div>
+
+                <div class="page-header">
+                    <h2>📦 Inventory Control</h2>
+                    <p>Pantau & koreksi Stok Saat Ini per barang (termasuk isi Stok Awal pertama kali)</p>
+                </div>
+
+                <div class="panel">
+
+                    <div class="form-group" style="max-width:360px;">
+                        <label>Cari Barang</label>
+                        <input type="text" id="ic-search" placeholder="Ketik nama barang..." oninput="renderInventoryControl()">
+                    </div>
+
+                    <div class="mb-counter">Menampilkan <strong id="ic-shown-count">0</strong> dari <strong id="ic-total-count">0</strong> barang</div>
+
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>Nama Barang</th>
+                                <th style="width:110px;">Satuan</th>
+                                <th style="width:130px;">Kategori</th>
+                                <th style="width:150px;">Barcode</th>
+                                <th style="width:140px;">Stok Saat Ini</th>
+                                <th style="width:110px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ic-list-body"></tbody>
+                    </table>
+
+                    <div class="empty-state" id="ic-list-empty" style="display:none;">Tidak ada barang yang cocok / Master Barang masih kosong.</div>
+
+                </div>
+
             </div>
 
             <!-- ============================================= -->
@@ -1498,6 +1578,7 @@ import {
 import {
     getFirestore,
     doc,
+    setDoc,
     getDoc,
     getDocs,
     collection,
@@ -1642,6 +1723,9 @@ window.showPage = function(id){
         pantauMasterBarang();
         resetFormPnm();
     }
+    if(id === "inventory-control"){
+        pantauInventoryControl();
+    }
     if(id === "list-penerimaan"){
         pantauSemuaPenerimaan();
     }
@@ -1739,6 +1823,91 @@ function pantauMasterBarang(){
 
 // -------- Import Master Barang massal (Excel/CSV) --------
 let masterBarangFileData = [];
+
+// -------- Inventory Control (lihat & koreksi Stok per barang) --------
+let unsubInventoryControl = null;
+let inventoryControlData = [];
+
+function pantauInventoryControl(){
+    if(unsubInventoryControl) return;
+    const q = query(collection(db, "master_barang"), orderBy("nama"));
+    unsubInventoryControl = onSnapshot(q, (snap) => {
+        inventoryControlData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderInventoryControl();
+    }, (err) => console.error("Gagal memuat Inventory Control:", err));
+}
+
+window.renderInventoryControl = function(){
+    const cari = (document.getElementById("ic-search")?.value || "").trim().toLowerCase();
+    const data = cari
+        ? inventoryControlData.filter(it => (it.nama || "").toLowerCase().includes(cari))
+        : inventoryControlData;
+
+    const tbody = document.getElementById("ic-list-body");
+    const emptyEl = document.getElementById("ic-list-empty");
+    if(!tbody) return;
+
+    document.getElementById("ic-total-count").textContent = inventoryControlData.length;
+    document.getElementById("ic-shown-count").textContent = data.length;
+
+    if(data.length === 0){
+        tbody.innerHTML = "";
+        emptyEl.style.display = "block";
+        return;
+    }
+    emptyEl.style.display = "none";
+
+    tbody.innerHTML = data.map(it => {
+        const adaStok = typeof it.stok === "number";
+        const stokTampil = adaStok
+            ? `<span class="ic-stok-badge ${it.stok === 0 ? 'kosong' : ''}">${it.stok} ${it.satuan_default || ''}</span>`
+            : `<span class="ic-stok-badge kosong">Belum diisi</span>`;
+        return `
+<tr id="ic-row-${it.id}">
+    <td>${it.nama || "-"}</td>
+    <td>${it.satuan_default || "-"}</td>
+    <td>${it.kategori || "-"}</td>
+    <td>${it.barcode || "-"}</td>
+    <td id="ic-stok-cell-${it.id}">${stokTampil}</td>
+    <td><button class="btn-ic-edit" type="button" onclick="editStokInventory('${it.id}')">✏️ Edit</button></td>
+</tr>`;
+    }).join("");
+}
+
+window.editStokInventory = function(id){
+    const item = inventoryControlData.find(it => it.id === id);
+    if(!item) return;
+    const cell = document.getElementById(`ic-stok-cell-${id}`);
+    const nilaiSekarang = typeof item.stok === "number" ? item.stok : "";
+    cell.innerHTML = `
+        <div class="ic-edit-row">
+            <input type="number" min="0" id="ic-input-${id}" value="${nilaiSekarang}" placeholder="0">
+            <button class="btn-ic-save" type="button" onclick="simpanStokInventory('${id}')">Simpan</button>
+            <button class="btn-ic-cancel" type="button" onclick="renderInventoryControl()">Batal</button>
+        </div>
+    `;
+    document.getElementById(`ic-input-${id}`).focus();
+}
+
+window.simpanStokInventory = async function(id){
+    const inputEl = document.getElementById(`ic-input-${id}`);
+    if(!inputEl) return;
+    const nilai = inputEl.value;
+
+    if(nilai === "" || isNaN(Number(nilai)) || Number(nilai) < 0){
+        alert("Isi angka stok yang valid (0 atau lebih).");
+        return;
+    }
+
+    try{
+        await setDoc(doc(db, "master_barang", id), {
+            stok: Number(nilai),
+            updated_at: serverTimestamp()
+        }, { merge: true });
+    } catch(e){
+        alert("Gagal menyimpan stok: " + e.message);
+    }
+}
 
 function resetImportMasterBarang(){
     masterBarangFileData = [];
