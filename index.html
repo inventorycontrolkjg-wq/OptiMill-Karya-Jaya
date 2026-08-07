@@ -562,6 +562,14 @@ table.tbl td{
 
 .bkb-stok-value{ color:#2e7d32; font-weight:700; }
 .bkb-stok-value.kosong{ color:#9a9a9a; font-weight:500; }
+.bkb-stok-cell.bkb-stok-kurang .bkb-stok-value{ color:#c62828; }
+.bkb-stok-cell.bkb-stok-kurang::after{
+    content:"Stok tidak cukup";
+    display:block;
+    font-size:10px;
+    color:#c62828;
+    font-weight:600;
+}
 
 .btn-remove-filled{
     background:#e53935;
@@ -679,6 +687,58 @@ table.tbl td{
     cursor:pointer;
     font-weight:600;
     text-decoration:underline;
+}
+
+.bkb-ttd-transaksi{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+    margin:18px 0;
+}
+
+.bkb-ttd-box{
+    border:1.5px dashed #cfd8e3;
+    border-radius:10px;
+    padding:14px;
+    text-align:center;
+}
+
+.bkb-ttd-box .bkb-ttd-label{
+    font-size:12px;
+    font-weight:600;
+    color:#555;
+    margin-bottom:10px;
+}
+
+.bkb-ttd-box .ttd-thumb-wrap{
+    justify-content:center;
+}
+
+.bkb-ttd-box .ttd-thumb{
+    width:140px;
+    height:70px;
+}
+
+.bkb-barcode-cell{
+    display:flex;
+    gap:6px;
+}
+
+.bkb-barcode-cell input{ flex:1; }
+
+.btn-cari-barcode{
+    background:#eef4fc;
+    border:1px solid #cfe0f5;
+    color:#1565c0;
+    border-radius:7px;
+    padding:0 10px;
+    cursor:pointer;
+    font-size:13px;
+    flex-shrink:0;
+}
+
+@media (max-width:640px){
+    .bkb-ttd-transaksi{ grid-template-columns:1fr; }
 }
 
 .ttd-modal-overlay{
@@ -950,7 +1010,7 @@ table.tbl td{
                         <div class="form-group">
                             <label>Barcode ID Card</label>
                             <div class="field-icon-wrap">
-                                <input type="text" id="bkb-barcode-user" placeholder="Scan ID card..." autocomplete="off" onkeydown="handleBarcodeUserKeydown(event)">
+                                <input type="text" id="bkb-barcode-user" placeholder="Scan ID card..." autocomplete="off" onkeydown="handleBarcodeUserKeydown(event)" onblur="cariUserByBarcode()">
                                 <span class="field-icon">📇</span>
                             </div>
                             <div class="bkb-barcode-status" id="bkb-barcode-user-status"></div>
@@ -981,13 +1041,11 @@ table.tbl td{
                         <thead>
                             <tr>
                                 <th style="width:34px;">No</th>
-                                <th style="width:130px;">Barcode</th>
+                                <th style="width:170px;">Barcode</th>
                                 <th>Nama Barang</th>
                                 <th style="width:90px;">Jumlah</th>
                                 <th style="width:80px;">Satuan</th>
                                 <th style="width:110px;">Stok Saat Ini</th>
-                                <th style="width:90px;">Tanda Tangan User</th>
-                                <th style="width:90px;">TTD Gudang</th>
                                 <th style="width:50px;">Aksi</th>
                             </tr>
                         </thead>
@@ -995,6 +1053,17 @@ table.tbl td{
                     </table>
 
                     <button class="btn-secondary" type="button" onclick="tambahBarisBkb()">+ Tambah Barang</button>
+
+                    <div class="bkb-ttd-transaksi">
+                        <div class="bkb-ttd-box">
+                            <div class="bkb-ttd-label">Tanda Tangan User (yang mengambil barang)</div>
+                            <div id="bkb-ttd-user"><button class="btn-ttd" type="button" onclick="bukaTtdModal('user')">✎ Tanda Tangan</button></div>
+                        </div>
+                        <div class="bkb-ttd-box">
+                            <div class="bkb-ttd-label">Tanda Tangan Petugas Gudang</div>
+                            <div id="bkb-ttd-gudang"><button class="btn-ttd" type="button" onclick="bukaTtdModal('gudang')">✎ Tanda Tangan</button></div>
+                        </div>
+                    </div>
 
                     <div class="bkb-actions-row">
                         <div></div>
@@ -1009,8 +1078,79 @@ table.tbl td{
             </div>
 
             <div class="page" id="page-input-penerimaan">
-                <div class="page-header"><h2>📥 Input Penerimaan</h2><p>Catat barang yang diterima dari pembelian</p></div>
-                <div class="placeholder-panel"><div class="icon">📥</div><h3>Segera Hadir</h3><p>Modul input penerimaan barang akan dibangun di tahap berikutnya.</p></div>
+
+                <div class="page-header">
+                    <h2>📥 Form Penerimaan Barang</h2>
+                    <p>Catat barang yang diterima dari pembelian / supplier — otomatis menambah Stok Master Barang</p>
+                </div>
+
+                <div class="panel">
+
+                    <div class="form-msg" id="pnm-msg"></div>
+
+                    <h3 style="margin:0 0 14px;">Informasi Umum</h3>
+
+                    <div class="opb-header-grid" style="grid-template-columns:repeat(4, minmax(0,1fr));">
+                        <div class="form-group">
+                            <label>No Penerimaan</label>
+                            <input type="text" id="pnm-no" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Tanggal *</label>
+                            <input type="date" id="pnm-tanggal">
+                        </div>
+                        <div class="form-group">
+                            <label>Supplier / Dari *</label>
+                            <input type="text" id="pnm-supplier" placeholder="Nama supplier / sumber barang">
+                        </div>
+                        <div class="form-group">
+                            <label>No Referensi (PO/Surat Jalan)</label>
+                            <input type="text" id="pnm-referensi" placeholder="Opsional">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Diterima Oleh *</label>
+                        <input type="text" id="pnm-penerima" placeholder="Nama petugas yang menerima barang">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Keterangan</label>
+                        <textarea id="pnm-keterangan" placeholder="Opsional"></textarea>
+                    </div>
+
+                    <div class="opb-items-header">
+                        <h3 class="bkb-section-title" style="margin:0;">Detail Barang Diterima</h3>
+                    </div>
+
+                    <table class="tbl opb-items-table">
+                        <thead>
+                            <tr>
+                                <th style="width:34px;">No</th>
+                                <th style="width:170px;">Barcode</th>
+                                <th>Nama Barang</th>
+                                <th style="width:100px;">Jumlah Diterima</th>
+                                <th style="width:80px;">Satuan</th>
+                                <th style="width:100px;">Stok Sebelum</th>
+                                <th style="width:100px;">Stok Sesudah</th>
+                                <th style="width:50px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pnm-items-body"></tbody>
+                    </table>
+
+                    <button class="btn-secondary" type="button" onclick="tambahBarisPnm()">+ Tambah Barang</button>
+
+                    <div class="bkb-actions-row">
+                        <div></div>
+                        <div class="bkb-actions-right">
+                            <button class="btn-outline" type="button" id="pnm-draft" onclick="simpanDraftPnm()">↻ Simpan Draft</button>
+                            <button class="btn-success" type="button" id="pnm-submit" onclick="submitPenerimaan()">➤ Submit Penerimaan</button>
+                        </div>
+                    </div>
+
+                </div>
+
             </div>
 
             <div class="page" id="page-list-pengeluaran">
@@ -1074,7 +1214,8 @@ table.tbl td{
                         <input type="file" id="mb-file" accept=".csv,.xlsx,.xls">
                         <p class="mb-hint">
                             Baris pertama file harus jadi <b>header kolom</b>, minimal ada kolom <code>nama</code> dan <code>satuan</code>.
-                            Kolom <code>kategori</code> dan <code>barcode</code> boleh ditambahkan (opsional). Nama kolom tidak case-sensitive.
+                            Kolom <code>kategori</code>, <code>barcode</code>, dan <code>stok</code> (stok awal, angka) boleh ditambahkan (opsional). Nama kolom tidak case-sensitive.
+                            Kolom <code>stok</code> hanya untuk stok awal — kalau barangnya sudah ada, re-import <b>tidak</b> akan menimpa stok yang sudah berjalan kecuali kamu isi ulang kolom itu.
                         </p>
                     </div>
 
@@ -1097,7 +1238,7 @@ table.tbl td{
                         <p class="mb-hint" id="mb-preview-count"></p>
                         <table class="tbl">
                             <thead>
-                                <tr><th style="width:34px;">No</th><th>Nama</th><th>Satuan</th><th>Kategori</th><th>Barcode</th></tr>
+                                <tr><th style="width:34px;">No</th><th>Nama</th><th>Satuan</th><th>Kategori</th><th>Barcode</th><th>Stok Awal</th></tr>
                             </thead>
                             <tbody id="mb-preview-body"></tbody>
                         </table>
@@ -1395,6 +1536,13 @@ let masterBarangMap = {};
 let masterBarangSatuanSet = new Set();
 let masterBarangByBarcode = {}; // barcode -> { nama, satuan_default, stok }
 
+// Menyamakan format barcode: buang semua spasi/karakter tak terlihat
+// (kadang muncul dari hasil export Excel atau perilaku scanner tertentu)
+// supaya barcode hasil scan selalu bisa cocok dengan yang di Master Barang/Karyawan
+function normalisasiKode(s){
+    return String(s || "").replace(/[\s\u200B-\u200D\uFEFF]/g, "");
+}
+
 // -------- Master data dropdown (edit di sini sesuai kebutuhan) --------
 const OPB_DIVISI = ["Gudang Sparepart", "Produksi", "Maintenance", "Quality Control", "Gudang Bahan Baku"];
 const OPB_UNTUK = ["Safety Stock", "Kebutuhan Produksi", "Perbaikan / Maintenance", "Proyek Khusus", "Lainnya"];
@@ -1451,7 +1599,7 @@ function pantauMasterBarang(){
             masterBarangStokMap[d.nama] = (d.stok !== undefined ? d.stok : null);
             if(d.satuan_default) masterBarangSatuanSet.add(d.satuan_default.trim());
             if(d.barcode){
-                masterBarangByBarcode[String(d.barcode).trim()] = {
+                masterBarangByBarcode[normalisasiKode(d.barcode)] = {
                     nama: d.nama,
                     satuan_default: d.satuan_default || "",
                     stok: (d.stok !== undefined ? d.stok : null)
@@ -1514,12 +1662,14 @@ window.prosesFileMasterBarang = function(){
                 const nama = cari("nama");
                 const satuan = cari("satuan");
                 const kategori = cari("kategori");
+                const stokMentah = cari("stok");
+                const stok = stokMentah !== "" && !isNaN(Number(stokMentah)) ? Number(stokMentah) : null;
                 // Terima berbagai nama kolom barcode: "barcode", "code barcode", "kode barcode", dst.
                 const kolomBarcode = Object.keys(r).find(k => k.trim().toLowerCase().includes("barcode"));
-                const barcode = kolomBarcode ? String(r[kolomBarcode]).trim() : "";
+                const barcode = kolomBarcode ? normalisasiKode(r[kolomBarcode]) : "";
 
                 if(nama !== ""){
-                    bersih.push({ nama, satuan_default: satuan, kategori, barcode });
+                    bersih.push({ nama, satuan_default: satuan, kategori, barcode, stok });
                 }
             });
 
@@ -1536,7 +1686,7 @@ window.prosesFileMasterBarang = function(){
 
             const previewBody = document.getElementById("mb-preview-body");
             previewBody.innerHTML = bersih.slice(0, 10).map((it, i) => `
-                <tr><td>${i + 1}</td><td>${it.nama}</td><td>${it.satuan_default || "-"}</td><td>${it.kategori || "-"}</td><td>${it.barcode || "-"}</td></tr>
+                <tr><td>${i + 1}</td><td>${it.nama}</td><td>${it.satuan_default || "-"}</td><td>${it.kategori || "-"}</td><td>${it.barcode || "-"}</td><td>${it.stok === null ? "-" : it.stok}</td></tr>
             `).join("");
 
             document.getElementById("mb-preview-count").textContent =
@@ -1622,13 +1772,19 @@ window.importMasterBarangMassal = async function(){
             const id = slugBarang(it.nama);
             if(!id){ gagal++; return; }
             const ref = doc(db, "master_barang", id);
-            batch.set(ref, {
+            const dataTulis = {
                 nama: it.nama,
                 satuan_default: it.satuan_default || "",
                 kategori: it.kategori || "",
                 barcode: it.barcode || "",
                 updated_at: serverTimestamp()
-            }, { merge: true });
+            };
+            // stok cuma ditulis kalau kolomnya memang ada isinya di file --
+            // supaya re-import tidak menimpa stok yang sudah berjalan dari transaksi BKB/Penerimaan
+            if(it.stok !== null && it.stok !== undefined){
+                dataTulis.stok = it.stok;
+            }
+            batch.set(ref, dataTulis, { merge: true });
             jumlahDiBatchIni++;
         });
 
@@ -1666,7 +1822,7 @@ function pantauMasterKaryawan(){
         snap.forEach(docSnap => {
             const d = docSnap.data();
             if(d.barcode){
-                masterKaryawanByBarcode[String(d.barcode).trim()] = {
+                masterKaryawanByBarcode[normalisasiKode(d.barcode)] = {
                     nama: d.nama || "-",
                     divisi: d.divisi || "",
                     id_card: d.id_card || ""
@@ -1728,7 +1884,7 @@ window.prosesFileMasterKaryawan = function(){
                 const bagian = cariPersis("bagian") || cariPersis("divisi");
                 const nama = cariPersis("nama");
                 const idCard = cariMengandung("id card") || cariPersis("idcard");
-                const barcode = cariMengandung("barcode");
+                const barcode = normalisasiKode(cariMengandung("barcode"));
 
                 if(nama !== ""){
                     bersih.push({ bagian, nama, id_card: idCard, barcode });
@@ -2312,7 +2468,7 @@ window.cetakBKB = function(id){
 <div class="print-sign-grid">
     <div class="sign-box">
         Diambil oleh (${d.nama_user || "-"})
-        ${items[0] && items[0].ttd_user ? `<img src="${items[0].ttd_user}" style="width:100%;max-width:160px;height:60px;object-fit:contain;margin-top:8px;">` : `<div class="line"></div>`}
+        ${d.ttd_user ? `<img src="${d.ttd_user}" style="width:100%;max-width:160px;height:60px;object-fit:contain;margin-top:8px;">` : `<div class="line"></div>`}
     </div>
     <div class="sign-box">
         Diketahui / Disetujui
@@ -2320,7 +2476,7 @@ window.cetakBKB = function(id){
     </div>
     <div class="sign-box">
         Diserahkan oleh Gudang
-        ${items[0] && items[0].ttd_gudang ? `<img src="${items[0].ttd_gudang}" style="width:100%;max-width:160px;height:60px;object-fit:contain;margin-top:8px;">` : `<div class="line"></div>`}
+        ${d.ttd_gudang ? `<img src="${d.ttd_gudang}" style="width:100%;max-width:160px;height:60px;object-fit:contain;margin-top:8px;">` : `<div class="line"></div>`}
     </div>
 </div>`;
 
@@ -2429,12 +2585,12 @@ window.handleBarcodeUserKeydown = function(ev){
     cariUserByBarcode();
 }
 
-function cariUserByBarcode(){
+window.cariUserByBarcode = function cariUserByBarcode(){
 
     const inputEl = document.getElementById("bkb-barcode-user");
     const statusEl = document.getElementById("bkb-barcode-user-status");
     const namaUserEl = document.getElementById("bkb-nama-user");
-    const kode = inputEl.value.trim();
+    const kode = normalisasiKode(inputEl.value);
 
     statusEl.textContent = "";
     statusEl.className = "bkb-barcode-status";
@@ -2449,7 +2605,10 @@ function cariUserByBarcode(){
         bkbScannedUser = null;
         namaUserEl.value = "";
         namaUserEl.placeholder = "- (tidak ditemukan)";
-        statusEl.textContent = "Barcode tidak dikenali / karyawan belum ada di Master Karyawan.";
+        const jumlahData = Object.keys(masterKaryawanByBarcode).length;
+        statusEl.textContent = jumlahData === 0
+            ? "Master Karyawan belum termuat/masih kosong. Cek menu Import Master Karyawan."
+            : `Barcode "${kode}" tidak ditemukan di Master Karyawan (${jumlahData} data termuat).`;
         statusEl.className = "bkb-barcode-status err";
         return;
     }
@@ -2485,7 +2644,7 @@ window.isiBarisDariBarcode = function(id){
     const stokCell = document.getElementById(`bkb-stok-${id}`);
     const jumlahEl = document.getElementById(`bkb-jumlah-${id}`);
 
-    const kode = barcodeEl.value.trim();
+    const kode = normalisasiKode(barcodeEl.value);
 
     if(kode === ""){
         return;
@@ -2494,7 +2653,8 @@ window.isiBarisDariBarcode = function(id){
     const data = masterBarangByBarcode[kode];
 
     if(!data){
-        namaCell.textContent = "Tidak ditemukan";
+        const jumlahData = Object.keys(masterBarangByBarcode).length;
+        namaCell.textContent = jumlahData === 0 ? "Master Barang belum termuat" : "Tidak ditemukan";
         namaCell.className = "bkb-namabarang-cell kosong";
         satuanCell.innerHTML = `<span class="bkb-stok-value kosong">-</span>`;
         stokCell.innerHTML = `<span class="bkb-stok-value kosong">-</span>`;
@@ -2511,6 +2671,7 @@ window.isiBarisDariBarcode = function(id){
         : `<span class="bkb-stok-value kosong">-</span>`;
 
     const stok = data.stok;
+    stokCell.dataset.stok = (stok === undefined || stok === null || stok === "") ? "" : stok;
     stokCell.innerHTML = (stok === undefined || stok === null || stok === "")
         ? `<span class="bkb-stok-value kosong">-</span>`
         : `<span class="bkb-stok-value">${stok} ${satuanBersih}</span>`;
@@ -2518,27 +2679,44 @@ window.isiBarisDariBarcode = function(id){
     if(!jumlahEl.value) jumlahEl.value = 1;
     jumlahEl.focus();
     jumlahEl.select();
+    cekStokCukupBkb(id);
 
+}
+
+window.cekStokCukupBkb = function(id){
+    const stokCell = document.getElementById(`bkb-stok-${id}`);
+    const jumlahEl = document.getElementById(`bkb-jumlah-${id}`);
+    if(!stokCell || !jumlahEl) return;
+
+    const stokStr = stokCell.dataset.stok;
+    if(stokStr === undefined || stokStr === ""){
+        stokCell.classList.remove("bkb-stok-kurang");
+        return;
+    }
+
+    const stok = Number(stokStr);
+    const jumlah = Number(jumlahEl.value) || 0;
+
+    stokCell.classList.toggle("bkb-stok-kurang", jumlah > stok);
 }
 
 function buatBarisBkbHTML(id){
     return `
         <tr id="bkb-row-${id}">
             <td class="bkb-row-no">-</td>
-            <td><input type="text" id="bkb-barcode-${id}" placeholder="Scan barcode..." autocomplete="off" onkeydown="handleBarcodeItemKeydown(event, ${id})"></td>
+            <td>
+                <div class="bkb-barcode-cell">
+                    <input type="text" id="bkb-barcode-${id}" placeholder="Scan barcode..." autocomplete="off" onkeydown="handleBarcodeItemKeydown(event, ${id})" onblur="isiBarisDariBarcode(${id})">
+                    <button class="btn-cari-barcode" type="button" onclick="isiBarisDariBarcode(${id})" title="Cari manual">🔍</button>
+                </div>
+            </td>
             <td id="bkb-namabarang-${id}" class="bkb-namabarang-cell kosong">-</td>
-            <td><input type="number" min="1" id="bkb-jumlah-${id}"></td>
+            <td><input type="number" min="1" id="bkb-jumlah-${id}" oninput="cekStokCukupBkb(${id})"></td>
             <td id="bkb-satuan-${id}" class="bkb-satuan-cell"><span class="bkb-stok-value kosong">-</span></td>
             <td id="bkb-stok-${id}" class="bkb-stok-cell"><span class="bkb-stok-value kosong">-</span></td>
-            <td>${buatSelTtd(id, "user")}</td>
-            <td>${buatSelTtd(id, "gudang")}</td>
             <td><button class="btn-remove-filled" type="button" onclick="hapusBarisBkb(${id})" title="Hapus baris">🗑️</button></td>
         </tr>
     `;
-}
-
-function buatSelTtd(id, tipe){
-    return `<div id="bkb-ttd-${tipe}-${id}"><button class="btn-ttd" type="button" onclick="bukaTtdModal(${id}, '${tipe}')">✎ Tanda Tangan</button></div>`;
 }
 
 function nomoriUlangBarisBkb(){
@@ -2557,7 +2735,6 @@ window.tambahBarisBkb = function(){
 window.hapusBarisBkb = function(id){
     const row = document.getElementById(`bkb-row-${id}`);
     if(row) row.remove();
-    delete bkbSignatures[id];
     nomoriUlangBarisBkb();
 }
 
@@ -2572,10 +2749,9 @@ function ambilItemBkb(){
         const namaCell = document.getElementById(`bkb-namabarang-${id}`);
         const nama = namaCell.dataset.barcode ? namaCell.textContent.trim() : "";
         const jumlah = document.getElementById(`bkb-jumlah-${id}`).value;
-        const dataBarcode = masterBarangByBarcode[barcode];
+        const dataBarcode = masterBarangByBarcode[normalisasiKode(barcode)];
         const satuan = dataBarcode ? (dataBarcode.satuan_default || "") : "";
         const stok = dataBarcode ? dataBarcode.stok : null;
-        const sig = bkbSignatures[id] || {};
 
         if(nama !== "" && jumlah !== ""){
             const jml = Number(jumlah);
@@ -2584,9 +2760,7 @@ function ambilItemBkb(){
                 nama_barang: nama,
                 jumlah: jml,
                 satuan: satuan,
-                stok_saat_ini: (stok === undefined || stok === null || stok === "") ? null : Number(stok),
-                ttd_user: sig.user || null,
-                ttd_gudang: sig.gudang || null
+                stok_saat_ini: (stok === undefined || stok === null || stok === "") ? null : Number(stok)
             });
             totalJumlah += jml;
         }
@@ -2627,6 +2801,43 @@ async function generateNoBKB(tanggalISO){
     return `${yy}${mm}${String(nomorBerikutnya).padStart(3, "0")}`;
 }
 
+// -------- Update stok Master Barang secara atomik --------
+// arah: -1 untuk pengambilan/pemakaian (kurangi stok), +1 untuk penerimaan (tambah stok)
+// Melempar Error kalau stok tidak cukup (khusus arah -1), supaya stok tidak pernah minus.
+async function terapkanPerubahanStok(items, arah){
+
+    if(!items || items.length === 0) return;
+
+    await runTransaction(db, async (tx) => {
+
+        const rencana = [];
+
+        // Semua READ dulu (aturan Firestore transaction: read sebelum write)
+        for(const it of items){
+            const id = slugBarang(it.nama_barang);
+            if(!id) continue;
+            const ref = doc(db, "master_barang", id);
+            const snap = await tx.get(ref);
+            const stokSekarang = (snap.exists() && typeof snap.data().stok === "number") ? snap.data().stok : 0;
+            rencana.push({ ref, nama: it.nama_barang, stokSekarang, jumlah: Number(it.jumlah) || 0 });
+        }
+
+        if(arah < 0){
+            const kurang = rencana.find(r => r.stokSekarang < r.jumlah);
+            if(kurang){
+                throw new Error(`Stok "${kurang.nama}" tidak cukup (tersedia ${kurang.stokSekarang}, diminta ${kurang.jumlah}).`);
+            }
+        }
+
+        rencana.forEach(r => {
+            const stokBaru = r.stokSekarang + (arah * r.jumlah);
+            tx.set(r.ref, { stok: stokBaru, updated_at: serverTimestamp() }, { merge: true });
+        });
+
+    });
+
+}
+
 function resetFormBkb(){
     document.getElementById("bkb-items-body").innerHTML = "";
     document.getElementById("bkb-untuk").value = "";
@@ -2649,7 +2860,10 @@ function resetFormBkb(){
     });
 
     bkbRowCount = 0;
-    bkbSignatures = {};
+    bkbSignatureUser = null;
+    bkbSignatureGudang = null;
+    document.getElementById("bkb-ttd-user").innerHTML = `<button class="btn-ttd" type="button" onclick="bukaTtdModal('user')">✎ Tanda Tangan</button>`;
+    document.getElementById("bkb-ttd-gudang").innerHTML = `<button class="btn-ttd" type="button" onclick="bukaTtdModal('gudang')">✎ Tanda Tangan</button>`;
     window.tambahBarisBkb();
 
     const msgEl = document.getElementById("bkb-msg");
@@ -2657,7 +2871,7 @@ function resetFormBkb(){
     msgEl.className = "form-msg";
 }
 
-function validasiFormBkb(){
+function validasiFormBkb(status){
     const divisi = document.getElementById("bkb-divisi").value;
     const untuk = document.getElementById("bkb-untuk").value.trim();
     const { items } = ambilItemBkb();
@@ -2671,6 +2885,9 @@ function validasiFormBkb(){
     if(items.length === 0){
         return "Isi minimal satu barang (scan barcode barang dan isi jumlah).";
     }
+    if(status !== "draft" && (!bkbSignatureUser || !bkbSignatureGudang)){
+        return "Tanda Tangan User dan Tanda Tangan Gudang wajib diisi sebelum submit.";
+    }
     return null;
 }
 
@@ -2683,7 +2900,7 @@ async function simpanBkb(status){
     msgEl.style.display = "none";
     msgEl.className = "form-msg";
 
-    const errorPesan = validasiFormBkb();
+    const errorPesan = validasiFormBkb(status);
     if(errorPesan){
         msgEl.textContent = errorPesan;
         msgEl.classList.add("err");
@@ -2705,6 +2922,10 @@ async function simpanBkb(status){
 
     try{
 
+        if(status !== "draft"){
+            await terapkanPerubahanStok(items, -1);
+        }
+
         const noBKB = await generateNoBKB(bkbTanggalISO);
 
         await addDoc(collection(db, "pengambilan_barang"), {
@@ -2719,6 +2940,8 @@ async function simpanBkb(status){
             items: items,
             total_item: items.length,
             total_jumlah: totalJumlah,
+            ttd_user: bkbSignatureUser,
+            ttd_gudang: bkbSignatureGudang,
             status: status,
             dibuat_oleh_uid: auth.currentUser.uid,
             dibuat_oleh_email: auth.currentUser.email,
@@ -2758,8 +2981,9 @@ window.submitPengambilanBarang = function(){
 // =========================================================
 // TANDA TANGAN DIGITAL (canvas signature pad)
 // =========================================================
-let bkbSignatures = {}; // { [rowId]: { user: base64 | null, gudang: base64 | null } }
-let ttdModalTarget = null; // { rowId, tipe }
+let bkbSignatureUser = null; // base64 | null — 1x per transaksi
+let bkbSignatureGudang = null; // base64 | null — 1x per transaksi
+let ttdModalTarget = null; // "user" | "gudang"
 let ttdDrawing = false;
 let ttdCtx = null;
 let ttdLastX = 0, ttdLastY = 0;
@@ -2821,8 +3045,8 @@ function pasangEventCanvasTtd(){
     canvas.ontouchend = selesai;
 }
 
-window.bukaTtdModal = function(rowId, tipe){
-    ttdModalTarget = { rowId, tipe };
+window.bukaTtdModal = function(tipe){
+    ttdModalTarget = tipe;
     document.getElementById("ttd-modal-title").textContent =
         tipe === "user" ? "Tanda Tangan User" : "Tanda Tangan Gudang";
     document.getElementById("ttd-modal-sub").textContent =
@@ -2835,7 +3059,7 @@ window.bukaTtdModal = function(rowId, tipe){
         siapkanCanvasTtd();
         pasangEventCanvasTtd();
 
-        const existing = bkbSignatures[rowId] && bkbSignatures[rowId][tipe];
+        const existing = tipe === "user" ? bkbSignatureUser : bkbSignatureGudang;
         if(existing){
             const img = new Image();
             img.onload = () => {
@@ -2863,19 +3087,22 @@ window.bersihkanTtdCanvas = function(){
 
 window.simpanTtdCanvas = function(){
     if(!ttdModalTarget) return;
-    const { rowId, tipe } = ttdModalTarget;
+    const tipe = ttdModalTarget;
     const canvas = document.getElementById("ttd-canvas");
     const dataUrl = canvas.toDataURL("image/png");
 
-    if(!bkbSignatures[rowId]) bkbSignatures[rowId] = {};
-    bkbSignatures[rowId][tipe] = dataUrl;
+    if(tipe === "user"){
+        bkbSignatureUser = dataUrl;
+    } else {
+        bkbSignatureGudang = dataUrl;
+    }
 
-    const wrap = document.getElementById(`bkb-ttd-${tipe}-${rowId}`);
+    const wrap = document.getElementById(`bkb-ttd-${tipe}`);
     if(wrap){
         wrap.innerHTML = `
             <div class="ttd-thumb-wrap">
-                <img class="ttd-thumb" src="${dataUrl}" onclick="bukaTtdModal(${rowId}, '${tipe}')">
-                <span class="ttd-thumb-edit" onclick="bukaTtdModal(${rowId}, '${tipe}')">Ubah</span>
+                <img class="ttd-thumb" src="${dataUrl}" onclick="bukaTtdModal('${tipe}')">
+                <span class="ttd-thumb-edit" onclick="bukaTtdModal('${tipe}')">Ubah</span>
             </div>
         `;
     }
