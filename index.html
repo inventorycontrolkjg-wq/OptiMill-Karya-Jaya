@@ -560,6 +560,71 @@ table.tbl td{
     color:#222;
 }
 
+/* ============== KARTU SEKSI FORM (Informasi Umum / Detail Barang / Tanda Tangan) ============== */
+
+.bkb-card{
+    background:#fff;
+    border:1px solid #e6ebf2;
+    border-radius:14px;
+    box-shadow:0 2px 10px rgba(0,0,0,.04);
+    margin-bottom:20px;
+    overflow:hidden;
+}
+
+.bkb-card-header{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    background:#eef4fc;
+    padding:14px 20px;
+    border-bottom:1px solid #e2ebf5;
+}
+
+.bkb-card-header .bkb-card-icon{ font-size:15px; }
+
+.bkb-card-header h3{
+    margin:0;
+    font-size:13px;
+    font-weight:700;
+    color:#1565c0;
+    letter-spacing:.3px;
+    text-transform:uppercase;
+}
+
+.bkb-card-header .bkb-card-action{
+    margin-left:auto;
+}
+
+.bkb-card-body{ padding:22px 20px; }
+
+.btn-card-action{
+    background:#fff;
+    border:1.5px solid #1565c0;
+    color:#1565c0;
+    font-size:12.5px;
+    font-weight:600;
+    padding:8px 14px;
+    border-radius:8px;
+    cursor:pointer;
+    white-space:nowrap;
+}
+.btn-card-action:hover{ background:#eef4fc; }
+
+.btn-tambah-baris{
+    display:block;
+    width:100%;
+    background:#f7fafd;
+    border:1.5px dashed #b9cfe8;
+    color:#1565c0;
+    font-size:13px;
+    font-weight:600;
+    padding:12px;
+    border-radius:10px;
+    cursor:pointer;
+    margin-top:12px;
+}
+.btn-tambah-baris:hover{ background:#eef4fc; }
+
 .bkb-stok-value{ color:#2e7d32; font-weight:700; }
 .bkb-stok-value.kosong{ color:#9a9a9a; font-weight:500; }
 .bkb-stok-cell.bkb-stok-kurang .bkb-stok-value{ color:#c62828; }
@@ -652,18 +717,22 @@ table.tbl td{
 /* ============== TANDA TANGAN (SIGNATURE) ============== */
 
 .btn-ttd{
-    background:#fff;
-    border:1.5px dashed #cfd8e3;
+    background:transparent;
+    border:none;
     color:#1565c0;
-    font-size:11.5px;
+    font-size:13px;
     font-weight:600;
-    padding:8px 10px;
-    border-radius:8px;
     cursor:pointer;
-    white-space:nowrap;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
     width:100%;
+    padding:26px 0;
 }
-.btn-ttd:hover{ background:#f4f6fa; }
+.btn-ttd:hover{ opacity:.75; }
+.btn-ttd .btn-ttd-icon{ font-size:22px; }
 
 .ttd-thumb-wrap{
     display:flex;
@@ -693,25 +762,26 @@ table.tbl td{
     display:grid;
     grid-template-columns:1fr 1fr;
     gap:16px;
-    margin:18px 0;
 }
 
 .bkb-ttd-box{
     border:1.5px dashed #cfd8e3;
-    border-radius:10px;
-    padding:14px;
+    border-radius:12px;
+    padding:12px;
     text-align:center;
+    background:#fafbfc;
 }
 
 .bkb-ttd-box .bkb-ttd-label{
-    font-size:12px;
+    font-size:12.5px;
     font-weight:600;
-    color:#555;
-    margin-bottom:10px;
+    color:#333;
+    margin-bottom:4px;
 }
 
 .bkb-ttd-box .ttd-thumb-wrap{
     justify-content:center;
+    padding:10px 0;
 }
 
 .bkb-ttd-box .ttd-thumb{
@@ -979,100 +1049,123 @@ table.tbl td{
                     <p>Catat pengambilan / pemakaian barang dari gudang</p>
                 </div>
 
-                <div class="panel">
+                <div class="form-msg" id="bkb-msg"></div>
 
-                    <div class="form-msg" id="bkb-msg"></div>
+                <div class="bkb-card">
+                    <div class="bkb-card-header">
+                        <span class="bkb-card-icon">📋</span>
+                        <h3>Informasi Umum</h3>
+                    </div>
+                    <div class="bkb-card-body">
 
-                    <h3 class="bkb-section-title">Informasi Umum</h3>
-
-                    <div class="opb-header-grid">
-                        <div class="form-group">
-                            <label>No BKB</label>
-                            <div class="field-icon-wrap">
-                                <input type="text" id="bkb-no" disabled>
-                                <span class="field-icon">🔒</span>
+                        <div class="opb-header-grid">
+                            <div class="form-group">
+                                <label>No BKB</label>
+                                <div class="field-icon-wrap">
+                                    <input type="text" id="bkb-no" disabled>
+                                    <span class="field-icon">🔒</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Tanggal</label>
+                                <div class="field-icon-wrap">
+                                    <input type="text" id="bkb-tanggal" disabled>
+                                    <span class="field-icon">📅</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Jam</label>
+                                <div class="field-icon-wrap">
+                                    <input type="text" id="bkb-jam" disabled>
+                                    <span class="field-icon">🕐</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Divisi</label>
+                                <select id="bkb-divisi"></select>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label>Tanggal</label>
-                            <div class="field-icon-wrap">
-                                <input type="text" id="bkb-tanggal" disabled>
-                                <span class="field-icon">📅</span>
+
+                        <div class="opb-header-grid" style="grid-template-columns:1fr 1fr;">
+                            <div class="form-group">
+                                <label>Scan ID Card</label>
+                                <div class="field-icon-wrap">
+                                    <input type="text" id="bkb-barcode-user" placeholder="Scan ID card..." autocomplete="off" onkeydown="handleBarcodeUserKeydown(event)" onblur="cariUserByBarcode()">
+                                    <span class="field-icon">📇</span>
+                                </div>
+                                <div class="bkb-barcode-status" id="bkb-barcode-user-status"></div>
+                            </div>
+                            <div class="form-group">
+                                <label>Nama User</label>
+                                <input type="text" id="bkb-nama-user" placeholder="- (scan ID card dulu)" disabled>
                             </div>
                         </div>
+
                         <div class="form-group">
-                            <label>Jam</label>
-                            <div class="field-icon-wrap">
-                                <input type="text" id="bkb-jam" disabled>
-                                <span class="field-icon">🕐</span>
+                            <label>Keperluan / Untuk</label>
+                            <textarea id="bkb-untuk" placeholder="Contoh: Perbaikan Mesin Packing"></textarea>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="bkb-card">
+                    <div class="bkb-card-header">
+                        <span class="bkb-card-icon">📋</span>
+                        <h3>Detail Barang</h3>
+                        <div class="bkb-card-action">
+                            <button class="btn-card-action" type="button" onclick="tambahBarisBkb()">+ Tambah Barang</button>
+                        </div>
+                    </div>
+                    <div class="bkb-card-body">
+
+                        <table class="tbl opb-items-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:34px;">No</th>
+                                    <th style="width:170px;">Barcode</th>
+                                    <th>Nama Barang</th>
+                                    <th style="width:90px;">Jumlah</th>
+                                    <th style="width:80px;">Satuan</th>
+                                    <th style="width:110px;">Stok Saat Ini</th>
+                                    <th style="width:50px;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bkb-items-body"></tbody>
+                        </table>
+
+                        <button class="btn-tambah-baris" type="button" onclick="tambahBarisBkb()">+ Tambah Baris</button>
+
+                    </div>
+                </div>
+
+                <div class="bkb-card">
+                    <div class="bkb-card-header">
+                        <span class="bkb-card-icon">✎</span>
+                        <h3>Tanda Tangan</h3>
+                    </div>
+                    <div class="bkb-card-body">
+
+                        <div class="bkb-ttd-transaksi">
+                            <div class="bkb-ttd-box">
+                                <div class="bkb-ttd-label">Tanda Tangan User (yang mengambil barang)</div>
+                                <div id="bkb-ttd-user"><button class="btn-ttd" type="button" onclick="bukaTtdModal('user')"><span class="btn-ttd-icon">✎</span><span>Klik untuk tanda tangan</span></button></div>
+                            </div>
+                            <div class="bkb-ttd-box">
+                                <div class="bkb-ttd-label">Tanda Tangan Petugas Gudang</div>
+                                <div id="bkb-ttd-gudang"><button class="btn-ttd" type="button" onclick="bukaTtdModal('gudang')"><span class="btn-ttd-icon">✎</span><span>Klik untuk tanda tangan</span></button></div>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label>Barcode ID Card</label>
-                            <div class="field-icon-wrap">
-                                <input type="text" id="bkb-barcode-user" placeholder="Scan ID card..." autocomplete="off" onkeydown="handleBarcodeUserKeydown(event)" onblur="cariUserByBarcode()">
-                                <span class="field-icon">📇</span>
-                            </div>
-                            <div class="bkb-barcode-status" id="bkb-barcode-user-status"></div>
-                        </div>
-                        <div class="form-group">
-                            <label>Nama User</label>
-                            <input type="text" id="bkb-nama-user" placeholder="- (scan ID card dulu)" disabled>
-                        </div>
+
                     </div>
+                </div>
 
-                    <div class="opb-header-grid" style="grid-template-columns:repeat(3, minmax(0,1fr));">
-                        <div class="form-group">
-                            <label>Divisi</label>
-                            <select id="bkb-divisi"></select>
-                        </div>
+                <div class="bkb-actions-row">
+                    <div></div>
+                    <div class="bkb-actions-right">
+                        <button class="btn-outline" type="button" id="bkb-draft" onclick="simpanDraftBkb()">↻ Simpan Draft</button>
+                        <button class="btn-success" type="button" id="bkb-submit" onclick="submitPengambilanBarang()">➤ Submit Permintaan</button>
                     </div>
-
-                    <div class="form-group">
-                        <label>Untuk</label>
-                        <textarea id="bkb-untuk" placeholder="Contoh: Perbaikan Mesin Packing"></textarea>
-                    </div>
-
-                    <div class="opb-items-header">
-                        <h3 class="bkb-section-title" style="margin:0;">Detail Barang</h3>
-                    </div>
-
-                    <table class="tbl opb-items-table">
-                        <thead>
-                            <tr>
-                                <th style="width:34px;">No</th>
-                                <th style="width:170px;">Barcode</th>
-                                <th>Nama Barang</th>
-                                <th style="width:90px;">Jumlah</th>
-                                <th style="width:80px;">Satuan</th>
-                                <th style="width:110px;">Stok Saat Ini</th>
-                                <th style="width:50px;">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="bkb-items-body"></tbody>
-                    </table>
-
-                    <button class="btn-secondary" type="button" onclick="tambahBarisBkb()">+ Tambah Barang</button>
-
-                    <div class="bkb-ttd-transaksi">
-                        <div class="bkb-ttd-box">
-                            <div class="bkb-ttd-label">Tanda Tangan User (yang mengambil barang)</div>
-                            <div id="bkb-ttd-user"><button class="btn-ttd" type="button" onclick="bukaTtdModal('user')">✎ Tanda Tangan</button></div>
-                        </div>
-                        <div class="bkb-ttd-box">
-                            <div class="bkb-ttd-label">Tanda Tangan Petugas Gudang</div>
-                            <div id="bkb-ttd-gudang"><button class="btn-ttd" type="button" onclick="bukaTtdModal('gudang')">✎ Tanda Tangan</button></div>
-                        </div>
-                    </div>
-
-                    <div class="bkb-actions-row">
-                        <div></div>
-                        <div class="bkb-actions-right">
-                            <button class="btn-outline" type="button" id="bkb-draft" onclick="simpanDraftBkb()">↻ Simpan Draft</button>
-                            <button class="btn-success" type="button" id="bkb-submit" onclick="submitPengambilanBarang()">➤ Submit Permintaan</button>
-                        </div>
-                    </div>
-
                 </div>
 
             </div>
