@@ -924,6 +924,54 @@ table.tbl td{
     padding:10px 16px;
     font-size:12.5px;
 }
+
+/* ============== MODAL INPUT PENAWARAN (Cloudinary upload) ============== */
+
+.pw-modal-box{
+    background:#fff;
+    border-radius:16px;
+    width:100%;
+    max-width:640px;
+    max-height:88vh;
+    overflow-y:auto;
+    padding:22px;
+}
+
+.pw-row{
+    border:1px solid #e6ebf2;
+    border-radius:12px;
+    padding:14px;
+    margin-bottom:12px;
+}
+
+.pw-row-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+}
+
+.pw-row-head b{ font-size:12.5px; color:#1565c0; }
+
+.pw-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+}
+
+.pw-grid .form-group{ margin-bottom:8px; }
+.pw-grid label{ font-size:11.5px; }
+
+.pw-file-status{
+    font-size:11.5px;
+    color:#666;
+    margin-top:4px;
+}
+.pw-file-status a{ color:#1565c0; font-weight:600; }
+
+@media (max-width:600px){
+    .pw-grid{ grid-template-columns:1fr; }
+}
 </style>
 </head>
 <body>
@@ -1637,6 +1685,27 @@ table.tbl td{
 </div>
 
 <!-- ============================================= -->
+<!-- MODAL INPUT PENAWARAN -->
+<!-- ============================================= -->
+<div class="ttd-modal-overlay" id="pw-modal-overlay">
+    <div class="pw-modal-box">
+        <h3>Input Penawaran Vendor</h3>
+        <p class="sub">Isi 1-3 penawaran vendor untuk dibandingkan. Lampiran PDF/JPG opsional.</p>
+
+        <div id="pw-rows"></div>
+
+        <button class="btn-tambah-baris" type="button" id="pw-add-btn" onclick="tambahBarisPenawaran()">+ Tambah Penawaran</button>
+
+        <div class="ttd-modal-actions" style="margin-top:16px;">
+            <div class="ttd-left">
+                <button class="btn-outline" type="button" onclick="tutupModalPenawaran()">Batal</button>
+            </div>
+            <button class="btn-success" type="button" id="pw-save-btn" onclick="simpanModalPenawaran()">✓ Simpan Penawaran</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================= -->
 <!-- FIREBASE -->
 <!-- ============================================= -->
 <script type="module">
@@ -1682,6 +1751,33 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+// =========================================================
+// CLOUDINARY (penyimpanan file lampiran) — GANTI 2 NILAI INI
+// dengan Cloud Name & Upload Preset (mode Unsigned) dari akun
+// Cloudinary kamu (Dashboard -> Settings -> Upload -> Upload presets)
+// =========================================================
+const CLOUDINARY_CLOUD_NAME = "GANTI_CLOUD_NAME_KAMU";
+const CLOUDINARY_UPLOAD_PRESET = "GANTI_UPLOAD_PRESET_KAMU";
+
+async function uploadKeCloudinary(file){
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
+        method: "POST",
+        body: formData
+    });
+
+    if(!res.ok){
+        const errText = await res.text();
+        throw new Error("Upload Cloudinary gagal: " + errText);
+    }
+
+    const data = await res.json();
+    return data.secure_url;
+}
 
 // =========================================================
 // LOGIN
@@ -2850,46 +2946,159 @@ window.bukaFormCatatan = function(id){
     }, { merge: true }).catch(e => alert("Gagal menyimpan catatan: " + e.message));
 }
 
+let pwModalTargetId = null;
+let pwRowCount = 0;
+let pwFilesBaru = {}; // { rowId: File }
+
 window.bukaFormPenawaran = function(id){
     const d = purListMap[id];
     if(!d) return;
 
+    pwModalTargetId = id;
+    pwFilesBaru = {};
+    pwRowCount = 0;
+    document.getElementById("pw-rows").innerHTML = "";
+
     const existing = d.penawaran_list || [];
-    const jumlahStr = prompt(`Berapa penawaran vendor mau diinput/diperbarui? (1-3)`, String(existing.length || 1));
-    if(jumlahStr === null) return;
-    const jumlah = Math.min(3, Math.max(1, parseInt(jumlahStr) || 1));
-
-    const daftarBaru = [];
-    for(let i = 0; i < jumlah; i++){
-        const e = existing[i] || {};
-        const vendor = prompt(`Penawaran ${i+1} - Nama Vendor:`, e.vendor || "");
-        if(vendor === null) return;
-        if(vendor.trim() === "") continue;
-        const harga = prompt(`Penawaran ${i+1} - Harga (Rp):`, e.harga || "");
-        if(harga === null) return;
-        const estimasi = prompt(`Penawaran ${i+1} - Estimasi Pengiriman:`, e.estimasi_pengiriman || "");
-        if(estimasi === null) return;
-        const link = prompt(`Penawaran ${i+1} - Link Dokumen (Google Drive/WA, opsional):`, e.link_dokumen || "");
-        if(link === null) return;
-
-        daftarBaru.push({
-            vendor: vendor.trim(),
-            harga: Number(harga) || 0,
-            estimasi_pengiriman: (estimasi || "").trim(),
-            link_dokumen: (link || "").trim()
-        });
+    if(existing.length === 0){
+        tambahBarisPenawaran();
+    } else {
+        existing.forEach(p => tambahBarisPenawaran(p));
     }
 
-    if(daftarBaru.length === 0){
-        alert("Minimal 1 penawaran dengan nama vendor harus diisi.");
+    document.getElementById("pw-modal-overlay").classList.add("active");
+}
+
+window.tutupModalPenawaran = function(){
+    document.getElementById("pw-modal-overlay").classList.remove("active");
+    pwModalTargetId = null;
+    pwFilesBaru = {};
+}
+
+window.tambahBarisPenawaran = function(existing){
+    const rows = document.querySelectorAll("#pw-rows .pw-row");
+    if(rows.length >= 3){
+        alert("Maksimal 3 penawaran.");
         return;
     }
+    pwRowCount++;
+    const id = pwRowCount;
+    const p = existing || {};
 
-    setDoc(doc(db, "permintaan_barang", id), {
-        penawaran_list: daftarBaru,
-        diinput_oleh: auth.currentUser.email,
-        diinput_pada: serverTimestamp()
-    }, { merge: true }).catch(e => alert("Gagal menyimpan penawaran: " + e.message));
+    const html = `
+        <div class="pw-row" id="pw-row-${id}">
+            <div class="pw-row-head">
+                <b>Penawaran ${id}</b>
+                <button class="btn-remove-filled" type="button" onclick="hapusBarisPenawaran(${id})">🗑️</button>
+            </div>
+            <div class="pw-grid">
+                <div class="form-group">
+                    <label>Nama Vendor</label>
+                    <input type="text" id="pw-vendor-${id}" value="${p.vendor || ""}" placeholder="Nama vendor">
+                </div>
+                <div class="form-group">
+                    <label>Harga (Rp)</label>
+                    <input type="number" min="0" id="pw-harga-${id}" value="${p.harga || ""}" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label>Estimasi Pengiriman</label>
+                    <input type="text" id="pw-estimasi-${id}" value="${p.estimasi_pengiriman || ""}" placeholder="Contoh: 3-5 hari kerja">
+                </div>
+                <div class="form-group">
+                    <label>Lampiran (PDF/JPG)</label>
+                    <input type="file" id="pw-file-${id}" accept=".pdf,.jpg,.jpeg,.png" onchange="pilihFilePenawaran(${id})">
+                    <div class="pw-file-status" id="pw-file-status-${id}">
+                        ${p.lampiran_url ? `<a href="${p.lampiran_url}" target="_blank" rel="noopener">📎 Lihat lampiran tersimpan</a>` : "Belum ada lampiran"}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById("pw-rows").insertAdjacentHTML("beforeend", html);
+    document.getElementById("pw-add-btn").style.display = document.querySelectorAll("#pw-rows .pw-row").length >= 3 ? "none" : "block";
+}
+
+window.hapusBarisPenawaran = function(id){
+    const row = document.getElementById(`pw-row-${id}`);
+    if(row) row.remove();
+    delete pwFilesBaru[id];
+    document.getElementById("pw-add-btn").style.display = "block";
+}
+
+window.pilihFilePenawaran = function(id){
+    const input = document.getElementById(`pw-file-${id}`);
+    const statusEl = document.getElementById(`pw-file-status-${id}`);
+    if(input.files && input.files[0]){
+        const file = input.files[0];
+        if(file.size > 5 * 1024 * 1024){
+            alert("Ukuran file maksimal 5MB.");
+            input.value = "";
+            return;
+        }
+        pwFilesBaru[id] = file;
+        statusEl.textContent = `📎 ${file.name} (belum disimpan, klik "Simpan Penawaran")`;
+    }
+}
+
+window.simpanModalPenawaran = async function(){
+    if(!pwModalTargetId) return;
+
+    const rows = document.querySelectorAll("#pw-rows .pw-row");
+    const saveBtn = document.getElementById("pw-save-btn");
+    const daftarBaru = [];
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Menyimpan...";
+
+    try{
+        for(const row of rows){
+            const id = row.id.replace("pw-row-", "");
+            const vendor = document.getElementById(`pw-vendor-${id}`).value.trim();
+            if(vendor === "") continue;
+
+            const harga = document.getElementById(`pw-harga-${id}`).value;
+            const estimasi = document.getElementById(`pw-estimasi-${id}`).value.trim();
+
+            let lampiranUrl = null;
+            const statusEl = document.getElementById(`pw-file-status-${id}`);
+            const existingLink = statusEl.querySelector("a");
+            if(existingLink) lampiranUrl = existingLink.getAttribute("href");
+
+            if(pwFilesBaru[id]){
+                saveBtn.textContent = `Mengupload lampiran ${vendor}...`;
+                lampiranUrl = await uploadKeCloudinary(pwFilesBaru[id]);
+            }
+
+            daftarBaru.push({
+                vendor: vendor,
+                harga: Number(harga) || 0,
+                estimasi_pengiriman: estimasi,
+                lampiran_url: lampiranUrl
+            });
+        }
+
+        if(daftarBaru.length === 0){
+            alert("Minimal 1 penawaran dengan nama vendor harus diisi.");
+            saveBtn.disabled = false;
+            saveBtn.textContent = "✓ Simpan Penawaran";
+            return;
+        }
+
+        await setDoc(doc(db, "permintaan_barang", pwModalTargetId), {
+            penawaran_list: daftarBaru,
+            diinput_oleh: auth.currentUser.email,
+            diinput_pada: serverTimestamp()
+        }, { merge: true });
+
+        window.tutupModalPenawaran();
+
+    } catch(e){
+        alert("Gagal menyimpan penawaran: " + e.message);
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "✓ Simpan Penawaran";
+    }
 }
 
 // -------- Purchasing: List Permintaan Approve (status barang + faktur) --------
@@ -3045,7 +3254,7 @@ function pantauPimpinanReview(){
                 <div style="margin-bottom:4px; padding-bottom:4px; ${i < daftarPenawaran.length - 1 ? 'border-bottom:1px dashed #e2e2e2;' : ''}">
                     <b>P${i + 1}:</b> ${p.vendor || "-"} — Rp ${(p.harga || 0).toLocaleString("id-ID")}
                     ${p.estimasi_pengiriman ? ` <span style="color:#8d8d8d;">(${p.estimasi_pengiriman})</span>` : ""}
-                    ${p.link_dokumen ? ` — <a href="${p.link_dokumen}" target="_blank" rel="noopener">Lihat dokumen</a>` : ""}
+                    ${p.lampiran_url ? ` — <a href="${p.lampiran_url}" target="_blank" rel="noopener">📎 Lihat lampiran</a>` : ""}
                 </div>
             `).join("");
 
