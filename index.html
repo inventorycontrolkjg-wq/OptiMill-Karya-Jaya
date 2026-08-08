@@ -317,6 +317,10 @@ table.tbl td{
 .status-pill.menunggu{ background:#fff3e0; color:#ef6c00; }
 .status-pill.disetujui{ background:#e8f5e9; color:#2e7d32; }
 .status-pill.ditolak{ background:#ffebee; color:#c62828; }
+.status-pill.hold{ background:#fce4ec; color:#ad1457; }
+.status-pill.approve{ background:#e8f5e9; color:#2e7d32; }
+.status-pill.diterima{ background:#e8f5e9; color:#2e7d32; }
+.status-pill.belum_diterima{ background:#fff3e0; color:#ef6c00; }
 
 .empty-state{
     text-align:center;
@@ -1496,23 +1500,87 @@ table.tbl td{
             </div>
 
             <!-- ============================================= -->
-            <!-- ROLE LAIN (placeholder, belum ada sub-menu) -->
+            <!-- PURCHASING -->
             <!-- ============================================= -->
-            <div class="page" id="page-purchasing-dashboard">
-                <div class="placeholder-panel">
-                    <div class="icon">🛒</div>
-                    <h3>Dashboard Purchasing</h3>
-                    <p>Modul laporan pembelian &amp; pembuatan PO akan dibangun di tahap berikutnya.</p>
+            <div class="page" id="page-purchasing-list-permintaan">
+                <div class="page-header">
+                    <h2>📋 List Permintaan</h2>
+                    <p>Input penawaran vendor untuk setiap permintaan yang masuk dari gudang</p>
+                </div>
+                <div class="panel">
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>No. PR</th>
+                                <th>Barang</th>
+                                <th>Total Jumlah</th>
+                                <th>Vendor</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pur-list-body"></tbody>
+                    </table>
+                    <div class="empty-state" id="pur-list-empty" style="display:none;">Belum ada permintaan barang dari gudang.</div>
                 </div>
             </div>
 
-            <div class="page" id="page-pimpinan-dashboard">
-                <div class="placeholder-panel">
-                    <div class="icon">✅</div>
-                    <h3>Dashboard Pimpinan</h3>
-                    <p>Modul approval PO akan dibangun di tahap berikutnya.</p>
+            <div class="page" id="page-purchasing-list-approve">
+                <div class="page-header">
+                    <h2>✅ List Permintaan Approve</h2>
+                    <p>Permintaan yang sudah disetujui Pimpinan — tandai status barang & input faktur</p>
+                </div>
+                <div class="panel">
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>No. PR</th>
+                                <th>Barang</th>
+                                <th>Vendor</th>
+                                <th>Status Barang</th>
+                                <th>Faktur</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pur-approve-body"></tbody>
+                    </table>
+                    <div class="empty-state" id="pur-approve-empty" style="display:none;">Belum ada permintaan yang disetujui.</div>
                 </div>
             </div>
+
+            <!-- ============================================= -->
+            <!-- PIMPINAN -->
+            <!-- ============================================= -->
+            <div class="page" id="page-pimpinan-review">
+                <div class="page-header">
+                    <h2>✅ Review &amp; Approval</h2>
+                    <p>Permintaan yang sudah ada penawaran dari Purchasing, siap direview</p>
+                </div>
+                <div class="panel">
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>No. PR</th>
+                                <th>Barang</th>
+                                <th>Vendor</th>
+                                <th>Harga</th>
+                                <th>Estimasi Kirim</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pim-list-body"></tbody>
+                    </table>
+                    <div class="empty-state" id="pim-list-empty" style="display:none;">Belum ada permintaan dengan penawaran dari Purchasing.</div>
+                </div>
+            </div>
+
+            <!-- ============================================= -->
+            <!-- ROLE LAIN (placeholder, belum ada sub-menu) -->
+            <!-- ============================================= -->
 
             <div class="page" id="page-finance-dashboard">
                 <div class="placeholder-panel">
@@ -1664,10 +1732,11 @@ const NAV_ITEMS = {
         { id:"import-master-karyawan", label:"📥 Import Master Karyawan" }
     ],
     purchasing: [
-        { id:"purchasing-dashboard", label:"🛒 Dashboard" }
+        { id:"purchasing-list-permintaan", label:"📋 List Permintaan" },
+        { id:"purchasing-list-approve", label:"✅ List Permintaan Approve" }
     ],
     pimpinan: [
-        { id:"pimpinan-dashboard", label:"✅ Dashboard" }
+        { id:"pimpinan-review", label:"✅ Review & Approval" }
     ],
     finance: [
         { id:"finance-dashboard", label:"💳 Dashboard" }
@@ -1725,6 +1794,15 @@ window.showPage = function(id){
     }
     if(id === "inventory-control"){
         pantauInventoryControl();
+    }
+    if(id === "purchasing-list-permintaan"){
+        pantauPurchasingListPermintaan();
+    }
+    if(id === "purchasing-list-approve"){
+        pantauPurchasingListApprove();
+    }
+    if(id === "pimpinan-review"){
+        pantauPimpinanReview();
     }
     if(id === "list-penerimaan"){
         pantauSemuaPenerimaan();
@@ -2671,6 +2749,267 @@ window.cetakPermintaan = function(id){
         document.body.classList.remove("printing-mode");
     }, 500);
 
+}
+
+// =========================================================
+// MODUL PURCHASING: LIST PERMINTAAN (input penawaran)
+// =========================================================
+let unsubPurList = null;
+let purListMap = {};
+
+function pantauPurchasingListPermintaan(){
+
+    if(unsubPurList) unsubPurList();
+
+    const q = query(collection(db, "permintaan_barang"), orderBy("created_at", "desc"));
+
+    unsubPurList = onSnapshot(q, (snapshot) => {
+
+        const tbody = document.getElementById("pur-list-body");
+        const emptyEl = document.getElementById("pur-list-empty");
+        purListMap = {};
+
+        if(snapshot.empty){
+            tbody.innerHTML = "";
+            emptyEl.style.display = "block";
+            return;
+        }
+        emptyEl.style.display = "none";
+
+        let html = "";
+
+        snapshot.forEach(docSnap => {
+            const d = docSnap.data();
+            purListMap[docSnap.id] = d;
+
+            const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
+            const items = d.items || [];
+            let ringkas = items.length ? items[0].nama_barang : "-";
+            if(items.length > 1) ringkas += ` +${items.length - 1} lainnya`;
+
+            const status = d.status || "menunggu";
+            const labelStatus = status === "approve" ? "Approve" : (status === "hold" ? "Hold" : "Menunggu Penawaran");
+            const vendor = d.penawaran ? d.penawaran.vendor : "-";
+
+            html += `
+<tr>
+    <td>${tgl}</td>
+    <td>${d.no_pr || "-"}</td>
+    <td>${ringkas}</td>
+    <td>${d.total_jumlah ?? "-"}</td>
+    <td>${vendor || "-"}</td>
+    <td><span class="status-pill ${status}">${labelStatus}</span></td>
+    <td><button class="btn-ic-edit" type="button" onclick="bukaFormPenawaran('${docSnap.id}')">${d.penawaran ? "✏️ Edit Penawaran" : "🛒 Input Penawaran"}</button></td>
+</tr>`;
+        });
+
+        tbody.innerHTML = html;
+
+    }, err => console.error("Gagal memuat List Permintaan (Purchasing):", err));
+}
+
+window.bukaFormPenawaran = function(id){
+    const d = purListMap[id];
+    if(!d) return;
+
+    const p = d.penawaran || {};
+    const vendor = prompt("Nama Vendor:", p.vendor || "");
+    if(vendor === null) return;
+    const harga = prompt("Harga Penawaran (angka, Rp):", p.harga || "");
+    if(harga === null) return;
+    const estimasi = prompt("Estimasi Pengiriman (contoh: 3-5 hari kerja):", p.estimasi_pengiriman || "");
+    if(estimasi === null) return;
+    const keterangan = prompt("Keterangan (opsional):", p.keterangan || "");
+    if(keterangan === null) return;
+
+    if(vendor.trim() === "" || harga.trim() === ""){
+        alert("Vendor dan Harga wajib diisi.");
+        return;
+    }
+
+    setDoc(doc(db, "permintaan_barang", id), {
+        penawaran: {
+            vendor: vendor.trim(),
+            harga: Number(harga) || 0,
+            estimasi_pengiriman: estimasi.trim(),
+            keterangan: keterangan.trim(),
+            diinput_oleh: auth.currentUser.email,
+            diinput_pada: serverTimestamp()
+        }
+    }, { merge: true }).catch(e => alert("Gagal menyimpan penawaran: " + e.message));
+}
+
+// -------- Purchasing: List Permintaan Approve (status barang + faktur) --------
+let unsubPurApprove = null;
+let purApproveMap = {};
+
+function pantauPurchasingListApprove(){
+
+    if(unsubPurApprove) unsubPurApprove();
+
+    const q = query(collection(db, "permintaan_barang"), where("status", "==", "approve"), orderBy("created_at", "desc"));
+
+    unsubPurApprove = onSnapshot(q, (snapshot) => {
+
+        const tbody = document.getElementById("pur-approve-body");
+        const emptyEl = document.getElementById("pur-approve-empty");
+        purApproveMap = {};
+
+        if(snapshot.empty){
+            tbody.innerHTML = "";
+            emptyEl.style.display = "block";
+            return;
+        }
+        emptyEl.style.display = "none";
+
+        let html = "";
+
+        snapshot.forEach(docSnap => {
+            const d = docSnap.data();
+            purApproveMap[docSnap.id] = d;
+
+            const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
+            const items = d.items || [];
+            let ringkas = items.length ? items[0].nama_barang : "-";
+            if(items.length > 1) ringkas += ` +${items.length - 1} lainnya`;
+
+            const statusBarang = d.status_barang || "belum_diterima";
+            const labelStatusBarang = statusBarang === "diterima" ? "Diterima" : "Belum Diterima";
+
+            const btnStatus = statusBarang === "diterima"
+                ? `<span style="color:#2e7d32;font-weight:600;font-size:12px;">✔ Diterima</span>`
+                : `<button class="btn-ic-edit" type="button" onclick="tandaiDiterima('${docSnap.id}')">Tandai Diterima</button>`;
+
+            const btnFaktur = d.faktur
+                ? `<button class="btn-ic-edit" type="button" onclick="bukaFormFaktur('${docSnap.id}')">✏️ Edit Faktur</button>`
+                : (statusBarang === "diterima"
+                    ? `<button class="btn-ic-edit" type="button" onclick="bukaFormFaktur('${docSnap.id}')">🧾 Input Faktur</button>`
+                    : `<span style="color:#9a9a9a;font-size:12px;">- (tunggu barang diterima)</span>`);
+
+            html += `
+<tr>
+    <td>${tgl}</td>
+    <td>${d.no_pr || "-"}</td>
+    <td>${ringkas}</td>
+    <td>${d.penawaran ? d.penawaran.vendor : "-"}</td>
+    <td><span class="status-pill ${statusBarang}">${labelStatusBarang}</span></td>
+    <td>${d.faktur ? (d.faktur.no_faktur || "✔ Sudah") : "-"}</td>
+    <td>${btnStatus} ${btnFaktur}</td>
+</tr>`;
+        });
+
+        tbody.innerHTML = html;
+
+    }, err => console.error("Gagal memuat List Permintaan Approve:", err));
+}
+
+window.tandaiDiterima = function(id){
+    if(!confirm("Tandai barang untuk permintaan ini sebagai sudah Diterima?")) return;
+    setDoc(doc(db, "permintaan_barang", id), {
+        status_barang: "diterima",
+        diterima_pada: serverTimestamp()
+    }, { merge: true }).catch(e => alert("Gagal update status barang: " + e.message));
+}
+
+window.bukaFormFaktur = function(id){
+    const d = purApproveMap[id];
+    if(!d) return;
+
+    const f = d.faktur || {};
+    const noFaktur = prompt("Nomor Faktur:", f.no_faktur || "");
+    if(noFaktur === null) return;
+    const noInvoice = prompt("Nomor Invoice:", f.no_invoice || "");
+    if(noInvoice === null) return;
+    const noSuratJalan = prompt("Nomor Surat Jalan:", f.no_surat_jalan || "");
+    if(noSuratJalan === null) return;
+    const tanggalFaktur = prompt("Tanggal Faktur (YYYY-MM-DD):", f.tanggal_faktur || new Date().toISOString().slice(0,10));
+    if(tanggalFaktur === null) return;
+    const nilaiFaktur = prompt("Nilai Faktur (Rp):", f.nilai_faktur || (d.penawaran ? d.penawaran.harga : ""));
+    if(nilaiFaktur === null) return;
+
+    setDoc(doc(db, "permintaan_barang", id), {
+        faktur: {
+            no_faktur: noFaktur.trim(),
+            no_invoice: noInvoice.trim(),
+            no_surat_jalan: noSuratJalan.trim(),
+            tanggal_faktur: tanggalFaktur.trim(),
+            nilai_faktur: Number(nilaiFaktur) || 0,
+            vendor: d.penawaran ? d.penawaran.vendor : "",
+            diinput_oleh: auth.currentUser.email,
+            diinput_pada: serverTimestamp()
+        }
+    }, { merge: true }).catch(e => alert("Gagal menyimpan faktur: " + e.message));
+}
+
+// =========================================================
+// MODUL PIMPINAN: REVIEW & APPROVAL
+// =========================================================
+let unsubPimList = null;
+let pimListMap = {};
+
+function pantauPimpinanReview(){
+
+    if(unsubPimList) unsubPimList();
+
+    const q = query(collection(db, "permintaan_barang"), orderBy("created_at", "desc"));
+
+    unsubPimList = onSnapshot(q, (snapshot) => {
+
+        const tbody = document.getElementById("pim-list-body");
+        const emptyEl = document.getElementById("pim-list-empty");
+        pimListMap = {};
+
+        const rows = [];
+
+        snapshot.forEach(docSnap => {
+            const d = docSnap.data();
+            if(!d.penawaran) return; // belum ada penawaran dari Purchasing, belum siap direview
+            pimListMap[docSnap.id] = d;
+            rows.push({ id: docSnap.id, d });
+        });
+
+        if(rows.length === 0){
+            tbody.innerHTML = "";
+            emptyEl.style.display = "block";
+            return;
+        }
+        emptyEl.style.display = "none";
+
+        tbody.innerHTML = rows.map(({ id, d }) => {
+            const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
+            const items = d.items || [];
+            let ringkas = items.length ? items[0].nama_barang : "-";
+            if(items.length > 1) ringkas += ` +${items.length - 1} lainnya`;
+
+            const status = d.status || "menunggu";
+            const labelStatus = status === "approve" ? "Approve" : (status === "hold" ? "Hold" : "Menunggu");
+            const p = d.penawaran;
+
+            return `
+<tr>
+    <td>${tgl}</td>
+    <td>${d.no_pr || "-"}</td>
+    <td>${ringkas}</td>
+    <td>${p.vendor || "-"}</td>
+    <td>Rp ${(p.harga || 0).toLocaleString("id-ID")}</td>
+    <td>${p.estimasi_pengiriman || "-"}</td>
+    <td><span class="status-pill ${status}">${labelStatus}</span></td>
+    <td>
+        <button class="btn-ic-save" type="button" onclick="putuskanPimpinan('${id}', 'approve')">✔ Approve</button>
+        <button class="btn-ic-cancel" type="button" onclick="putuskanPimpinan('${id}', 'hold')">⏸ Hold</button>
+    </td>
+</tr>`;
+        }).join("");
+
+    }, err => console.error("Gagal memuat Review & Approval:", err));
+}
+
+window.putuskanPimpinan = function(id, keputusan){
+    setDoc(doc(db, "permintaan_barang", id), {
+        status: keputusan,
+        diputuskan_oleh: auth.currentUser.email,
+        diputuskan_pada: serverTimestamp()
+    }, { merge: true }).catch(e => alert("Gagal menyimpan keputusan: " + e.message));
 }
 
 // -------- List Pengeluaran (semua BKB, bukan cuma milik sendiri) --------
