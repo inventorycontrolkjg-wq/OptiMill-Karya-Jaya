@@ -592,6 +592,13 @@ table.tbl td{
     cursor:pointer;
 }
 
+.pur-approvement-select{
+    padding:6px 8px;
+    font-size:12px;
+    border-radius:7px;
+    margin-bottom:4px;
+}
+
 /* ============== MODUL: FORM PENGAMBILAN BARANG / BKB ============== */
 
 .field-icon-wrap{ position:relative; }
@@ -1512,12 +1519,12 @@ table.tbl td{
                         <thead>
                             <tr>
                                 <th>Tanggal</th>
-                                <th>No. PR</th>
-                                <th>Barang</th>
-                                <th>Total Jumlah</th>
-                                <th>Vendor</th>
+                                <th>No PR</th>
+                                <th>Tinjau</th>
+                                <th>Input Penawaran</th>
+                                <th>Catatan dr Purchasing</th>
                                 <th>Status</th>
-                                <th>Aksi</th>
+                                <th>Approvement</th>
                             </tr>
                         </thead>
                         <tbody id="pur-list-body"></tbody>
@@ -1563,13 +1570,11 @@ table.tbl td{
                         <thead>
                             <tr>
                                 <th>Tanggal</th>
-                                <th>No. PR</th>
-                                <th>Barang</th>
-                                <th>Vendor</th>
-                                <th>Harga</th>
-                                <th>Estimasi Kirim</th>
+                                <th>No PR</th>
+                                <th>Tinjau</th>
+                                <th>Penawaran</th>
                                 <th>Status</th>
-                                <th>Aksi</th>
+                                <th>Approvement</th>
                             </tr>
                         </thead>
                         <tbody id="pim-list-body"></tbody>
@@ -2783,23 +2788,44 @@ function pantauPurchasingListPermintaan(){
             purListMap[docSnap.id] = d;
 
             const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
-            const items = d.items || [];
-            let ringkas = items.length ? items[0].nama_barang : "-";
-            if(items.length > 1) ringkas += ` +${items.length - 1} lainnya`;
 
             const status = d.status || "menunggu";
-            const labelStatus = status === "approve" ? "Approve" : (status === "hold" ? "Hold" : "Menunggu Penawaran");
-            const vendor = d.penawaran ? d.penawaran.vendor : "-";
+            const labelStatus = status === "approve" ? "Approve" : (status === "hold" ? "Hold" : "Menunggu");
+
+            const daftarPenawaran = d.penawaran_list || [];
+            const btnPenawaranLabel = daftarPenawaran.length > 0
+                ? `✏️ Penawaran (${daftarPenawaran.length})`
+                : `🛒 Input Penawaran`;
+
+            const catatan = d.catatan_purchasing || "";
+            const btnCatatanLabel = catatan ? "📝 Lihat/Edit Catatan" : "📝 + Catatan";
+
+            const approvementOleh = d.approvement_oleh || "";
+
+            // Kalau Purchasing sendiri yang jadi approver, tampilkan tombol approve/hold langsung di sini
+            const aksiApproveSendiri = approvementOleh === "purchasing"
+                ? `<div style="margin-top:6px; display:flex; gap:6px;">
+                       <button class="btn-ic-save" type="button" onclick="putuskanPimpinan('${docSnap.id}', 'approve')">✔ Approve</button>
+                       <button class="btn-ic-cancel" type="button" onclick="putuskanPimpinan('${docSnap.id}', 'hold')">⏸ Hold</button>
+                   </div>`
+                : "";
 
             html += `
 <tr>
     <td>${tgl}</td>
     <td>${d.no_pr || "-"}</td>
-    <td>${ringkas}</td>
-    <td>${d.total_jumlah ?? "-"}</td>
-    <td>${vendor || "-"}</td>
+    <td><button class="btn-ic-edit" type="button" onclick="cetakPermintaan('${docSnap.id}')">🔍 Tinjau</button></td>
+    <td><button class="btn-ic-edit" type="button" onclick="bukaFormPenawaran('${docSnap.id}')">${btnPenawaranLabel}</button></td>
+    <td><button class="btn-ic-edit" type="button" onclick="bukaFormCatatan('${docSnap.id}')">${btnCatatanLabel}</button></td>
     <td><span class="status-pill ${status}">${labelStatus}</span></td>
-    <td><button class="btn-ic-edit" type="button" onclick="bukaFormPenawaran('${docSnap.id}')">${d.penawaran ? "✏️ Edit Penawaran" : "🛒 Input Penawaran"}</button></td>
+    <td>
+        <select class="pur-approvement-select" onchange="setApprovementOleh('${docSnap.id}', this.value)">
+            <option value="" ${approvementOleh === "" ? "selected" : ""}>- Pilih -</option>
+            <option value="pimpinan" ${approvementOleh === "pimpinan" ? "selected" : ""}>Pimpinan</option>
+            <option value="purchasing" ${approvementOleh === "purchasing" ? "selected" : ""}>Purchasing</option>
+        </select>
+        ${aksiApproveSendiri}
+    </td>
 </tr>`;
         });
 
@@ -2808,34 +2834,61 @@ function pantauPurchasingListPermintaan(){
     }, err => console.error("Gagal memuat List Permintaan (Purchasing):", err));
 }
 
+window.setApprovementOleh = function(id, value){
+    setDoc(doc(db, "permintaan_barang", id), {
+        approvement_oleh: value
+    }, { merge: true }).catch(e => alert("Gagal menyimpan Approvement: " + e.message));
+}
+
+window.bukaFormCatatan = function(id){
+    const d = purListMap[id];
+    if(!d) return;
+    const catatan = prompt("Catatan dari Purchasing:", d.catatan_purchasing || "");
+    if(catatan === null) return;
+    setDoc(doc(db, "permintaan_barang", id), {
+        catatan_purchasing: catatan.trim()
+    }, { merge: true }).catch(e => alert("Gagal menyimpan catatan: " + e.message));
+}
+
 window.bukaFormPenawaran = function(id){
     const d = purListMap[id];
     if(!d) return;
 
-    const p = d.penawaran || {};
-    const vendor = prompt("Nama Vendor:", p.vendor || "");
-    if(vendor === null) return;
-    const harga = prompt("Harga Penawaran (angka, Rp):", p.harga || "");
-    if(harga === null) return;
-    const estimasi = prompt("Estimasi Pengiriman (contoh: 3-5 hari kerja):", p.estimasi_pengiriman || "");
-    if(estimasi === null) return;
-    const keterangan = prompt("Keterangan (opsional):", p.keterangan || "");
-    if(keterangan === null) return;
+    const existing = d.penawaran_list || [];
+    const jumlahStr = prompt(`Berapa penawaran vendor mau diinput/diperbarui? (1-3)`, String(existing.length || 1));
+    if(jumlahStr === null) return;
+    const jumlah = Math.min(3, Math.max(1, parseInt(jumlahStr) || 1));
 
-    if(vendor.trim() === "" || harga.trim() === ""){
-        alert("Vendor dan Harga wajib diisi.");
+    const daftarBaru = [];
+    for(let i = 0; i < jumlah; i++){
+        const e = existing[i] || {};
+        const vendor = prompt(`Penawaran ${i+1} - Nama Vendor:`, e.vendor || "");
+        if(vendor === null) return;
+        if(vendor.trim() === "") continue;
+        const harga = prompt(`Penawaran ${i+1} - Harga (Rp):`, e.harga || "");
+        if(harga === null) return;
+        const estimasi = prompt(`Penawaran ${i+1} - Estimasi Pengiriman:`, e.estimasi_pengiriman || "");
+        if(estimasi === null) return;
+        const link = prompt(`Penawaran ${i+1} - Link Dokumen (Google Drive/WA, opsional):`, e.link_dokumen || "");
+        if(link === null) return;
+
+        daftarBaru.push({
+            vendor: vendor.trim(),
+            harga: Number(harga) || 0,
+            estimasi_pengiriman: (estimasi || "").trim(),
+            link_dokumen: (link || "").trim()
+        });
+    }
+
+    if(daftarBaru.length === 0){
+        alert("Minimal 1 penawaran dengan nama vendor harus diisi.");
         return;
     }
 
     setDoc(doc(db, "permintaan_barang", id), {
-        penawaran: {
-            vendor: vendor.trim(),
-            harga: Number(harga) || 0,
-            estimasi_pengiriman: estimasi.trim(),
-            keterangan: keterangan.trim(),
-            diinput_oleh: auth.currentUser.email,
-            diinput_pada: serverTimestamp()
-        }
+        penawaran_list: daftarBaru,
+        diinput_oleh: auth.currentUser.email,
+        diinput_pada: serverTimestamp()
     }, { merge: true }).catch(e => alert("Gagal menyimpan penawaran: " + e.message));
 }
 
@@ -2891,7 +2944,7 @@ function pantauPurchasingListApprove(){
     <td>${tgl}</td>
     <td>${d.no_pr || "-"}</td>
     <td>${ringkas}</td>
-    <td>${d.penawaran ? d.penawaran.vendor : "-"}</td>
+    <td>${(d.penawaran_list && d.penawaran_list[0]) ? d.penawaran_list[0].vendor : "-"}</td>
     <td><span class="status-pill ${statusBarang}">${labelStatusBarang}</span></td>
     <td>${d.faktur ? (d.faktur.no_faktur || "✔ Sudah") : "-"}</td>
     <td>${btnStatus} ${btnFaktur}</td>
@@ -2924,7 +2977,8 @@ window.bukaFormFaktur = function(id){
     if(noSuratJalan === null) return;
     const tanggalFaktur = prompt("Tanggal Faktur (YYYY-MM-DD):", f.tanggal_faktur || new Date().toISOString().slice(0,10));
     if(tanggalFaktur === null) return;
-    const nilaiFaktur = prompt("Nilai Faktur (Rp):", f.nilai_faktur || (d.penawaran ? d.penawaran.harga : ""));
+    const penawaranPertama = (d.penawaran_list && d.penawaran_list[0]) ? d.penawaran_list[0] : null;
+    const nilaiFaktur = prompt("Nilai Faktur (Rp):", f.nilai_faktur || (penawaranPertama ? penawaranPertama.harga : ""));
     if(nilaiFaktur === null) return;
 
     setDoc(doc(db, "permintaan_barang", id), {
@@ -2934,7 +2988,7 @@ window.bukaFormFaktur = function(id){
             no_surat_jalan: noSuratJalan.trim(),
             tanggal_faktur: tanggalFaktur.trim(),
             nilai_faktur: Number(nilaiFaktur) || 0,
-            vendor: d.penawaran ? d.penawaran.vendor : "",
+            vendor: penawaranPertama ? penawaranPertama.vendor : "",
             diinput_oleh: auth.currentUser.email,
             diinput_pada: serverTimestamp()
         }
@@ -2963,7 +3017,9 @@ function pantauPimpinanReview(){
 
         snapshot.forEach(docSnap => {
             const d = docSnap.data();
-            if(!d.penawaran) return; // belum ada penawaran dari Purchasing, belum siap direview
+            const daftar = d.penawaran_list || [];
+            if(daftar.length === 0) return; // belum ada penawaran dari Purchasing, belum siap direview
+            if((d.approvement_oleh || "") !== "pimpinan") return; // Purchasing yang pilih dirinya sendiri jadi approver
             pimListMap[docSnap.id] = d;
             rows.push({ id: docSnap.id, d });
         });
@@ -2983,16 +3039,24 @@ function pantauPimpinanReview(){
 
             const status = d.status || "menunggu";
             const labelStatus = status === "approve" ? "Approve" : (status === "hold" ? "Hold" : "Menunggu");
-            const p = d.penawaran;
+            const daftarPenawaran = d.penawaran_list || [];
+
+            const penawaranHtml = daftarPenawaran.map((p, i) => `
+                <div style="margin-bottom:4px; padding-bottom:4px; ${i < daftarPenawaran.length - 1 ? 'border-bottom:1px dashed #e2e2e2;' : ''}">
+                    <b>P${i + 1}:</b> ${p.vendor || "-"} — Rp ${(p.harga || 0).toLocaleString("id-ID")}
+                    ${p.estimasi_pengiriman ? ` <span style="color:#8d8d8d;">(${p.estimasi_pengiriman})</span>` : ""}
+                    ${p.link_dokumen ? ` — <a href="${p.link_dokumen}" target="_blank" rel="noopener">Lihat dokumen</a>` : ""}
+                </div>
+            `).join("");
+
+            const catatan = d.catatan_purchasing ? `<div style="margin-top:6px; font-size:12px; color:#666;"><b>Catatan Purchasing:</b> ${d.catatan_purchasing}</div>` : "";
 
             return `
 <tr>
     <td>${tgl}</td>
     <td>${d.no_pr || "-"}</td>
-    <td>${ringkas}</td>
-    <td>${p.vendor || "-"}</td>
-    <td>Rp ${(p.harga || 0).toLocaleString("id-ID")}</td>
-    <td>${p.estimasi_pengiriman || "-"}</td>
+    <td><button class="btn-ic-edit" type="button" onclick="cetakPermintaan('${id}')">🔍 Tinjau</button></td>
+    <td>${penawaranHtml}${catatan}</td>
     <td><span class="status-pill ${status}">${labelStatus}</span></td>
     <td>
         <button class="btn-ic-save" type="button" onclick="putuskanPimpinan('${id}', 'approve')">✔ Approve</button>
