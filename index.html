@@ -1043,7 +1043,11 @@ table.tbl td{
                     <div class="opb-header-grid">
                         <div class="form-group">
                             <label>Tanggal Input *</label>
-                            <input type="date" id="opb-tanggal" onchange="refreshPreviewNoPR()">
+                            <div class="field-icon-wrap" style="position:relative;">
+                                <input type="text" id="opb-tanggal-display" readonly placeholder="Pilih tanggal">
+                                <input type="date" id="opb-tanggal" onchange="opbTanggalBerubah()" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; margin:0; padding:0;">
+                                <span class="field-icon">📅</span>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label>No. PR</label>
@@ -1757,8 +1761,8 @@ const db = getFirestore(app);
 // dengan Cloud Name & Upload Preset (mode Unsigned) dari akun
 // Cloudinary kamu (Dashboard -> Settings -> Upload -> Upload presets)
 // =========================================================
-const CLOUDINARY_CLOUD_NAME = "yfqtucfu";
-const CLOUDINARY_UPLOAD_PRESET = "OptiMill_Karya_Jaya";
+const CLOUDINARY_CLOUD_NAME = "GANTI_CLOUD_NAME_KAMU";
+const CLOUDINARY_UPLOAD_PRESET = "GANTI_UPLOAD_PRESET_KAMU";
 
 async function uploadKeCloudinary(file){
     const formData = new FormData();
@@ -2564,38 +2568,47 @@ window.hitungTotalOpb = function(){
 }
 
 // -------- No. PR: preview (tanpa nge-commit counter) & final (commit saat submit) --------
-async function previewNoPR(tahun){
+async function previewNoPR(tanggalISO){
     try{
-        const counterRef = doc(db, "counters", `pr_${tahun}`);
+        const { yy, mm, key } = komponenTahunBulan(tanggalISO);
+        const counterRef = doc(db, "counters", `pr_${key}`);
         const snap = await getDoc(counterRef);
         const next = snap.exists() ? (snap.data().terakhir || 0) + 1 : 1;
-        return `PRM-${tahun}-${String(next).padStart(4, "0")}`;
+        return `${yy}${mm}${String(next).padStart(3, "0")}`;
     } catch(e){
-        return `PRM-${tahun}-????`;
+        return `????`;
     }
+}
+
+window.opbTanggalBerubah = function(){
+    const isoVal = document.getElementById("opb-tanggal").value;
+    document.getElementById("opb-tanggal-display").value = isoVal ? formatTanggalIndo(isoVal) : "";
+    window.refreshPreviewNoPR();
 }
 
 window.refreshPreviewNoPR = async function(){
     const tanggalVal = document.getElementById("opb-tanggal").value;
-    const tahun = tanggalVal ? new Date(tanggalVal).getFullYear() : new Date().getFullYear();
-    document.getElementById("opb-no-pr").value = await previewNoPR(tahun);
+    document.getElementById("opb-no-pr").value = await previewNoPR(tanggalVal);
 }
 
 // Generate No. PR final (transaksi, benar-benar increment counter) - dipanggil saat submit
-async function generateNoPR(tahun){
-    const counterRef = doc(db, "counters", `pr_${tahun}`);
+async function generateNoPR(tanggalISO){
+    const { yy, mm, key } = komponenTahunBulan(tanggalISO);
+    const counterRef = doc(db, "counters", `pr_${key}`);
     const nomorBerikutnya = await runTransaction(db, async (tx) => {
         const snap = await tx.get(counterRef);
         const next = snap.exists() ? (snap.data().terakhir || 0) + 1 : 1;
         tx.set(counterRef, { terakhir: next }, { merge: true });
         return next;
     });
-    return `PRM-${tahun}-${String(nomorBerikutnya).padStart(4, "0")}`;
+    return `${yy}${mm}${String(nomorBerikutnya).padStart(3, "0")}`;
 }
 
 function resetFormOpb(){
     document.getElementById("opb-items-body").innerHTML = "";
-    document.getElementById("opb-tanggal").value = new Date().toISOString().slice(0,10);
+    const todayISO = new Date().toISOString().slice(0,10);
+    document.getElementById("opb-tanggal").value = todayISO;
+    document.getElementById("opb-tanggal-display").value = formatTanggalIndo(todayISO);
     document.getElementById("opb-pembuat").value = "";
     document.getElementById("opb-divisi").value = "";
     document.getElementById("opb-untuk").value = "";
@@ -2668,8 +2681,7 @@ window.ajukanPermintaan = async function(){
 
     try{
 
-        const tahun = new Date(tanggal).getFullYear();
-        const noPR = await generateNoPR(tahun);
+        const noPR = await generateNoPR(tanggal);
 
         await addDoc(collection(db, "permintaan_barang"), {
             no_pr: noPR,
