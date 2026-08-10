@@ -4560,6 +4560,16 @@ window.cariSuratJalanUntukPenerimaan = async function(){
             return;
         }
 
+        if(ditemukan.sj.status === "diterima"){
+            const tglTerima = ditemukan.sj.diterima_pada
+                ? new Date(ditemukan.sj.diterima_pada).toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" })
+                : "";
+            statusEl.textContent = `Surat Jalan "${noSJ}" sudah pernah diterima${tglTerima ? " pada " + tglTerima : ""}. Tidak bisa ditarik ulang.`;
+            statusEl.classList.add("err");
+            pnmSJTerhubung = null;
+            return;
+        }
+
         // Isi otomatis daftar barang dari Surat Jalan
         document.getElementById("pnm-items-body").innerHTML = "";
         pnmRowCount = 0;
