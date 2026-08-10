@@ -1160,9 +1160,10 @@ table.tbl td{
                             <tr>
                                 <th>Tanggal</th>
                                 <th>No. PR</th>
+                                <th>No PR Urut</th>
                                 <th>Diajukan Oleh</th>
                                 <th>Barang</th>
-                                <th>Total Jumlah</th>
+                                <th>Jumlah</th>
                                 <th>Status</th>
                                 <th>Aksi</th>
                             </tr>
@@ -2820,20 +2821,51 @@ function pantauSemuaPermintaan(){
             const labelStatus = status === "disetujui" ? "Disetujui" : (status === "ditolak" ? "Ditolak" : "Menunggu");
 
             const items = d.items || [];
-            let ringkasBarang = items.length ? items[0].nama_barang : "-";
-            if(items.length > 1) ringkasBarang += ` +${items.length - 1} lainnya`;
+            const noPR = d.no_pr || "-";
+            const diajukanOleh = namaDenganRole(d.pembuat, d.dibuat_oleh_role) || d.dibuat_oleh_email || "-";
+            const jumlahBaris = items.length || 1;
 
-            html += `
+            if(items.length === 0){
+                html += `
 <tr>
     <td>${tgl}</td>
-    <td>${d.no_pr || "-"}</td>
-    <td>${namaDenganRole(d.pembuat, d.dibuat_oleh_role) || d.dibuat_oleh_email || "-"}</td>
-    <td>${ringkasBarang}</td>
-    <td>${d.total_jumlah ?? "-"}</td>
+    <td>${noPR}</td>
+    <td>-</td>
+    <td>${diajukanOleh}</td>
+    <td>-</td>
+    <td>-</td>
     <td><span class="status-pill ${status}">${labelStatus}</span></td>
     <td><button class="btn-icon-print" type="button" onclick="cetakPermintaan('${docSnap.id}')">🖨️ Cetak</button></td>
 </tr>
 `;
+            } else {
+                items.forEach((it, i) => {
+                    const jumlah = it.jumlah_diminta ?? it.jumlah ?? "-";
+                    if(i === 0){
+                        html += `
+<tr>
+    <td rowspan="${jumlahBaris}">${tgl}</td>
+    <td rowspan="${jumlahBaris}">${noPR}</td>
+    <td>${noUrutItem(noPR, i)}</td>
+    <td rowspan="${jumlahBaris}">${diajukanOleh}</td>
+    <td style="white-space:normal;">${it.nama_barang || "-"}</td>
+    <td>${jumlah}</td>
+    <td><span class="status-pill ${status}">${labelStatus}</span></td>
+    <td rowspan="${jumlahBaris}"><button class="btn-icon-print" type="button" onclick="cetakPermintaan('${docSnap.id}')">🖨️ Cetak</button></td>
+</tr>
+`;
+                    } else {
+                        html += `
+<tr>
+    <td>${noUrutItem(noPR, i)}</td>
+    <td style="white-space:normal;">${it.nama_barang || "-"}</td>
+    <td>${jumlah}</td>
+    <td><span class="status-pill ${status}">${labelStatus}</span></td>
+</tr>
+`;
+                    }
+                });
+            }
 
         });
 
