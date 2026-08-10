@@ -1419,7 +1419,7 @@ table.tbl td{
                                 <th>No Penerimaan</th>
                                 <th>Diterima Oleh</th>
                                 <th>Barang</th>
-                                <th>Total Jumlah</th>
+                                <th>Jumlah</th>
                                 <th>Status</th>
                                 <th>Aksi</th>
                             </tr>
@@ -4883,21 +4883,21 @@ function pantauSemuaPenerimaan(){
             const labelStatus = status === "draft" ? "Draft" : "Submitted";
 
             const items = d.items || [];
-            const ringkasBarang = items.length
-                ? items.map(it => `${it.nama_barang || "-"} (${it.jumlah ?? "-"} ${it.satuan || ""})`.trim()).join(", ")
-                : "-";
+            const daftarBarang = items.length ? items : [{ nama_barang: "-", jumlah: "-", satuan: "" }];
 
-            html += `
+            daftarBarang.forEach(it => {
+                html += `
 <tr>
     <td>${tgl}</td>
     <td>${d.no_penerimaan || "-"}</td>
     <td>${d.penerima || "-"}</td>
-    <td style="white-space:normal;">${ringkasBarang}</td>
-    <td>${d.total_jumlah ?? "-"}</td>
+    <td style="white-space:normal;">${it.nama_barang || "-"}${it.satuan ? ` (${it.satuan})` : ""}</td>
+    <td>${it.jumlah ?? "-"}</td>
     <td><span class="status-pill ${status === 'draft' ? 'menunggu' : 'disetujui'}">${labelStatus}</span></td>
     <td><button class="btn-icon-print" type="button" onclick="cetakPenerimaan('${docSnap.id}')">🖨️ Cetak</button></td>
 </tr>
 `;
+            });
 
         });
 
