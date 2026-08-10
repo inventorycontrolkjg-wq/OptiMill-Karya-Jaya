@@ -1592,7 +1592,7 @@ table.tbl td{
             <div class="page" id="page-purchasing-list-approve">
                 <div class="page-header">
                     <h2>✅ List Permintaan Approve</h2>
-                    <p>Permintaan yang sudah disetujui Pimpinan — input faktur per PR (untuk kirim barang, buka menu "Buat Surat Jalan")</p>
+                    <p>Permintaan yang sudah disetujui Pimpinan — buat Surat Jalan per pengiriman & input faktur</p>
                 </div>
                 <div class="panel">
                     <table class="tbl">
@@ -1601,63 +1601,14 @@ table.tbl td{
                                 <th>Tanggal</th>
                                 <th>No. PR</th>
                                 <th>Vendor</th>
+                                <th>Status &amp; Surat Jalan</th>
+                                <th>Aksi Kirim</th>
                                 <th>Faktur</th>
                             </tr>
                         </thead>
                         <tbody id="pur-approve-body"></tbody>
                     </table>
                     <div class="empty-state" id="pur-approve-empty" style="display:none;">Belum ada permintaan yang disetujui.</div>
-                </div>
-            </div>
-
-            <div class="page" id="page-purchasing-buat-sj">
-                <div class="page-header">
-                    <h2>🚚 Buat Surat Jalan</h2>
-                    <p>Semua barang dari PR yang sudah disetujui, diuraikan per item — centang, atur jumlah, lalu kirim jadi satu Surat Jalan (bisa gabung dari beberapa PR sekaligus)</p>
-                </div>
-                <div class="panel">
-                    <div class="form-msg" id="sj-msg"></div>
-                    <table class="tbl">
-                        <thead>
-                            <tr>
-                                <th style="width:34px;"></th>
-                                <th>No PR</th>
-                                <th>Kode Item</th>
-                                <th>Nama Barang</th>
-                                <th style="width:90px;">Diminta</th>
-                                <th style="width:100px;">Sudah Dikirim</th>
-                                <th style="width:90px;">Sisa</th>
-                                <th style="width:80px;">Satuan</th>
-                                <th style="width:120px;">Kirim Sekarang</th>
-                            </tr>
-                        </thead>
-                        <tbody id="sj-item-body"></tbody>
-                    </table>
-                    <div class="empty-state" id="sj-item-empty" style="display:none;">Tidak ada item yang perlu dikirim saat ini.</div>
-
-                    <div class="bkb-actions-row">
-                        <div style="font-size:12.5px; color:#8d8d8d;"><span id="sj-terpilih-count">0</span> item dipilih</div>
-                        <div class="bkb-actions-right">
-                            <button class="btn-success" type="button" id="sj-buat-btn" onclick="prosesBuatSJDariPilihan()">🚚 Buat Surat Jalan</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="panel" style="margin-top:18px;">
-                    <h3 style="margin:0 0 14px;">Riwayat Surat Jalan</h3>
-                    <table class="tbl">
-                        <thead>
-                            <tr>
-                                <th>Tanggal</th>
-                                <th>No. SJ</th>
-                                <th>Isi</th>
-                                <th>Status</th>
-                                <th>Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="sj-riwayat-body"></tbody>
-                    </table>
-                    <div class="empty-state" id="sj-riwayat-empty" style="display:none;">Belum ada Surat Jalan dibuat.</div>
                 </div>
             </div>
 
@@ -1891,8 +1842,7 @@ const NAV_ITEMS = {
     ],
     purchasing: [
         { id:"purchasing-list-permintaan", label:"📋 List Permintaan" },
-        { id:"purchasing-list-approve", label:"✅ List Permintaan Approve" },
-        { id:"purchasing-buat-sj", label:"🚚 Buat Surat Jalan" }
+        { id:"purchasing-list-approve", label:"✅ List Permintaan Approve" }
     ],
     pimpinan: [
         { id:"pimpinan-review", label:"✅ Review & Approval" }
@@ -1959,10 +1909,6 @@ window.showPage = function(id){
     }
     if(id === "purchasing-list-approve"){
         pantauPurchasingListApprove();
-    }
-    if(id === "purchasing-buat-sj"){
-        pantauItemUntukSJ();
-        pantauRiwayatSJ();
     }
     if(id === "pimpinan-review"){
         pantauPimpinanReview();
@@ -2757,6 +2703,7 @@ window.ajukanPermintaan = async function(){
             status: "menunggu",
             dibuat_oleh_uid: auth.currentUser.uid,
             dibuat_oleh_email: auth.currentUser.email,
+            dibuat_oleh_role: currentUserRole || null,
             created_at: serverTimestamp()
         });
 
@@ -2775,6 +2722,12 @@ window.ajukanPermintaan = async function(){
         btn.textContent = "Ajukan Permintaan";
     }
 
+}
+
+// -------- Format nama + role, mis. "PRAM (GUDANG)" --------
+function namaDenganRole(nama, role){
+    if(!nama) return null;
+    return role ? `${nama} (${role.toUpperCase()})` : nama;
 }
 
 // -------- List Permintaan (semua permintaan, bukan cuma milik sendiri) --------
@@ -2820,7 +2773,7 @@ function pantauSemuaPermintaan(){
 <tr>
     <td>${tgl}</td>
     <td>${d.no_pr || "-"}</td>
-    <td>${d.dibuat_oleh_email || "-"}</td>
+    <td>${namaDenganRole(d.pembuat, d.dibuat_oleh_role) || d.dibuat_oleh_email || "-"}</td>
     <td>${ringkasBarang}</td>
     <td>${d.total_jumlah ?? "-"}</td>
     <td><span class="status-pill ${status}">${labelStatus}</span></td>
@@ -3171,9 +3124,22 @@ window.simpanModalPenawaran = async function(){
     }
 }
 
-// -------- Purchasing: List Permintaan Approve (ringkas, untuk input faktur) --------
+// -------- Purchasing: List Permintaan Approve (status barang + faktur) --------
 let unsubPurApprove = null;
 let purApproveMap = {};
+
+function hitungSisaItemSJ(d){
+    const items = d.items || [];
+    const suratJalanList = d.surat_jalan || [];
+    return items.map(it => {
+        const sudahDikirim = suratJalanList.reduce((total, sj) => {
+            const match = (sj.items || []).find(x => x.nama_barang === it.nama_barang);
+            return total + (match ? match.jumlah : 0);
+        }, 0);
+        const totalDiminta = it.jumlah_diminta ?? it.jumlah ?? 0;
+        return { nama_barang: it.nama_barang, satuan: it.satuan, total: totalDiminta, sudah_dikirim: sudahDikirim, sisa: Math.max(0, totalDiminta - sudahDikirim) };
+    });
+}
 
 function pantauPurchasingListApprove(){
 
@@ -3202,15 +3168,42 @@ function pantauPurchasingListApprove(){
 
             const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
 
+            const sisaList = hitungSisaItemSJ(d);
+            const totalSisa = sisaList.reduce((a,b) => a + b.sisa, 0);
+            const suratJalanList = d.surat_jalan || [];
+
+            const labelStatusBarang = suratJalanList.length === 0 ? "Belum Dikirim" : (totalSisa > 0 ? "Sebagian Dikirim" : "Semua Dikirim");
+            const classStatusBarang = suratJalanList.length === 0 ? "belum_diterima" : (totalSisa > 0 ? "hold" : "diterima");
+            const adaSJDiterima = suratJalanList.some(sj => sj.status === "diterima");
+
+            const daftarSJHtml = suratJalanList.length === 0
+                ? `<span style="color:#9a9a9a; font-size:11.5px;">Belum ada surat jalan</span>`
+                : suratJalanList.map(sj => `
+                    <div style="margin-bottom:4px; font-size:11.5px;">
+                        <b>${sj.no_sj}</b> (${sj.tanggal_display || sj.tanggal})
+                        ${sj.status === "diterima" ? `<span style="color:#2e7d32; font-weight:600;">✔ Diterima</span>` : `<span style="color:#ef6c00; font-weight:600;">Dikirim</span>`}
+                        <button class="btn-ic-edit" style="padding:2px 7px; font-size:10.5px;" type="button" onclick="cetakSuratJalanUlang('${docSnap.id}', '${sj.no_sj}')">🖨️</button>
+                        ${sj.status !== "diterima" ? `<button class="btn-ic-save" style="padding:2px 7px; font-size:10.5px;" type="button" onclick="tandaiSJDiterima('${docSnap.id}', '${sj.no_sj}')">✔</button>` : ""}
+                    </div>
+                `).join("");
+
+            const btnBuatSJ = totalSisa > 0
+                ? `<button class="btn-ic-edit" type="button" onclick="buatSuratJalan('${docSnap.id}')">🚚 Buat Surat Jalan</button>`
+                : `<span style="color:#2e7d32; font-size:11.5px; font-weight:600;">✔ Semua sudah dikirim</span>`;
+
             const btnFaktur = d.faktur
                 ? `<button class="btn-ic-edit" type="button" onclick="bukaFormFaktur('${docSnap.id}')">✏️ Edit Faktur</button>`
-                : `<button class="btn-ic-edit" type="button" onclick="bukaFormFaktur('${docSnap.id}')">🧾 Input Faktur</button>`;
+                : (adaSJDiterima
+                    ? `<button class="btn-ic-edit" type="button" onclick="bukaFormFaktur('${docSnap.id}')">🧾 Input Faktur</button>`
+                    : `<span style="color:#9a9a9a;font-size:12px;">- (tunggu ada SJ diterima)</span>`);
 
             html += `
 <tr>
     <td>${tgl}</td>
     <td>${d.no_pr || "-"}</td>
     <td>${(d.penawaran_list && d.penawaran_list[0]) ? d.penawaran_list[0].vendor : "-"}</td>
+    <td><span class="status-pill ${classStatusBarang}">${labelStatusBarang}</span><br>${daftarSJHtml}</td>
+    <td>${btnBuatSJ}</td>
     <td>${d.faktur ? (d.faktur.no_faktur || "✔ Sudah") : "-"}<br>${btnFaktur}</td>
 </tr>`;
         });
@@ -3220,202 +3213,39 @@ function pantauPurchasingListApprove(){
     }, err => console.error("Gagal memuat List Permintaan Approve:", err));
 }
 
-// -------- Purchasing: Buat Surat Jalan --------
-// Setiap barang di tiap PR yang sudah "approve" diuraikan jadi baris tersendiri
-// dengan kode unik (contoh: PRM-2026-0008-1, -2, dst), supaya gampang dilacak
-// dan satu Surat Jalan bisa menggabungkan barang dari beberapa PR sekaligus.
-// Surat Jalan sendiri disimpan di koleksi Firestore terpisah: "surat_jalan".
-let unsubItemSJ = null;
-let unsubSJGlobal = null;
-let semuaPRApproveUntukSJ = {}; // { docId: dataPR }
-let suratJalanAllMap = {};      // { sjDocId: dataSJ } - semua riwayat SJ
-let suratJalanTerkirimMap = {}; // { kode_item: total sudah dikirim }
-let itemSJTerpilih = new Set(); // Set kode_item yang sedang dicentang
+window.buatSuratJalan = function(id){
+    const d = purApproveMap[id];
+    if(!d) return;
 
-function kodeItemPR(d, docId, idx){
-    return `${d.no_pr || docId}-${idx + 1}`;
-}
-
-function rekapSuratJalanTerkirim(){
-    const rekap = {};
-    Object.values(suratJalanAllMap).forEach(sj => {
-        (sj.items || []).forEach(it => {
-            rekap[it.kode_item] = (rekap[it.kode_item] || 0) + (Number(it.jumlah) || 0);
-        });
-    });
-    suratJalanTerkirimMap = rekap;
-}
-
-function idAmanUntukElemen(kodeItem){
-    return kodeItem.replace(/[^a-zA-Z0-9]/g, "_");
-}
-
-function renderItemSJ(){
-
-    const tbody = document.getElementById("sj-item-body");
-    const emptyEl = document.getElementById("sj-item-empty");
-    if(!tbody) return;
-
-    rekapSuratJalanTerkirim();
-
-    const baris = [];
-
-    Object.entries(semuaPRApproveUntukSJ).forEach(([docId, d]) => {
-        (d.items || []).forEach((it, idx) => {
-            const totalDiminta = it.jumlah_diminta ?? it.jumlah ?? 0;
-            const kodeItem = kodeItemPR(d, docId, idx);
-            const sudahDikirim = suratJalanTerkirimMap[kodeItem] || 0;
-            const sisa = Math.max(0, totalDiminta - sudahDikirim);
-            baris.push({ kodeItem, noPR: d.no_pr || "-", nama: it.nama_barang, satuan: it.satuan || "", totalDiminta, sudahDikirim, sisa });
-        });
-    });
-
-    if(baris.length === 0){
-        tbody.innerHTML = "";
-        emptyEl.style.display = "block";
-        document.getElementById("sj-terpilih-count").textContent = "0";
-        return;
-    }
-
-    emptyEl.style.display = "none";
-
-    tbody.innerHTML = baris.map(b => {
-        const disabled = b.sisa <= 0;
-        const dicentang = itemSJTerpilih.has(b.kodeItem);
-        const idElemen = idAmanUntukElemen(b.kodeItem);
-        return `
-<tr style="${disabled ? "opacity:.45;" : ""}">
-    <td><input type="checkbox" ${disabled ? "disabled" : ""} ${dicentang ? "checked" : ""} onchange="toggleItemSJ('${b.kodeItem}', this.checked)"></td>
-    <td>${b.noPR}</td>
-    <td>${b.kodeItem}</td>
-    <td>${b.nama}</td>
-    <td>${b.totalDiminta}</td>
-    <td>${b.sudahDikirim}</td>
-    <td>${b.sisa}</td>
-    <td>${b.satuan}</td>
-    <td><input type="number" min="0" max="${b.sisa}" value="${b.sisa}" id="sj-kirim-${idElemen}" ${disabled ? "disabled" : ""} style="width:100%;"></td>
-</tr>`;
-    }).join("");
-
-    document.getElementById("sj-terpilih-count").textContent = itemSJTerpilih.size;
-
-}
-
-window.toggleItemSJ = function(kodeItem, checked){
-    if(checked) itemSJTerpilih.add(kodeItem);
-    else itemSJTerpilih.delete(kodeItem);
-    document.getElementById("sj-terpilih-count").textContent = itemSJTerpilih.size;
-}
-
-function pantauItemUntukSJ(){
-
-    if(unsubItemSJ) unsubItemSJ();
-
-    const q = query(collection(db, "permintaan_barang"), where("status", "==", "approve"), orderBy("created_at", "desc"));
-
-    unsubItemSJ = onSnapshot(q, (snapshot) => {
-        semuaPRApproveUntukSJ = {};
-        snapshot.forEach(docSnap => { semuaPRApproveUntukSJ[docSnap.id] = docSnap.data(); });
-        renderItemSJ();
-    }, err => console.error("Gagal memuat item untuk Surat Jalan:", err));
-
-    if(!unsubSJGlobal){
-        unsubSJGlobal = onSnapshot(query(collection(db, "surat_jalan"), orderBy("dibuat_pada", "desc")), (snap) => {
-            suratJalanAllMap = {};
-            snap.forEach(s => { suratJalanAllMap[s.id] = s.data(); });
-            renderItemSJ();
-            renderRiwayatSJ();
-        }, err => console.error("Gagal memuat surat jalan:", err));
-    }
-
-}
-
-function pantauRiwayatSJ(){
-    renderRiwayatSJ();
-}
-
-function renderRiwayatSJ(){
-    const tbody = document.getElementById("sj-riwayat-body");
-    const emptyEl = document.getElementById("sj-riwayat-empty");
-    if(!tbody) return;
-
-    const daftar = Object.entries(suratJalanAllMap)
-        .sort((a, b) => (b[1].dibuat_pada || "").localeCompare(a[1].dibuat_pada || ""));
-
-    if(daftar.length === 0){
-        tbody.innerHTML = "";
-        emptyEl.style.display = "block";
-        return;
-    }
-    emptyEl.style.display = "none";
-
-    tbody.innerHTML = daftar.map(([sjId, sj]) => {
-        const isiRingkas = (sj.items || []).map(it => `${it.nama_barang} (${it.jumlah} ${it.satuan || ""})`).join(", ");
-        const labelStatus = sj.status === "diterima" ? "Diterima" : "Dikirim";
-        const classStatus = sj.status === "diterima" ? "disetujui" : "menunggu";
-        return `
-<tr>
-    <td>${sj.tanggal_display || sj.tanggal || "-"}</td>
-    <td>${sj.no_sj}</td>
-    <td style="max-width:340px;">${isiRingkas}</td>
-    <td><span class="status-pill ${classStatus}">${labelStatus}</span></td>
-    <td>
-        <button class="btn-ic-edit" style="padding:4px 9px; font-size:11px;" type="button" onclick="cetakSuratJalanUlang('${sjId}')">🖨️ Cetak</button>
-        ${sj.status !== "diterima" ? `<button class="btn-ic-save" style="padding:4px 9px; font-size:11px;" type="button" onclick="tandaiSJDiterima('${sjId}')">✔ Diterima</button>` : ""}
-    </td>
-</tr>`;
-    }).join("");
-}
-
-window.prosesBuatSJDariPilihan = async function(){
-
-    const msgEl = document.getElementById("sj-msg");
-    msgEl.style.display = "none";
-    msgEl.className = "form-msg";
-
-    if(itemSJTerpilih.size === 0){
-        msgEl.textContent = "Pilih minimal 1 item untuk dikirim.";
-        msgEl.classList.add("err");
-        msgEl.style.display = "block";
+    const sisaItems = hitungSisaItemSJ(d).filter(x => x.sisa > 0);
+    if(sisaItems.length === 0){
+        alert("Semua barang di permintaan ini sudah tercakup surat jalan sebelumnya.");
         return;
     }
 
     const itemsUntukSJ = [];
-
-    Object.entries(semuaPRApproveUntukSJ).forEach(([docId, d]) => {
-        (d.items || []).forEach((it, idx) => {
-            const kodeItem = kodeItemPR(d, docId, idx);
-            if(!itemSJTerpilih.has(kodeItem)) return;
-
-            const inputEl = document.getElementById(`sj-kirim-${idAmanUntukElemen(kodeItem)}`);
-            const jml = inputEl ? (Number(inputEl.value) || 0) : 0;
-            if(jml <= 0) return;
-
-            itemsUntukSJ.push({
-                kode_item: kodeItem,
-                no_pr: d.no_pr || "-",
-                pr_doc_id: docId,
-                nama_barang: it.nama_barang,
-                jumlah: jml,
-                satuan: it.satuan || ""
-            });
-        });
-    });
+    for(const it of sisaItems){
+        const ikut = confirm(`Kirim "${it.nama_barang}" sekarang?\n(Sisa belum dikirim: ${it.sisa} ${it.satuan || ""})`);
+        if(!ikut) continue;
+        const jmlStr = prompt(`Jumlah dikirim sekarang untuk "${it.nama_barang}" (maks ${it.sisa}):`, String(it.sisa));
+        if(jmlStr === null) continue;
+        let jml = Number(jmlStr) || 0;
+        if(jml <= 0) continue;
+        if(jml > it.sisa) jml = it.sisa;
+        itemsUntukSJ.push({ nama_barang: it.nama_barang, jumlah: jml, satuan: it.satuan || "" });
+    }
 
     if(itemsUntukSJ.length === 0){
-        msgEl.textContent = "Jumlah kirim tidak boleh 0 untuk semua item terpilih.";
-        msgEl.classList.add("err");
-        msgEl.style.display = "block";
+        alert("Tidak ada barang yang dipilih untuk dikirim.");
         return;
     }
 
-    const btn = document.getElementById("sj-buat-btn");
-    btn.disabled = true;
-    btn.textContent = "Menyimpan...";
+    buatDanSimpanSuratJalan(id, d, itemsUntukSJ);
+}
 
+async function buatDanSimpanSuratJalan(id, d, itemsUntukSJ){
     try{
-
-        const tanggalISO = new Date().toISOString().slice(0, 10);
+        const tanggalISO = new Date().toISOString().slice(0,10);
         const { yy, mm, key } = komponenTahunBulan(tanggalISO);
         const counterRef = doc(db, "counters", `sj_${key}`);
         const nomor = await runTransaction(db, async (tx) => {
@@ -3426,8 +3256,9 @@ window.prosesBuatSJDariPilihan = async function(){
         });
         const noSJ = `SJ${yy}${mm}${String(nomor).padStart(3, "0")}`;
 
-        const dataSJ = {
+        const entrySJ = {
             no_sj: noSJ,
+            no_pr: d.no_pr || "",
             tanggal: tanggalISO,
             tanggal_display: formatTanggalIndo(tanggalISO),
             items: itemsUntukSJ,
@@ -3436,55 +3267,46 @@ window.prosesBuatSJDariPilihan = async function(){
             dibuat_pada: new Date().toISOString()
         };
 
-        const refBaru = doc(collection(db, "surat_jalan"));
-        await setDoc(refBaru, dataSJ);
+        await setDoc(doc(db, "permintaan_barang", id), {
+            surat_jalan: arrayUnion(entrySJ)
+        }, { merge: true });
 
-        itemSJTerpilih.clear();
-
-        msgEl.textContent = `Surat Jalan ${noSJ} berhasil dibuat.`;
-        msgEl.classList.add("ok");
-        msgEl.style.display = "block";
-
-        cetakSuratJalan(dataSJ);
+        cetakSuratJalan(d, entrySJ);
 
     } catch(e){
-        msgEl.textContent = "Gagal membuat surat jalan: " + e.message;
-        msgEl.classList.add("err");
-        msgEl.style.display = "block";
-    } finally {
-        btn.disabled = false;
-        btn.textContent = "🚚 Buat Surat Jalan";
+        alert("Gagal membuat surat jalan: " + e.message);
     }
-
 }
 
-window.tandaiSJDiterima = async function(sjId){
-    const sj = suratJalanAllMap[sjId];
-    if(!sj) return;
-    if(!confirm(`Tandai surat jalan ${sj.no_sj} sebagai sudah Diterima?`)) return;
+window.tandaiSJDiterima = async function(id, noSJ){
+    const d = purApproveMap[id];
+    if(!d) return;
+    if(!confirm(`Tandai surat jalan ${noSJ} sebagai sudah Diterima?`)) return;
+
+    const daftarBaru = (d.surat_jalan || []).map(sj =>
+        sj.no_sj === noSJ ? { ...sj, status: "diterima", diterima_pada: new Date().toISOString() } : sj
+    );
 
     try{
-        await setDoc(doc(db, "surat_jalan", sjId), {
-            status: "diterima",
-            diterima_pada: new Date().toISOString()
-        }, { merge: true });
+        await setDoc(doc(db, "permintaan_barang", id), { surat_jalan: daftarBaru }, { merge: true });
     } catch(e){
         alert("Gagal update status surat jalan: " + e.message);
     }
 }
 
-window.cetakSuratJalanUlang = function(sjId){
-    const sj = suratJalanAllMap[sjId];
+window.cetakSuratJalanUlang = function(id, noSJ){
+    const d = purApproveMap[id];
+    if(!d) return;
+    const sj = (d.surat_jalan || []).find(x => x.no_sj === noSJ);
     if(!sj) return;
-    cetakSuratJalan(sj);
+    cetakSuratJalan(d, sj);
 }
 
-function cetakSuratJalan(sj){
+function cetakSuratJalan(d, sj){
 
     const baris = (sj.items || []).map((it, i) => `
 <tr>
     <td class="num">${i + 1}</td>
-    <td>${it.no_pr || "-"}</td>
     <td>${it.nama_barang}</td>
     <td class="num">${it.jumlah}</td>
     <td class="num">${it.satuan || "-"}</td>
@@ -3506,15 +3328,14 @@ function cetakSuratJalan(sj){
 
     <div class="print-info-grid">
         <div><span class="lbl">Tanggal Kirim</span><span class="val">${sj.tanggal_display || sj.tanggal}</span></div>
-        <div><span class="lbl">Jumlah PR Tercakup</span><span class="val">${new Set((sj.items || []).map(x => x.no_pr)).size}</span></div>
-        <div><span class="lbl">Jumlah Item</span><span class="val">${(sj.items || []).length}</span></div>
+        <div><span class="lbl">No. PR Terkait</span><span class="val">${sj.no_pr || d.no_pr || "-"}</span></div>
+        <div><span class="lbl">Divisi Tujuan</span><span class="val">${d.divisi || "-"}</span></div>
     </div>
 
     <table>
         <thead>
             <tr>
                 <th style="width:34px;">No</th>
-                <th style="width:110px;">No PR</th>
                 <th>Nama Barang</th>
                 <th style="width:90px;">Jumlah Kirim</th>
                 <th style="width:70px;">Satuan</th>
@@ -3524,7 +3345,7 @@ function cetakSuratJalan(sj){
     </table>
 
     <p style="font-size:11.5px; color:#666; margin-top:10px;">
-        Catatan: satu Surat Jalan bisa mencakup barang dari beberapa No. PR sekaligus,
+        Catatan: surat jalan ini hanya mencakup sebagian atau seluruh barang dari No. PR terkait,
         sesuai jumlah yang benar-benar dikirim pada tanggal di atas.
     </p>
 
@@ -3831,6 +3652,7 @@ window.cetakBKB = function(id){
 let bkbRowCount = 0;
 let currentUserNama = "";
 let currentUserDivisiDefault = "";
+let currentUserRole = "";
 let masterBarangStokMap = {};
 let bkbJamInterval = null;
 let bkbScannedUser = null; // { barcode_id, nama, divisi }
@@ -4936,16 +4758,16 @@ onAuthStateChanged(auth, async (user) => {
         loginScreen.style.display = "none";
         appScreen.classList.add("active");
 
-        document.getElementById("user-email").textContent = user.email;
-
-        // Ambil role dari koleksi Firestore: users/{uid}
+        // Ambil role & nama dari koleksi Firestore: users/{uid}
         const snap = await getDoc(doc(db, "users", user.uid));
         const role = snap.exists() ? snap.data().role : null;
         const dataUser = snap.exists() ? snap.data() : {};
 
         currentUserNama = dataUser.nama || user.email;
         currentUserDivisiDefault = dataUser.divisi || "";
+        currentUserRole = role || "";
 
+        document.getElementById("user-email").textContent = currentUserNama;
         document.getElementById("user-role-badge").textContent = role || "belum diatur";
 
         if(role && NAV_ITEMS[role]){
