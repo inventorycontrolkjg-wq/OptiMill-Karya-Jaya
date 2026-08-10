@@ -1662,6 +1662,98 @@ table.tbl td{
                 </div>
             </div>
 
+            <div class="page" id="page-purchasing-input-po">
+                <div class="page-header">
+                    <h2>🧾 Input PO</h2>
+                    <p>Terbitkan Purchase Order resmi dari permintaan yang sudah Approve, berdasarkan penawaran vendor yang dipilih</p>
+                </div>
+                <div class="panel">
+                    <div class="form-msg" id="po-msg"></div>
+
+                    <div class="opb-header-grid" style="grid-template-columns:1fr 1fr;">
+                        <div class="form-group">
+                            <label>No. PR</label>
+                            <input type="text" id="po-nopr" list="po-nopr-datalist" placeholder="Ketik / pilih No. PR yang sudah Approve" oninput="isiOtomatisPO()">
+                            <datalist id="po-nopr-datalist"></datalist>
+                        </div>
+                        <div class="form-group">
+                            <label>No. PO</label>
+                            <input type="text" id="po-no" disabled value="Otomatis saat diterbitkan">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Pilih Vendor (dari penawaran yang sudah diinput)</label>
+                        <select id="po-vendor-select" onchange="pilihVendorPO()">
+                            <option value="">- Ketik No. PR dulu -</option>
+                        </select>
+                    </div>
+
+                    <div id="po-detail-wrap" style="display:none;">
+
+                        <div class="opb-header-grid" style="grid-template-columns:1fr 1fr 1fr;">
+                            <div class="form-group">
+                                <label>Harga (Rp)</label>
+                                <input type="text" id="po-harga" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Estimasi Pengiriman</label>
+                                <input type="text" id="po-estimasi" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Tanggal PO</label>
+                                <input type="text" id="po-tanggal-display" disabled>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Catatan (opsional)</label>
+                            <textarea id="po-catatan" placeholder="Catatan tambahan untuk vendor / internal"></textarea>
+                        </div>
+
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th style="width:34px;">No</th>
+                                    <th>Nama Barang</th>
+                                    <th style="width:90px;">Jumlah</th>
+                                    <th style="width:80px;">Satuan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="po-items-body"></tbody>
+                        </table>
+
+                        <button class="btn-primary" type="button" id="po-submit-btn" style="width:auto; padding:12px 26px; margin-top:16px;" onclick="terbitkanPO()">🧾 Terbitkan PO</button>
+
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="page" id="page-purchasing-list-po">
+                <div class="page-header">
+                    <h2>📑 List PO</h2>
+                    <p>Semua Purchase Order yang sudah diterbitkan</p>
+                </div>
+                <div class="panel">
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>No. PO</th>
+                                <th>No. PR</th>
+                                <th>Vendor</th>
+                                <th>Total Nilai</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="po-list-body"></tbody>
+                    </table>
+                    <div class="empty-state" id="po-list-empty" style="display:none;">Belum ada PO yang diterbitkan.</div>
+                </div>
+            </div>
+
             <!-- ============================================= -->
             <!-- PIMPINAN -->
             <!-- ============================================= -->
@@ -1893,7 +1985,9 @@ const NAV_ITEMS = {
     purchasing: [
         { id:"purchasing-list-permintaan", label:"📋 List Permintaan" },
         { id:"purchasing-list-approve", label:"✅ List Permintaan Approve" },
-        { id:"purchasing-buat-sj", label:"🚚 Buat Surat Jalan" }
+        { id:"purchasing-buat-sj", label:"🚚 Buat Surat Jalan" },
+        { id:"purchasing-input-po", label:"🧾 Input PO" },
+        { id:"purchasing-list-po", label:"📑 List PO" }
     ],
     pimpinan: [
         { id:"pimpinan-review", label:"✅ Review & Approval" }
@@ -1964,6 +2058,13 @@ window.showPage = function(id){
     if(id === "purchasing-buat-sj"){
         pantauPurchasingBuatSJ();
         resetFormSJ();
+    }
+    if(id === "purchasing-input-po"){
+        pantauPurchasingInputPO();
+        resetFormPO();
+    }
+    if(id === "purchasing-list-po"){
+        pantauPurchasingListPO();
     }
     if(id === "pimpinan-review"){
         pantauPimpinanReview();
@@ -3858,6 +3959,305 @@ function cetakSuratJalanGabungan(noSJ, tanggalDisplay, rows){
         <div class="sign-box">
             Diterima oleh
             <div class="line">Gudang / Pabrik</div>
+        </div>
+    </div>
+
+    <div class="print-footer-note">Dicetak dari sistem Purchasing &amp; Finance - ${new Date().toLocaleString("id-ID")}</div>
+
+</div>`;
+
+    document.getElementById("print-area").innerHTML = html;
+    document.body.classList.add("printing-mode");
+
+    window.print();
+
+    setTimeout(() => {
+        document.body.classList.remove("printing-mode");
+    }, 500);
+
+}
+
+// =========================================================
+// MODUL PURCHASING: INPUT PO & LIST PO
+// =========================================================
+let unsubInputPO = null;
+let poPrMap = {}; // no_pr -> { docId, d }
+let poVendorTerpilih = null; // { vendor, harga, estimasi_pengiriman }
+let poTanggalISO = "";
+
+function pantauPurchasingInputPO(){
+
+    if(unsubInputPO) return;
+
+    const q = query(collection(db, "permintaan_barang"), where("status", "==", "approve"), orderBy("created_at", "desc"));
+
+    unsubInputPO = onSnapshot(q, (snapshot) => {
+
+        poPrMap = {};
+        let optionsHtml = "";
+
+        snapshot.forEach(docSnap => {
+            const d = docSnap.data();
+            if(!d.no_pr) return;
+            poPrMap[d.no_pr] = { docId: docSnap.id, d };
+            optionsHtml += `<option value="${d.no_pr}"></option>`;
+        });
+
+        const dl = document.getElementById("po-nopr-datalist");
+        if(dl) dl.innerHTML = optionsHtml;
+
+    }, err => console.error("Gagal memuat data Input PO:", err));
+}
+
+function resetFormPO(){
+    document.getElementById("po-nopr").value = "";
+    document.getElementById("po-no").value = "Otomatis saat diterbitkan";
+    document.getElementById("po-vendor-select").innerHTML = `<option value="">- Ketik No. PR dulu -</option>`;
+    document.getElementById("po-catatan").value = "";
+    document.getElementById("po-items-body").innerHTML = "";
+    document.getElementById("po-detail-wrap").style.display = "none";
+    document.getElementById("po-msg").style.display = "none";
+    poVendorTerpilih = null;
+    poTanggalISO = new Date().toISOString().slice(0, 10);
+    document.getElementById("po-tanggal-display").value = formatTanggalIndo(poTanggalISO);
+}
+
+window.isiOtomatisPO = function(){
+
+    const noPR = document.getElementById("po-nopr").value.trim();
+    const vendorSelect = document.getElementById("po-vendor-select");
+    const detailWrap = document.getElementById("po-detail-wrap");
+
+    poVendorTerpilih = null;
+    detailWrap.style.display = "none";
+
+    const found = poPrMap[noPR];
+    if(!found){
+        vendorSelect.innerHTML = `<option value="">- No. PR tidak ditemukan / belum Approve -</option>`;
+        return;
+    }
+
+    const daftarPenawaran = found.d.penawaran_list || [];
+    if(daftarPenawaran.length === 0){
+        vendorSelect.innerHTML = `<option value="">- PR ini belum ada penawaran vendor -</option>`;
+        return;
+    }
+
+    vendorSelect.innerHTML = `<option value="">- Pilih vendor -</option>` +
+        daftarPenawaran.map((p, i) => `<option value="${i}">${p.vendor} — Rp ${(p.harga || 0).toLocaleString("id-ID")}</option>`).join("");
+
+    // Tampilkan daftar barang dari PR (referensi, tetap sama untuk semua vendor)
+    const items = found.d.items || [];
+    document.getElementById("po-items-body").innerHTML = items.map((it, i) => `
+        <tr>
+            <td>${i + 1}</td>
+            <td>${it.nama_barang}</td>
+            <td>${it.jumlah}</td>
+            <td>${it.satuan || "-"}</td>
+        </tr>
+    `).join("");
+}
+
+window.pilihVendorPO = function(){
+    const noPR = document.getElementById("po-nopr").value.trim();
+    const idx = document.getElementById("po-vendor-select").value;
+    const detailWrap = document.getElementById("po-detail-wrap");
+
+    if(idx === ""){
+        detailWrap.style.display = "none";
+        poVendorTerpilih = null;
+        return;
+    }
+
+    const found = poPrMap[noPR];
+    if(!found) return;
+
+    const p = (found.d.penawaran_list || [])[Number(idx)];
+    if(!p) return;
+
+    poVendorTerpilih = p;
+    document.getElementById("po-harga").value = `Rp ${(p.harga || 0).toLocaleString("id-ID")}`;
+    document.getElementById("po-estimasi").value = p.estimasi_pengiriman || "-";
+    detailWrap.style.display = "block";
+}
+
+async function generateNoPO(tanggalISO){
+    const { yy, mm, key } = komponenTahunBulan(tanggalISO);
+    const counterRef = doc(db, "counters", `po_${key}`);
+    const nomor = await runTransaction(db, async (tx) => {
+        const snap = await tx.get(counterRef);
+        const next = snap.exists() ? (snap.data().terakhir || 0) + 1 : 1;
+        tx.set(counterRef, { terakhir: next }, { merge: true });
+        return next;
+    });
+    return `PO${yy}${mm}${String(nomor).padStart(3, "0")}`;
+}
+
+window.terbitkanPO = async function(){
+
+    const msgEl = document.getElementById("po-msg");
+    const btn = document.getElementById("po-submit-btn");
+    msgEl.style.display = "none";
+    msgEl.className = "form-msg";
+
+    const noPR = document.getElementById("po-nopr").value.trim();
+    const found = poPrMap[noPR];
+
+    if(!found || !poVendorTerpilih){
+        msgEl.textContent = "Pilih No. PR yang valid dan vendor-nya terlebih dahulu.";
+        msgEl.classList.add("err");
+        msgEl.style.display = "block";
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Menerbitkan...";
+
+    try{
+
+        const noPO = await generateNoPO(poTanggalISO);
+        const items = found.d.items || [];
+        const catatan = document.getElementById("po-catatan").value.trim();
+
+        await addDoc(collection(db, "po_barang"), {
+            no_po: noPO,
+            no_pr: noPR,
+            tanggal: poTanggalISO,
+            tanggal_display: formatTanggalIndo(poTanggalISO),
+            vendor: poVendorTerpilih.vendor,
+            harga_total: poVendorTerpilih.harga || 0,
+            estimasi_pengiriman: poVendorTerpilih.estimasi_pengiriman || "",
+            items: items,
+            catatan: catatan,
+            status: "diterbitkan",
+            dibuat_oleh: auth.currentUser.email,
+            created_at: serverTimestamp()
+        });
+
+        await setDoc(doc(db, "permintaan_barang", found.docId), {
+            po_no: noPO
+        }, { merge: true });
+
+        msgEl.textContent = `PO ${noPO} berhasil diterbitkan.`;
+        msgEl.classList.add("ok");
+        msgEl.style.display = "block";
+
+        resetFormPO();
+
+    } catch(e){
+        msgEl.textContent = "Gagal menerbitkan PO: " + e.message;
+        msgEl.classList.add("err");
+        msgEl.style.display = "block";
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "🧾 Terbitkan PO";
+    }
+
+}
+
+// -------- List PO --------
+let unsubListPO = null;
+let poListMap = {};
+
+function pantauPurchasingListPO(){
+
+    if(unsubListPO) unsubListPO();
+
+    const q = query(collection(db, "po_barang"), orderBy("created_at", "desc"));
+
+    unsubListPO = onSnapshot(q, (snapshot) => {
+
+        const tbody = document.getElementById("po-list-body");
+        const emptyEl = document.getElementById("po-list-empty");
+        poListMap = {};
+
+        if(snapshot.empty){
+            tbody.innerHTML = "";
+            emptyEl.style.display = "block";
+            return;
+        }
+        emptyEl.style.display = "none";
+
+        let html = "";
+
+        snapshot.forEach(docSnap => {
+            const d = docSnap.data();
+            poListMap[docSnap.id] = d;
+
+            html += `
+<tr>
+    <td>${d.tanggal_display || d.tanggal || "-"}</td>
+    <td>${d.no_po || "-"}</td>
+    <td>${d.no_pr || "-"}</td>
+    <td>${d.vendor || "-"}</td>
+    <td>Rp ${(d.harga_total || 0).toLocaleString("id-ID")}</td>
+    <td><span class="status-pill approve">Diterbitkan</span></td>
+    <td><button class="btn-ic-edit" type="button" onclick="cetakPO('${docSnap.id}')">🖨️ Cetak</button></td>
+</tr>`;
+        });
+
+        tbody.innerHTML = html;
+
+    }, err => console.error("Gagal memuat List PO:", err));
+}
+
+window.cetakPO = function(id){
+
+    const d = poListMap[id];
+    if(!d) return;
+
+    const items = d.items || [];
+    const baris = items.map((it, i) => `
+<tr>
+    <td class="num">${i + 1}</td>
+    <td>${it.nama_barang}</td>
+    <td class="num">${it.jumlah}</td>
+    <td class="num">${it.satuan || "-"}</td>
+</tr>`).join("");
+
+    const html = `
+<div class="print-doc">
+
+    <div class="print-head">
+        <div>
+            <h1>OptiMill Karya Jaya</h1>
+            <p>Purchase Order (PO)</p>
+        </div>
+        <div class="print-nopr">
+            <div class="label">No. PO</div>
+            <div class="value">${d.no_po}</div>
+        </div>
+    </div>
+
+    <div class="print-info-grid">
+        <div><span class="lbl">Tanggal</span><span class="val">${d.tanggal_display || d.tanggal}</span></div>
+        <div><span class="lbl">No. PR Terkait</span><span class="val">${d.no_pr || "-"}</span></div>
+        <div><span class="lbl">Vendor</span><span class="val">${d.vendor || "-"}</span></div>
+        <div><span class="lbl">Estimasi Pengiriman</span><span class="val">${d.estimasi_pengiriman || "-"}</span></div>
+        <div><span class="lbl">Total Nilai</span><span class="val">Rp ${(d.harga_total || 0).toLocaleString("id-ID")}</span></div>
+        <div><span class="lbl">Catatan</span><span class="val">${d.catatan || "-"}</span></div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width:34px;">No</th>
+                <th>Nama Barang</th>
+                <th style="width:90px;">Jumlah</th>
+                <th style="width:70px;">Satuan</th>
+            </tr>
+        </thead>
+        <tbody>${baris}</tbody>
+    </table>
+
+    <div class="print-sign-grid">
+        <div class="sign-box">
+            Diterbitkan oleh
+            <div class="line">Purchasing</div>
+        </div>
+        <div class="sign-box">
+            Disetujui oleh
+            <div class="line">Pimpinan</div>
         </div>
     </div>
 
