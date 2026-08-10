@@ -1638,30 +1638,36 @@ table.tbl td{
             <div class="page" id="page-purchasing-buat-sj">
                 <div class="page-header">
                     <h2>🚚 Buat Surat Jalan</h2>
-                    <p>Rincian per item dari semua PR yang sudah disetujui Pimpinan — centang barang yang mau dikirim, satu Surat Jalan bisa gabungan dari beberapa No. PR sekaligus</p>
+                    <p>Ketik / pilih No. PR Urut — Nama Barang, Diminta, Sudah Kirim, Sisa &amp; Satuan terisi otomatis. Kolom Kirim Sekarang diisi manual.</p>
                 </div>
                 <div class="panel">
                     <div class="form-msg" id="sj-msg"></div>
-                    <table class="tbl sj-items-table">
+
+                    <div class="opb-items-header">
+                        <h3>Detail Pengiriman</h3>
+                        <button class="btn-secondary" type="button" onclick="tambahBarisSJ()">+ Tambah Baris</button>
+                    </div>
+
+                    <table class="tbl opb-items-table sj-items-table">
                         <thead>
                             <tr>
-                                <th style="width:30px;"></th>
-                                <th>No. PR Urut</th>
-                                <th>Tanggal</th>
-                                <th>Kategori</th>
-                                <th>Divisi</th>
+                                <th style="width:34px;">No</th>
+                                <th style="width:150px;">No. PR Urut</th>
                                 <th>Nama Barang</th>
-                                <th>Jml Diminta</th>
-                                <th>Satuan</th>
-                                <th>Sudah Dikirim</th>
-                                <th>Sisa</th>
-                                <th style="width:110px;">Kirim Sekarang</th>
+                                <th style="width:80px;">Diminta</th>
+                                <th style="width:90px;">Sudah Kirim</th>
+                                <th style="width:70px;">Sisa</th>
+                                <th style="width:70px;">Satuan</th>
+                                <th style="width:120px;">Kirim Sekarang</th>
+                                <th style="width:50px;">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="sj-items-body"></tbody>
                     </table>
-                    <div class="empty-state" id="sj-items-empty" style="display:none;">Tidak ada barang yang perlu dikirim saat ini.</div>
-                    <button class="btn-primary" type="button" id="sj-submit-btn" style="width:auto; padding:12px 26px; margin-top:16px;" onclick="submitBuatSuratJalanGabungan()">🚚 Buat Surat Jalan dari Item Terpilih</button>
+
+                    <datalist id="sj-no-urut-datalist"></datalist>
+
+                    <button class="btn-primary" type="button" id="sj-submit-btn" style="width:auto; padding:12px 26px; margin-top:16px;" onclick="submitBuatSuratJalanGabungan()">🚚 Buat Surat Jalan</button>
                 </div>
             </div>
 
@@ -1966,6 +1972,7 @@ window.showPage = function(id){
     }
     if(id === "purchasing-buat-sj"){
         pantauPurchasingBuatSJ();
+        resetFormSJ();
     }
     if(id === "pimpinan-review"){
         pantauPimpinanReview();
@@ -3480,10 +3487,11 @@ window.bukaFormFaktur = function(id){
 }
 
 // =========================================================
-// PURCHASING: BUAT SURAT JALAN (rincian per item, gabungan lintas No. PR)
+// PURCHASING: BUAT SURAT JALAN (form input per No. PR Urut, gabungan lintas No. PR)
 // =========================================================
 let unsubBuatSJ = null;
-let sjRowsMap = {}; // rowKey -> { docId, itemIndex, noPR, noUrut, namaBarang, satuan, totalDiminta, sudahDikirim, sisa, kategori, divisi, tanggalDisplay }
+let sjRowsMap = {}; // noUrut -> { docId, itemIndex, noPR, noUrut, namaBarang, satuan, totalDiminta, sudahDikirim, sisa }
+let sjRowCount = 0;
 
 function pantauPurchasingBuatSJ(){
 
@@ -3493,65 +3501,124 @@ function pantauPurchasingBuatSJ(){
 
     unsubBuatSJ = onSnapshot(q, (snapshot) => {
 
-        const tbody = document.getElementById("sj-items-body");
-        const emptyEl = document.getElementById("sj-items-empty");
         sjRowsMap = {};
-
-        let html = "";
 
         snapshot.forEach(docSnap => {
             const d = docSnap.data();
             const noPR = d.no_pr || "-";
-            const tglDisplay = d.tanggal_display || (d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-");
-            const kategori = [d.kategori1, d.kategori2, d.kategori3].filter(Boolean).join(" / ") || "-";
             const sisaList = hitungSisaItemSJ(d);
 
             sisaList.forEach((it, idx) => {
                 if(it.sisa <= 0) return;
-                const rowKey = `${docSnap.id}__${idx}`;
-                sjRowsMap[rowKey] = {
+                const noUrut = noUrutItem(noPR, idx);
+                sjRowsMap[noUrut] = {
                     docId: docSnap.id,
                     itemIndex: idx,
                     noPR: noPR,
-                    noUrut: noUrutItem(noPR, idx),
+                    noUrut: noUrut,
                     namaBarang: it.nama_barang,
                     satuan: it.satuan || "",
                     totalDiminta: it.total,
                     sudahDikirim: it.sudah_dikirim,
-                    sisa: it.sisa,
-                    kategori: kategori,
-                    divisi: d.divisi || "-",
-                    tanggalDisplay: tglDisplay
+                    sisa: it.sisa
                 };
-
-                html += `
-<tr>
-    <td><input type="checkbox" id="sj-chk-${rowKey}" onchange="toggleSjQtyEnabled('${rowKey}')"></td>
-    <td><b>${sjRowsMap[rowKey].noUrut}</b></td>
-    <td>${tglDisplay}</td>
-    <td>${kategori}</td>
-    <td>${d.divisi || "-"}</td>
-    <td>${it.nama_barang}</td>
-    <td>${it.total}</td>
-    <td>${it.satuan || "-"}</td>
-    <td><span class="sj-sudah-val">${it.sudah_dikirim}</span></td>
-    <td><span class="sj-sisa-val">${it.sisa}</span></td>
-    <td><input type="number" id="sj-qty-${rowKey}" min="1" max="${it.sisa}" value="${it.sisa}" disabled></td>
-</tr>`;
             });
         });
 
-        tbody.innerHTML = html;
-        emptyEl.style.display = html === "" ? "block" : "none";
+        // Isi ulang datalist supaya No. PR Urut yang tersedia selalu up to date
+        const dl = document.getElementById("sj-no-urut-datalist");
+        if(dl) dl.innerHTML = Object.keys(sjRowsMap).map(k => `<option value="${k}"></option>`).join("");
+
+        // Refresh baris yang sudah diisi, kalau-kalau data sisa-nya berubah
+        document.querySelectorAll("#sj-items-body tr").forEach(row => {
+            const id = row.id.replace("sj-row-", "");
+            isiOtomatisSJ(id, true);
+        });
 
     }, err => console.error("Gagal memuat data Buat Surat Jalan:", err));
 }
 
-window.toggleSjQtyEnabled = function(rowKey){
-    const chk = document.getElementById(`sj-chk-${rowKey}`);
-    const qty = document.getElementById(`sj-qty-${rowKey}`);
-    if(!chk || !qty) return;
-    qty.disabled = !chk.checked;
+function buatBarisSJHTML(id){
+    return `
+        <tr id="sj-row-${id}">
+            <td class="sj-row-no">-</td>
+            <td><input type="text" id="sj-nourut-${id}" list="sj-no-urut-datalist" placeholder="Contoh: 2608001-1" oninput="isiOtomatisSJ(${id})"></td>
+            <td id="sj-nama-${id}"><span style="color:#9a9a9a;">-</span></td>
+            <td class="num" id="sj-diminta-${id}">-</td>
+            <td class="num" id="sj-sudahkirim-${id}">-</td>
+            <td class="num" id="sj-sisa-${id}">-</td>
+            <td class="num" id="sj-satuan-${id}">-</td>
+            <td><input type="number" id="sj-kirim-${id}" min="1" disabled></td>
+            <td><button class="btn-remove-filled" type="button" onclick="hapusBarisSJ(${id})" title="Hapus baris">🗑️</button></td>
+        </tr>
+    `;
+}
+
+function nomoriUlangSJ(){
+    const rows = document.querySelectorAll("#sj-items-body tr");
+    rows.forEach((row, i) => {
+        row.querySelector(".sj-row-no").textContent = i + 1;
+    });
+}
+
+window.tambahBarisSJ = function(){
+    sjRowCount++;
+    document.getElementById("sj-items-body").insertAdjacentHTML("beforeend", buatBarisSJHTML(sjRowCount));
+    nomoriUlangSJ();
+}
+
+window.hapusBarisSJ = function(id){
+    const row = document.getElementById(`sj-row-${id}`);
+    if(row) row.remove();
+    nomoriUlangSJ();
+}
+
+function resetFormSJ(){
+    document.getElementById("sj-items-body").innerHTML = "";
+    sjRowCount = 0;
+    window.tambahBarisSJ();
+    const msgEl = document.getElementById("sj-msg");
+    msgEl.style.display = "none";
+    msgEl.className = "form-msg";
+}
+
+// -------- Isi otomatis Nama Barang, Diminta, Sudah Kirim, Sisa, Satuan dari No. PR Urut --------
+window.isiOtomatisSJ = function(id, jagaNilaiKirim){
+    const nourutEl = document.getElementById(`sj-nourut-${id}`);
+    const namaEl = document.getElementById(`sj-nama-${id}`);
+    const dimintaEl = document.getElementById(`sj-diminta-${id}`);
+    const sudahEl = document.getElementById(`sj-sudahkirim-${id}`);
+    const sisaEl = document.getElementById(`sj-sisa-${id}`);
+    const satuanEl = document.getElementById(`sj-satuan-${id}`);
+    const kirimEl = document.getElementById(`sj-kirim-${id}`);
+
+    const noUrut = nourutEl.value.trim();
+    const row = sjRowsMap[noUrut];
+
+    if(!noUrut || !row){
+        namaEl.innerHTML = noUrut ? `<span style="color:#c62828;">Tidak ditemukan / sudah selesai dikirim</span>` : `<span style="color:#9a9a9a;">-</span>`;
+        dimintaEl.textContent = "-";
+        sudahEl.textContent = "-";
+        sisaEl.textContent = "-";
+        satuanEl.textContent = "-";
+        kirimEl.value = "";
+        kirimEl.disabled = true;
+        kirimEl.max = "";
+        return;
+    }
+
+    namaEl.textContent = row.namaBarang;
+    dimintaEl.textContent = row.totalDiminta;
+    sudahEl.innerHTML = `<span class="sj-sudah-val">${row.sudahDikirim}</span>`;
+    sisaEl.innerHTML = `<span class="sj-sisa-val">${row.sisa}</span>`;
+    satuanEl.textContent = row.satuan || "-";
+    kirimEl.disabled = false;
+    kirimEl.max = row.sisa;
+
+    // Kalau baris ini baru pertama kali cocok (bukan sekadar refresh data), isi default = sisa
+    if(!jagaNilaiKirim || kirimEl.value === ""){
+        kirimEl.value = row.sisa;
+    }
 }
 
 window.submitBuatSuratJalanGabungan = async function(){
@@ -3561,26 +3628,40 @@ window.submitBuatSuratJalanGabungan = async function(){
     msgEl.style.display = "none";
     msgEl.className = "form-msg";
 
-    // Kumpulkan item yang dicentang, dikelompokkan per dokumen PR sumbernya
+    // Kumpulkan baris yang sudah diisi No. PR Urut-nya, dikelompokkan per dokumen PR sumbernya
     const dipilihPerDoc = {}; // docId -> [{ nama_barang, jumlah, satuan }]
     const untukCetak = []; // { no_urut, nama_barang, diminta, sudah_kirim, sisa, satuan, kirim_sekarang }
-    let noPRPertama = "";
 
-    for(const rowKey in sjRowsMap){
-        const chk = document.getElementById(`sj-chk-${rowKey}`);
-        if(!chk || !chk.checked) continue;
+    const rowEls = document.querySelectorAll("#sj-items-body tr");
 
-        const row = sjRowsMap[rowKey];
-        const qtyEl = document.getElementById(`sj-qty-${rowKey}`);
-        let qty = Number(qtyEl.value) || 0;
+    for(const rowEl of rowEls){
+        const id = rowEl.id.replace("sj-row-", "");
+        const noUrut = document.getElementById(`sj-nourut-${id}`).value.trim();
+        if(noUrut === "") continue; // baris kosong, lewati
 
-        if(qty <= 0){
-            msgEl.textContent = `Jumlah kirim untuk "${row.namaBarang}" (${row.noUrut}) harus lebih dari 0.`;
+        const row = sjRowsMap[noUrut];
+        if(!row){
+            msgEl.textContent = `No. PR Urut "${noUrut}" tidak ditemukan atau sudah selesai dikirim. Periksa kembali baris tersebut.`;
             msgEl.classList.add("err");
             msgEl.style.display = "block";
             return;
         }
-        if(qty > row.sisa) qty = row.sisa;
+
+        const kirimEl = document.getElementById(`sj-kirim-${id}`);
+        let qty = Number(kirimEl.value) || 0;
+
+        if(qty <= 0){
+            msgEl.textContent = `Isi jumlah "Kirim Sekarang" untuk ${noUrut} (${row.namaBarang}).`;
+            msgEl.classList.add("err");
+            msgEl.style.display = "block";
+            return;
+        }
+        if(qty > row.sisa){
+            msgEl.textContent = `Jumlah kirim untuk ${noUrut} (${row.namaBarang}) melebihi sisa (maks ${row.sisa}).`;
+            msgEl.classList.add("err");
+            msgEl.style.display = "block";
+            return;
+        }
 
         if(!dipilihPerDoc[row.docId]) dipilihPerDoc[row.docId] = [];
         dipilihPerDoc[row.docId].push({ nama_barang: row.namaBarang, jumlah: qty, satuan: row.satuan });
@@ -3594,12 +3675,10 @@ window.submitBuatSuratJalanGabungan = async function(){
             satuan: row.satuan,
             kirim_sekarang: qty
         });
-
-        if(!noPRPertama) noPRPertama = row.noPR;
     }
 
     if(untukCetak.length === 0){
-        msgEl.textContent = "Centang minimal satu barang yang mau dikirim.";
+        msgEl.textContent = "Isi minimal satu baris (No. PR Urut & Kirim Sekarang).";
         msgEl.classList.add("err");
         msgEl.style.display = "block";
         return;
@@ -3644,7 +3723,8 @@ window.submitBuatSuratJalanGabungan = async function(){
 
         cetakSuratJalanGabungan(noSJ, tanggalDisplay, untukCetak);
 
-        msgEl.textContent = `Surat Jalan ${noSJ} berhasil dibuat dari ${untukCetak.length} item (${Object.keys(dipilihPerDoc).length} No. PR).`;
+        resetFormSJ();
+        msgEl.textContent = `Surat Jalan ${noSJ} berhasil dibuat dari ${untukCetak.length} item.`;
         msgEl.classList.add("ok");
         msgEl.style.display = "block";
 
@@ -3654,7 +3734,7 @@ window.submitBuatSuratJalanGabungan = async function(){
         msgEl.style.display = "block";
     } finally {
         btn.disabled = false;
-        btn.textContent = "🚚 Buat Surat Jalan dari Item Terpilih";
+        btn.textContent = "🚚 Buat Surat Jalan";
     }
 
 }
