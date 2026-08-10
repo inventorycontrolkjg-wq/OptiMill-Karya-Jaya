@@ -1309,7 +1309,7 @@ table.tbl td{
 
                 <div class="page-header">
                     <h2>📥 Form Penerimaan Barang</h2>
-                    <p>Catat barang yang diterima dari pembelian / supplier — otomatis menambah Stok Master Barang</p>
+                    <p>Isi No Surat Jalan untuk isi otomatis daftar barang, jumlah, dan keterangan dari permintaan awal — otomatis menambah Stok Master Barang</p>
                 </div>
 
                 <div class="panel">
@@ -1318,7 +1318,7 @@ table.tbl td{
 
                     <h3 style="margin:0 0 14px;">Informasi Umum</h3>
 
-                    <div class="opb-header-grid" style="grid-template-columns:repeat(4, minmax(0,1fr));">
+                    <div class="opb-header-grid" style="grid-template-columns:repeat(3, minmax(0,1fr));">
                         <div class="form-group">
                             <label>No Penerimaan</label>
                             <input type="text" id="pnm-no" disabled>
@@ -1326,10 +1326,6 @@ table.tbl td{
                         <div class="form-group">
                             <label>Tanggal *</label>
                             <input type="date" id="pnm-tanggal">
-                        </div>
-                        <div class="form-group">
-                            <label>Supplier / Dari *</label>
-                            <input type="text" id="pnm-supplier" placeholder="Nama supplier / sumber barang">
                         </div>
                         <div class="form-group">
                             <label>No Surat Jalan (dari Purchasing)</label>
@@ -1426,7 +1422,6 @@ table.tbl td{
                             <tr>
                                 <th>Tanggal</th>
                                 <th>No Penerimaan</th>
-                                <th>Supplier / Dari</th>
                                 <th>Diterima Oleh</th>
                                 <th>Barang</th>
                                 <th>Total Jumlah</th>
@@ -4513,7 +4508,6 @@ let pnmSJTerhubung = null; // { docId, noSJ } kalau item diisi otomatis dari Sur
 
 function resetFormPnm(){
     document.getElementById("pnm-items-body").innerHTML = "";
-    document.getElementById("pnm-supplier").value = "";
     document.getElementById("pnm-referensi").value = "";
     document.getElementById("pnm-penerima").value = "";
     document.getElementById("pnm-keterangan").value = "";
@@ -4596,8 +4590,8 @@ window.cariSuratJalanUntukPenerimaan = async function(){
             hitungStokSesudahPnm(id);
         });
 
-        if(!document.getElementById("pnm-supplier").value.trim() && ditemukan.d.penawaran_list && ditemukan.d.penawaran_list[0]){
-            document.getElementById("pnm-supplier").value = ditemukan.d.penawaran_list[0].vendor || "";
+        if(!document.getElementById("pnm-keterangan").value.trim() && ditemukan.d.keterangan){
+            document.getElementById("pnm-keterangan").value = ditemukan.d.keterangan;
         }
 
         pnmSJTerhubung = { docId: docIdDitemukan, noSJ: ditemukan.sj.no_sj };
@@ -4762,12 +4756,11 @@ async function generateNoPenerimaan(tanggalISO){
 }
 
 function validasiFormPnm(status){
-    const supplier = document.getElementById("pnm-supplier").value.trim();
     const penerima = document.getElementById("pnm-penerima").value.trim();
     const { items } = ambilItemPnm();
 
-    if(supplier === "" || penerima === ""){
-        return "Supplier/Dari dan Diterima Oleh wajib diisi.";
+    if(penerima === ""){
+        return "Diterima Oleh wajib diisi.";
     }
     if(items.length === 0){
         return "Isi minimal satu barang (scan barcode barang dan isi jumlah diterima).";
@@ -4793,7 +4786,6 @@ async function simpanPnm(status){
     }
 
     const tanggal = document.getElementById("pnm-tanggal").value || pnmTanggalISO;
-    const supplier = document.getElementById("pnm-supplier").value.trim();
     const referensi = document.getElementById("pnm-referensi").value.trim();
     const penerima = document.getElementById("pnm-penerima").value.trim();
     const keterangan = document.getElementById("pnm-keterangan").value.trim();
@@ -4817,7 +4809,6 @@ async function simpanPnm(status){
             no_penerimaan: noPnm,
             tanggal: tanggal,
             tanggal_display: formatTanggalIndo(tanggal),
-            supplier: supplier,
             referensi: referensi,
             penerima: penerima,
             keterangan: keterangan,
@@ -4918,7 +4909,6 @@ function pantauSemuaPenerimaan(){
 <tr>
     <td>${tgl}</td>
     <td>${d.no_penerimaan || "-"}</td>
-    <td>${d.supplier || "-"}</td>
     <td>${d.penerima || "-"}</td>
     <td>${ringkasBarang}</td>
     <td>${d.total_jumlah ?? "-"}</td>
@@ -4977,7 +4967,6 @@ window.cetakPenerimaan = function(id){
     <div class="print-info-grid">
         <div><span class="lbl">Tanggal</span><span class="val">${d.tanggal_display || tgl}</span></div>
         <div><span class="lbl">Status</span><span class="val">${labelStatus}</span></div>
-        <div><span class="lbl">Supplier / Dari</span><span class="val">${d.supplier || "-"}</span></div>
         <div><span class="lbl">No Referensi</span><span class="val">${d.referensi || "-"}</span></div>
         <div><span class="lbl">Diterima Oleh</span><span class="val">${d.penerima || "-"}</span></div>
         <div><span class="lbl">Keterangan</span><span class="val">${d.keterangan || "-"}</span></div>
