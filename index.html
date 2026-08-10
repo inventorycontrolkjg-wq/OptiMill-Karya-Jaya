@@ -599,6 +599,29 @@ table.tbl td{
     margin-bottom:4px;
 }
 
+.detail-barang-list{
+    font-size:11.5px;
+    min-width:210px;
+    max-width:280px;
+}
+.detail-barang-list .item-line{
+    margin-bottom:4px;
+    padding-bottom:4px;
+    border-bottom:1px dashed #eee;
+}
+.detail-barang-list .item-line:last-child{ border-bottom:none; margin-bottom:0; padding-bottom:0; }
+.detail-barang-list .kode-urut{
+    color:#1565c0;
+    font-weight:700;
+    margin-right:4px;
+}
+.detail-barang-list .jml-satuan{ color:#666; }
+
+.sj-items-table td{ vertical-align:middle; }
+.sj-items-table input[type="number"]{ padding:6px 8px; font-size:12.5px; }
+.sj-sisa-val{ color:#c62828; font-weight:700; }
+.sj-sudah-val{ color:#2e7d32; font-weight:600; }
+
 /* ============== MODUL: FORM PENGAMBILAN BARANG / BKB ============== */
 
 .field-icon-wrap{ position:relative; }
@@ -1576,7 +1599,7 @@ table.tbl td{
                             <tr>
                                 <th>Tanggal</th>
                                 <th>No PR</th>
-                                <th>Tinjau</th>
+                                <th>Detail Barang</th>
                                 <th>Input Penawaran</th>
                                 <th>Catatan dr Purchasing</th>
                                 <th>Status</th>
@@ -1612,6 +1635,36 @@ table.tbl td{
                 </div>
             </div>
 
+            <div class="page" id="page-purchasing-buat-sj">
+                <div class="page-header">
+                    <h2>🚚 Buat Surat Jalan</h2>
+                    <p>Rincian per item dari semua PR yang sudah disetujui Pimpinan — centang barang yang mau dikirim, satu Surat Jalan bisa gabungan dari beberapa No. PR sekaligus</p>
+                </div>
+                <div class="panel">
+                    <div class="form-msg" id="sj-msg"></div>
+                    <table class="tbl sj-items-table">
+                        <thead>
+                            <tr>
+                                <th style="width:30px;"></th>
+                                <th>No. PR Urut</th>
+                                <th>Tanggal</th>
+                                <th>Kategori</th>
+                                <th>Divisi</th>
+                                <th>Nama Barang</th>
+                                <th>Jml Diminta</th>
+                                <th>Satuan</th>
+                                <th>Sudah Dikirim</th>
+                                <th>Sisa</th>
+                                <th style="width:110px;">Kirim Sekarang</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sj-items-body"></tbody>
+                    </table>
+                    <div class="empty-state" id="sj-items-empty" style="display:none;">Tidak ada barang yang perlu dikirim saat ini.</div>
+                    <button class="btn-primary" type="button" id="sj-submit-btn" style="width:auto; padding:12px 26px; margin-top:16px;" onclick="submitBuatSuratJalanGabungan()">🚚 Buat Surat Jalan dari Item Terpilih</button>
+                </div>
+            </div>
+
             <!-- ============================================= -->
             <!-- PIMPINAN -->
             <!-- ============================================= -->
@@ -1626,7 +1679,7 @@ table.tbl td{
                             <tr>
                                 <th>Tanggal</th>
                                 <th>No PR</th>
-                                <th>Tinjau</th>
+                                <th>Detail Barang</th>
                                 <th>Penawaran</th>
                                 <th>Status</th>
                                 <th>Approvement</th>
@@ -1842,7 +1895,8 @@ const NAV_ITEMS = {
     ],
     purchasing: [
         { id:"purchasing-list-permintaan", label:"📋 List Permintaan" },
-        { id:"purchasing-list-approve", label:"✅ List Permintaan Approve" }
+        { id:"purchasing-list-approve", label:"✅ List Permintaan Approve" },
+        { id:"purchasing-buat-sj", label:"🚚 Buat Surat Jalan" }
     ],
     pimpinan: [
         { id:"pimpinan-review", label:"✅ Review & Approval" }
@@ -1909,6 +1963,9 @@ window.showPage = function(id){
     }
     if(id === "purchasing-list-approve"){
         pantauPurchasingListApprove();
+    }
+    if(id === "purchasing-buat-sj"){
+        pantauPurchasingBuatSJ();
     }
     if(id === "pimpinan-review"){
         pantauPimpinanReview();
@@ -2933,7 +2990,7 @@ function pantauPurchasingListPermintaan(){
 <tr>
     <td>${tgl}</td>
     <td>${d.no_pr || "-"}</td>
-    <td><button class="btn-ic-edit" type="button" onclick="cetakPermintaan('${docSnap.id}')">🔍 Tinjau</button></td>
+    <td>${renderDetailBarangHtml(d)}</td>
     <td><button class="btn-ic-edit" type="button" onclick="bukaFormPenawaran('${docSnap.id}')">${btnPenawaranLabel}</button></td>
     <td><button class="btn-ic-edit" type="button" onclick="bukaFormCatatan('${docSnap.id}')">${btnCatatanLabel}</button></td>
     <td><span class="status-pill ${status}">${labelStatus}</span></td>
@@ -3122,6 +3179,22 @@ window.simpanModalPenawaran = async function(){
         saveBtn.disabled = false;
         saveBtn.textContent = "✓ Simpan Penawaran";
     }
+}
+
+// -------- Detail Barang per item, dengan No. PR Urut (mis. 2608001-1) --------
+function noUrutItem(noPR, idx){
+    return `${noPR || "-"}-${idx + 1}`;
+}
+
+function renderDetailBarangHtml(d){
+    const items = d.items || [];
+    if(items.length === 0) return `<span style="color:#9a9a9a;">-</span>`;
+    const noPR = d.no_pr || "-";
+    const baris = items.map((it, i) => {
+        const jumlah = it.jumlah_diminta ?? it.jumlah ?? 0;
+        return `<div class="item-line"><span class="kode-urut">${noUrutItem(noPR, i)}</span>${it.nama_barang || "-"} <span class="jml-satuan">(${jumlah} ${it.satuan || ""})</span></div>`;
+    }).join("");
+    return `<div class="detail-barang-list">${baris}</div>`;
 }
 
 // -------- Purchasing: List Permintaan Approve (status barang + faktur) --------
@@ -3407,6 +3480,265 @@ window.bukaFormFaktur = function(id){
 }
 
 // =========================================================
+// PURCHASING: BUAT SURAT JALAN (rincian per item, gabungan lintas No. PR)
+// =========================================================
+let unsubBuatSJ = null;
+let sjRowsMap = {}; // rowKey -> { docId, itemIndex, noPR, noUrut, namaBarang, satuan, totalDiminta, sudahDikirim, sisa, kategori, divisi, tanggalDisplay }
+
+function pantauPurchasingBuatSJ(){
+
+    if(unsubBuatSJ) unsubBuatSJ();
+
+    const q = query(collection(db, "permintaan_barang"), where("status", "==", "approve"), orderBy("created_at", "desc"));
+
+    unsubBuatSJ = onSnapshot(q, (snapshot) => {
+
+        const tbody = document.getElementById("sj-items-body");
+        const emptyEl = document.getElementById("sj-items-empty");
+        sjRowsMap = {};
+
+        let html = "";
+
+        snapshot.forEach(docSnap => {
+            const d = docSnap.data();
+            const noPR = d.no_pr || "-";
+            const tglDisplay = d.tanggal_display || (d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-");
+            const kategori = [d.kategori1, d.kategori2, d.kategori3].filter(Boolean).join(" / ") || "-";
+            const sisaList = hitungSisaItemSJ(d);
+
+            sisaList.forEach((it, idx) => {
+                if(it.sisa <= 0) return;
+                const rowKey = `${docSnap.id}__${idx}`;
+                sjRowsMap[rowKey] = {
+                    docId: docSnap.id,
+                    itemIndex: idx,
+                    noPR: noPR,
+                    noUrut: noUrutItem(noPR, idx),
+                    namaBarang: it.nama_barang,
+                    satuan: it.satuan || "",
+                    totalDiminta: it.total,
+                    sudahDikirim: it.sudah_dikirim,
+                    sisa: it.sisa,
+                    kategori: kategori,
+                    divisi: d.divisi || "-",
+                    tanggalDisplay: tglDisplay
+                };
+
+                html += `
+<tr>
+    <td><input type="checkbox" id="sj-chk-${rowKey}" onchange="toggleSjQtyEnabled('${rowKey}')"></td>
+    <td><b>${sjRowsMap[rowKey].noUrut}</b></td>
+    <td>${tglDisplay}</td>
+    <td>${kategori}</td>
+    <td>${d.divisi || "-"}</td>
+    <td>${it.nama_barang}</td>
+    <td>${it.total}</td>
+    <td>${it.satuan || "-"}</td>
+    <td><span class="sj-sudah-val">${it.sudah_dikirim}</span></td>
+    <td><span class="sj-sisa-val">${it.sisa}</span></td>
+    <td><input type="number" id="sj-qty-${rowKey}" min="1" max="${it.sisa}" value="${it.sisa}" disabled></td>
+</tr>`;
+            });
+        });
+
+        tbody.innerHTML = html;
+        emptyEl.style.display = html === "" ? "block" : "none";
+
+    }, err => console.error("Gagal memuat data Buat Surat Jalan:", err));
+}
+
+window.toggleSjQtyEnabled = function(rowKey){
+    const chk = document.getElementById(`sj-chk-${rowKey}`);
+    const qty = document.getElementById(`sj-qty-${rowKey}`);
+    if(!chk || !qty) return;
+    qty.disabled = !chk.checked;
+}
+
+window.submitBuatSuratJalanGabungan = async function(){
+
+    const msgEl = document.getElementById("sj-msg");
+    const btn = document.getElementById("sj-submit-btn");
+    msgEl.style.display = "none";
+    msgEl.className = "form-msg";
+
+    // Kumpulkan item yang dicentang, dikelompokkan per dokumen PR sumbernya
+    const dipilihPerDoc = {}; // docId -> [{ nama_barang, jumlah, satuan }]
+    const untukCetak = []; // { no_urut, nama_barang, diminta, sudah_kirim, sisa, satuan, kirim_sekarang }
+    let noPRPertama = "";
+
+    for(const rowKey in sjRowsMap){
+        const chk = document.getElementById(`sj-chk-${rowKey}`);
+        if(!chk || !chk.checked) continue;
+
+        const row = sjRowsMap[rowKey];
+        const qtyEl = document.getElementById(`sj-qty-${rowKey}`);
+        let qty = Number(qtyEl.value) || 0;
+
+        if(qty <= 0){
+            msgEl.textContent = `Jumlah kirim untuk "${row.namaBarang}" (${row.noUrut}) harus lebih dari 0.`;
+            msgEl.classList.add("err");
+            msgEl.style.display = "block";
+            return;
+        }
+        if(qty > row.sisa) qty = row.sisa;
+
+        if(!dipilihPerDoc[row.docId]) dipilihPerDoc[row.docId] = [];
+        dipilihPerDoc[row.docId].push({ nama_barang: row.namaBarang, jumlah: qty, satuan: row.satuan });
+
+        untukCetak.push({
+            no_urut: row.noUrut,
+            nama_barang: row.namaBarang,
+            diminta: row.totalDiminta,
+            sudah_kirim: row.sudahDikirim,
+            sisa: row.sisa,
+            satuan: row.satuan,
+            kirim_sekarang: qty
+        });
+
+        if(!noPRPertama) noPRPertama = row.noPR;
+    }
+
+    if(untukCetak.length === 0){
+        msgEl.textContent = "Centang minimal satu barang yang mau dikirim.";
+        msgEl.classList.add("err");
+        msgEl.style.display = "block";
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Menyimpan...";
+
+    try{
+
+        const tanggalISO = new Date().toISOString().slice(0,10);
+        const tanggalDisplay = formatTanggalIndo(tanggalISO);
+        const { yy, mm, key } = komponenTahunBulan(tanggalISO);
+        const counterRef = doc(db, "counters", `sj_${key}`);
+        const nomor = await runTransaction(db, async (tx) => {
+            const snap = await tx.get(counterRef);
+            const next = snap.exists() ? (snap.data().terakhir || 0) + 1 : 1;
+            tx.set(counterRef, { terakhir: next }, { merge: true });
+            return next;
+        });
+        const noSJ = `SJ${yy}${mm}${String(nomor).padStart(3, "0")}`;
+
+        const batch = writeBatch(db);
+        Object.keys(dipilihPerDoc).forEach(docId => {
+            const itemsUntukDoc = dipilihPerDoc[docId];
+            const noPRDoc = Object.values(sjRowsMap).find(r => r.docId === docId)?.noPR || "";
+            batch.update(doc(db, "permintaan_barang", docId), {
+                surat_jalan: arrayUnion({
+                    no_sj: noSJ,
+                    no_pr: noPRDoc,
+                    tanggal: tanggalISO,
+                    tanggal_display: tanggalDisplay,
+                    items: itemsUntukDoc,
+                    status: "dikirim",
+                    dibuat_oleh: auth.currentUser.email,
+                    dibuat_pada: new Date().toISOString()
+                })
+            });
+        });
+
+        await batch.commit();
+
+        cetakSuratJalanGabungan(noSJ, tanggalDisplay, untukCetak);
+
+        msgEl.textContent = `Surat Jalan ${noSJ} berhasil dibuat dari ${untukCetak.length} item (${Object.keys(dipilihPerDoc).length} No. PR).`;
+        msgEl.classList.add("ok");
+        msgEl.style.display = "block";
+
+    } catch(e){
+        msgEl.textContent = "Gagal membuat Surat Jalan: " + e.message;
+        msgEl.classList.add("err");
+        msgEl.style.display = "block";
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "🚚 Buat Surat Jalan dari Item Terpilih";
+    }
+
+}
+
+function cetakSuratJalanGabungan(noSJ, tanggalDisplay, rows){
+
+    const baris = rows.map((it, i) => `
+<tr>
+    <td class="num">${i + 1}</td>
+    <td>${it.no_urut}</td>
+    <td>${it.nama_barang}</td>
+    <td class="num">${it.diminta}</td>
+    <td class="num">${it.sudah_kirim}</td>
+    <td class="num">${it.sisa}</td>
+    <td class="num">${it.satuan || "-"}</td>
+    <td class="num"><b>${it.kirim_sekarang}</b></td>
+</tr>`).join("");
+
+    const html = `
+<div class="print-doc">
+
+    <div class="print-head">
+        <div>
+            <h1>OptiMill Karya Jaya</h1>
+            <p>Surat Jalan (Pengiriman Barang)</p>
+        </div>
+        <div class="print-nopr">
+            <div class="label">No. Surat Jalan</div>
+            <div class="value">${noSJ}</div>
+        </div>
+    </div>
+
+    <div class="print-info-grid">
+        <div><span class="lbl">Tanggal Kirim</span><span class="val">${tanggalDisplay}</span></div>
+        <div><span class="lbl">Total Item</span><span class="val">${rows.length}</span></div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width:30px;">No</th>
+                <th style="width:100px;">No. PR Urut</th>
+                <th>Nama Barang</th>
+                <th style="width:70px;">Diminta</th>
+                <th style="width:80px;">Sudah Kirim</th>
+                <th style="width:60px;">Sisa</th>
+                <th style="width:60px;">Satuan</th>
+                <th style="width:90px;">Kirim Sekarang</th>
+            </tr>
+        </thead>
+        <tbody>${baris}</tbody>
+    </table>
+
+    <p style="font-size:11.5px; color:#666; margin-top:10px;">
+        Catatan: satu Surat Jalan ini bisa mencakup barang dari beberapa No. PR sekaligus, sesuai kolom "No. PR Urut" masing-masing baris.
+    </p>
+
+    <div class="print-sign-grid">
+        <div class="sign-box">
+            Dikirim oleh
+            <div class="line">Purchasing</div>
+        </div>
+        <div class="sign-box">
+            Diterima oleh
+            <div class="line">Gudang / Pabrik</div>
+        </div>
+    </div>
+
+    <div class="print-footer-note">Dicetak dari sistem Purchasing &amp; Finance - ${new Date().toLocaleString("id-ID")}</div>
+
+</div>`;
+
+    document.getElementById("print-area").innerHTML = html;
+    document.body.classList.add("printing-mode");
+
+    window.print();
+
+    setTimeout(() => {
+        document.body.classList.remove("printing-mode");
+    }, 500);
+
+}
+
+// =========================================================
 // MODUL PIMPINAN: REVIEW & APPROVAL
 // =========================================================
 let unsubPimList = null;
@@ -3466,7 +3798,7 @@ function pantauPimpinanReview(){
 <tr>
     <td>${tgl}</td>
     <td>${d.no_pr || "-"}</td>
-    <td><button class="btn-ic-edit" type="button" onclick="cetakPermintaan('${id}')">🔍 Tinjau</button></td>
+    <td>${renderDetailBarangHtml(d)}</td>
     <td>${penawaranHtml}${catatan}</td>
     <td><span class="status-pill ${status}">${labelStatus}</span></td>
     <td>
