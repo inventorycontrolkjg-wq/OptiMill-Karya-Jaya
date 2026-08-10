@@ -3129,7 +3129,8 @@ function hitungSisaItemSJ(d){
             const match = (sj.items || []).find(x => x.nama_barang === it.nama_barang);
             return total + (match ? match.jumlah : 0);
         }, 0);
-        return { nama_barang: it.nama_barang, satuan: it.satuan, total: it.jumlah, sudah_dikirim: sudahDikirim, sisa: Math.max(0, it.jumlah - sudahDikirim) };
+        const totalDiminta = it.jumlah_diminta ?? it.jumlah ?? 0;
+        return { nama_barang: it.nama_barang, satuan: it.satuan, total: totalDiminta, sudah_dikirim: sudahDikirim, sisa: Math.max(0, totalDiminta - sudahDikirim) };
     });
 }
 
