@@ -2785,6 +2785,20 @@ function namaDenganRole(nama, role){
     return role ? `${nama} (${role.toUpperCase()})` : nama;
 }
 
+function hitungSisaDiterimaSJ(d){
+    const items = d.items || [];
+    const suratJalanList = d.surat_jalan || [];
+    return items.map(it => {
+        const sudahDiterima = suratJalanList.reduce((total, sj) => {
+            if(sj.status !== "diterima") return total;
+            const match = (sj.items || []).find(x => x.nama_barang === it.nama_barang);
+            return total + (match ? match.jumlah : 0);
+        }, 0);
+        const totalDiminta = it.jumlah_diminta ?? it.jumlah ?? 0;
+        return { nama_barang: it.nama_barang, total: totalDiminta, sudah_diterima: sudahDiterima, sisa: Math.max(0, totalDiminta - sudahDiterima) };
+    });
+}
+
 // -------- List Permintaan (semua permintaan, bukan cuma milik sendiri) --------
 function pantauSemuaPermintaan(){
 
@@ -2818,7 +2832,29 @@ function pantauSemuaPermintaan(){
 
             const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
             const status = d.status || "menunggu";
-            const labelStatus = status === "disetujui" ? "Disetujui" : (status === "ditolak" ? "Ditolak" : "Menunggu");
+
+            let labelStatus = "Menunggu";
+            let statusClass = "menunggu";
+
+            if(status === "hold"){
+                labelStatus = "Hold";
+                statusClass = "hold";
+            } else if(status === "approve"){
+                const suratJalanList = d.surat_jalan || [];
+                if(suratJalanList.length === 0){
+                    labelStatus = "Approve";
+                    statusClass = "approve";
+                } else {
+                    const totalSisaDiterima = hitungSisaDiterimaSJ(d).reduce((a, b) => a + b.sisa, 0);
+                    if(totalSisaDiterima <= 0){
+                        labelStatus = "Close";
+                        statusClass = "diterima";
+                    } else {
+                        labelStatus = "Sebagian Diterima";
+                        statusClass = "hold";
+                    }
+                }
+            }
 
             const items = d.items || [];
             const noPR = d.no_pr || "-";
@@ -2834,7 +2870,7 @@ function pantauSemuaPermintaan(){
     <td>${diajukanOleh}</td>
     <td>-</td>
     <td>-</td>
-    <td><span class="status-pill ${status}">${labelStatus}</span></td>
+    <td><span class="status-pill ${statusClass}">${labelStatus}</span></td>
     <td><button class="btn-icon-print" type="button" onclick="cetakPermintaan('${docSnap.id}')">🖨️ Cetak</button></td>
 </tr>
 `;
@@ -2850,7 +2886,7 @@ function pantauSemuaPermintaan(){
     <td rowspan="${jumlahBaris}">${diajukanOleh}</td>
     <td style="white-space:normal;">${it.nama_barang || "-"}</td>
     <td>${jumlah}</td>
-    <td><span class="status-pill ${status}">${labelStatus}</span></td>
+    <td><span class="status-pill ${statusClass}">${labelStatus}</span></td>
     <td rowspan="${jumlahBaris}"><button class="btn-icon-print" type="button" onclick="cetakPermintaan('${docSnap.id}')">🖨️ Cetak</button></td>
 </tr>
 `;
@@ -2860,7 +2896,7 @@ function pantauSemuaPermintaan(){
     <td>${noUrutItem(noPR, i)}</td>
     <td style="white-space:normal;">${it.nama_barang || "-"}</td>
     <td>${jumlah}</td>
-    <td><span class="status-pill ${status}">${labelStatus}</span></td>
+    <td><span class="status-pill ${statusClass}">${labelStatus}</span></td>
 </tr>
 `;
                     }
