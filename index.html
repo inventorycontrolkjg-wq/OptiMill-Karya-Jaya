@@ -1342,11 +1342,6 @@ table.tbl td{
                         <input type="text" id="pnm-penerima" placeholder="Nama petugas yang menerima barang">
                     </div>
 
-                    <div class="form-group">
-                        <label>Keterangan</label>
-                        <textarea id="pnm-keterangan" placeholder="Opsional"></textarea>
-                    </div>
-
                     <div class="opb-items-header">
                         <h3 class="bkb-section-title" style="margin:0;">Detail Barang Diterima</h3>
                     </div>
@@ -1355,12 +1350,12 @@ table.tbl td{
                         <thead>
                             <tr>
                                 <th style="width:34px;">No</th>
-                                <th style="width:170px;">Barcode</th>
                                 <th>Nama Barang</th>
                                 <th style="width:100px;">Jumlah Diterima</th>
                                 <th style="width:80px;">Satuan</th>
                                 <th style="width:100px;">Stok Sebelum</th>
                                 <th style="width:100px;">Stok Sesudah</th>
+                                <th style="width:160px;">Keterangan</th>
                                 <th style="width:50px;">Aksi</th>
                             </tr>
                         </thead>
@@ -4505,15 +4500,16 @@ let unsubPenerimaan = null;
 let semuaPenerimaanMap = {};
 let pnmTanggalISO = "";
 let pnmSJTerhubung = null; // { docId, noSJ } kalau item diisi otomatis dari Surat Jalan
+let pnmKeteranganOtomatis = ""; // keterangan dari permintaan awal, terisi saat cari No SJ
 
 function resetFormPnm(){
     document.getElementById("pnm-items-body").innerHTML = "";
     document.getElementById("pnm-referensi").value = "";
     document.getElementById("pnm-penerima").value = "";
-    document.getElementById("pnm-keterangan").value = "";
     document.getElementById("pnm-sj-status").textContent = "";
     document.getElementById("pnm-sj-status").className = "bkb-barcode-status";
     pnmSJTerhubung = null;
+    pnmKeteranganOtomatis = "";
 
     pnmTanggalISO = new Date().toISOString().slice(0, 10);
     document.getElementById("pnm-tanggal").value = pnmTanggalISO;
@@ -4573,6 +4569,7 @@ window.cariSuratJalanUntukPenerimaan = async function(){
         // Isi otomatis daftar barang dari Surat Jalan
         document.getElementById("pnm-items-body").innerHTML = "";
         pnmRowCount = 0;
+        pnmKeteranganOtomatis = ditemukan.d.keterangan || "";
 
         ditemukan.sj.items.forEach(it => {
             window.tambahBarisPnm();
@@ -4580,13 +4577,9 @@ window.cariSuratJalanUntukPenerimaan = async function(){
             const satuanMaster = masterBarangMap[it.nama_barang] || it.satuan || "";
             const stokMaster = masterBarangStokMap[it.nama_barang];
 
-            document.getElementById(`pnm-barcode-${id}`).value = "(dari surat jalan)";
-            document.getElementById(`pnm-barcode-${id}`).disabled = true;
-
-            const namaCell = document.getElementById(`pnm-namabarang-${id}`);
-            namaCell.textContent = it.nama_barang;
-            namaCell.className = "bkb-namabarang-cell";
-            namaCell.dataset.barcode = "dari-sj";
+            const namaEl = document.getElementById(`pnm-namabarang-${id}`);
+            namaEl.value = it.nama_barang;
+            namaEl.dataset.terisi = "1";
 
             const satuanCell = document.getElementById(`pnm-satuan-${id}`);
             satuanCell.innerHTML = `<span class="bkb-stok-value">${satuanMaster || "-"}</span>`;
@@ -4598,11 +4591,11 @@ window.cariSuratJalanUntukPenerimaan = async function(){
 
             document.getElementById(`pnm-jumlah-${id}`).value = it.jumlah;
             hitungStokSesudahPnm(id);
-        });
 
-        if(!document.getElementById("pnm-keterangan").value.trim() && ditemukan.d.keterangan){
-            document.getElementById("pnm-keterangan").value = ditemukan.d.keterangan;
-        }
+            const keteranganCell = document.getElementById(`pnm-keterangan-${id}`);
+            keteranganCell.textContent = pnmKeteranganOtomatis || "-";
+            keteranganCell.className = pnmKeteranganOtomatis ? "bkb-namabarang-cell" : "bkb-namabarang-cell kosong";
+        });
 
         pnmSJTerhubung = { docId: docIdDitemukan, noSJ: ditemukan.sj.no_sj };
         statusEl.textContent = `✔ Ditemukan — ${ditemukan.sj.items.length} barang otomatis terisi dari ${ditemukan.sj.no_sj} (No PR: ${ditemukan.d.no_pr || "-"}).`;
@@ -4619,17 +4612,12 @@ function buatBarisPnmHTML(id){
     return `
         <tr id="pnm-row-${id}">
             <td class="pnm-row-no">-</td>
-            <td>
-                <div class="bkb-barcode-cell">
-                    <input type="text" id="pnm-barcode-${id}" placeholder="Scan barcode..." autocomplete="off" onkeydown="handleBarcodePnmKeydown(event, ${id})" onblur="isiBarisDariBarcodePnm(${id})">
-                    <button class="btn-cari-barcode" type="button" onclick="isiBarisDariBarcodePnm(${id})" title="Cari manual">🔍</button>
-                </div>
-            </td>
-            <td id="pnm-namabarang-${id}" class="bkb-namabarang-cell kosong">-</td>
+            <td><input type="text" id="pnm-namabarang-${id}" list="master-barang-datalist" placeholder="Nama barang" autocomplete="off" oninput="isiNamaBarangPnm(${id})"></td>
             <td><input type="number" min="1" id="pnm-jumlah-${id}" oninput="hitungStokSesudahPnm(${id})"></td>
             <td id="pnm-satuan-${id}" class="bkb-satuan-cell"><span class="bkb-stok-value kosong">-</span></td>
             <td id="pnm-stoksebelum-${id}" class="bkb-stok-cell"><span class="bkb-stok-value kosong">-</span></td>
             <td id="pnm-stoksesudah-${id}" class="bkb-stok-cell"><span class="bkb-stok-value kosong">-</span></td>
+            <td id="pnm-keterangan-${id}" class="bkb-namabarang-cell kosong">-</td>
             <td><button class="btn-remove-filled" type="button" onclick="hapusBarisPnm(${id})" title="Hapus baris">🗑️</button></td>
         </tr>
     `;
@@ -4654,50 +4642,35 @@ window.hapusBarisPnm = function(id){
     nomoriUlangBarisPnm();
 }
 
-window.handleBarcodePnmKeydown = function(ev, id){
-    if(ev.key !== "Enter") return;
-    ev.preventDefault();
-    isiBarisDariBarcodePnm(id);
-}
+window.isiNamaBarangPnm = function(id){
 
-window.isiBarisDariBarcodePnm = function(id){
-
-    const barcodeEl = document.getElementById(`pnm-barcode-${id}`);
-    const namaCell = document.getElementById(`pnm-namabarang-${id}`);
+    const namaEl = document.getElementById(`pnm-namabarang-${id}`);
     const satuanCell = document.getElementById(`pnm-satuan-${id}`);
     const sebelumCell = document.getElementById(`pnm-stoksebelum-${id}`);
-    const jumlahEl = document.getElementById(`pnm-jumlah-${id}`);
 
-    const kode = normalisasiKode(barcodeEl.value);
-    if(kode === "") return;
+    const nama = namaEl.value.trim();
+    const satuanMaster = masterBarangMap[nama];
 
-    const data = masterBarangByBarcode[kode];
-
-    if(!data){
-        const jumlahData = Object.keys(masterBarangByBarcode).length;
-        namaCell.textContent = jumlahData === 0 ? "Master Barang belum termuat" : "Tidak ditemukan";
-        namaCell.className = "bkb-namabarang-cell kosong";
+    if(!nama || satuanMaster === undefined){
+        namaEl.dataset.terisi = "";
         satuanCell.innerHTML = `<span class="bkb-stok-value kosong">-</span>`;
         sebelumCell.innerHTML = `<span class="bkb-stok-value kosong">-</span>`;
+        delete sebelumCell.dataset.stok;
+        hitungStokSesudahPnm(id);
         return;
     }
 
-    namaCell.textContent = data.nama;
-    namaCell.className = "bkb-namabarang-cell";
-    namaCell.dataset.barcode = kode;
+    namaEl.dataset.terisi = "1";
 
-    const satuanBersih = (data.satuan_default || "").trim();
+    const satuanBersih = (satuanMaster || "").trim();
     satuanCell.innerHTML = satuanBersih
         ? `<span class="bkb-stok-value">${satuanBersih}</span>`
         : `<span class="bkb-stok-value kosong">-</span>`;
 
-    const stok = (typeof data.stok === "number") ? data.stok : 0;
+    const stok = typeof masterBarangStokMap[nama] === "number" ? masterBarangStokMap[nama] : 0;
     sebelumCell.dataset.stok = stok;
     sebelumCell.innerHTML = `<span class="bkb-stok-value">${stok} ${satuanBersih}</span>`;
 
-    if(!jumlahEl.value) jumlahEl.value = 1;
-    jumlahEl.focus();
-    jumlahEl.select();
     hitungStokSesudahPnm(id);
 
 }
@@ -4726,25 +4699,23 @@ function ambilItemPnm(){
 
     rows.forEach(row => {
         const id = row.id.replace("pnm-row-", "");
-        const barcode = document.getElementById(`pnm-barcode-${id}`).value.trim();
-        const namaCell = document.getElementById(`pnm-namabarang-${id}`);
-        const nama = namaCell.dataset.barcode ? namaCell.textContent.trim() : "";
+        const namaEl = document.getElementById(`pnm-namabarang-${id}`);
+        const nama = namaEl.value.trim();
         const jumlah = document.getElementById(`pnm-jumlah-${id}`).value;
-        const dataBarcode = masterBarangByBarcode[normalisasiKode(barcode)];
-        const satuan = dataBarcode ? (dataBarcode.satuan_default || "") : (masterBarangMap[nama] || "");
-        const stokSebelum = dataBarcode && typeof dataBarcode.stok === "number"
-            ? dataBarcode.stok
-            : (typeof masterBarangStokMap[nama] === "number" ? masterBarangStokMap[nama] : 0);
+        const satuan = masterBarangMap[nama] || "";
+        const stokSebelum = typeof masterBarangStokMap[nama] === "number" ? masterBarangStokMap[nama] : 0;
+        const keteranganCell = document.getElementById(`pnm-keterangan-${id}`);
+        const keteranganItem = keteranganCell && keteranganCell.textContent !== "-" ? keteranganCell.textContent.trim() : "";
 
         if(nama !== "" && jumlah !== ""){
             const jml = Number(jumlah);
             items.push({
-                barcode: barcode,
                 nama_barang: nama,
                 jumlah: jml,
                 satuan: satuan,
                 stok_sebelum: stokSebelum,
-                stok_sesudah: stokSebelum + jml
+                stok_sesudah: stokSebelum + jml,
+                keterangan: keteranganItem
             });
             totalJumlah += jml;
         }
@@ -4773,7 +4744,7 @@ function validasiFormPnm(status){
         return "Diterima Oleh wajib diisi.";
     }
     if(items.length === 0){
-        return "Isi minimal satu barang (scan barcode barang dan isi jumlah diterima).";
+        return "Isi minimal satu barang (isi Nama Barang dan jumlah diterima).";
     }
     return null;
 }
@@ -4798,7 +4769,7 @@ async function simpanPnm(status){
     const tanggal = document.getElementById("pnm-tanggal").value || pnmTanggalISO;
     const referensi = document.getElementById("pnm-referensi").value.trim();
     const penerima = document.getElementById("pnm-penerima").value.trim();
-    const keterangan = document.getElementById("pnm-keterangan").value.trim();
+    const keterangan = pnmKeteranganOtomatis;
     const { items, totalJumlah } = ambilItemPnm();
 
     btnDraft.disabled = true;
