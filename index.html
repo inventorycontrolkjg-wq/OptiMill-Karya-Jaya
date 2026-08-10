@@ -4883,15 +4883,16 @@ function pantauSemuaPenerimaan(){
             const labelStatus = status === "draft" ? "Draft" : "Submitted";
 
             const items = d.items || [];
-            let ringkasBarang = items.length ? items[0].nama_barang : "-";
-            if(items.length > 1) ringkasBarang += ` +${items.length - 1} lainnya`;
+            const ringkasBarang = items.length
+                ? items.map(it => `${it.nama_barang || "-"} (${it.jumlah ?? "-"} ${it.satuan || ""})`.trim()).join(", ")
+                : "-";
 
             html += `
 <tr>
     <td>${tgl}</td>
     <td>${d.no_penerimaan || "-"}</td>
     <td>${d.penerima || "-"}</td>
-    <td>${ringkasBarang}</td>
+    <td style="white-space:normal;">${ringkasBarang}</td>
     <td>${d.total_jumlah ?? "-"}</td>
     <td><span class="status-pill ${status === 'draft' ? 'menunggu' : 'disetujui'}">${labelStatus}</span></td>
     <td><button class="btn-icon-print" type="button" onclick="cetakPenerimaan('${docSnap.id}')">🖨️ Cetak</button></td>
