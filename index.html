@@ -1665,67 +1665,59 @@ table.tbl td{
             <div class="page" id="page-purchasing-input-po">
                 <div class="page-header">
                     <h2>🧾 Input PO</h2>
-                    <p>Terbitkan Purchase Order resmi dari permintaan yang sudah Approve, berdasarkan penawaran vendor yang dipilih</p>
+                    <p>Terbitkan Purchase Order — bisa gabung beberapa No. PR sekaligus dalam 1 PO</p>
                 </div>
                 <div class="panel">
                     <div class="form-msg" id="po-msg"></div>
 
-                    <div class="opb-header-grid" style="grid-template-columns:1fr 1fr;">
+                    <div class="opb-header-grid" style="grid-template-columns:1fr 2fr;">
                         <div class="form-group">
-                            <label>No. PR</label>
-                            <input type="text" id="po-nopr" list="po-nopr-datalist" placeholder="Ketik / pilih No. PR yang sudah Approve" oninput="isiOtomatisPO()">
-                            <datalist id="po-nopr-datalist"></datalist>
+                            <label>Nama Supplier / Vendor</label>
+                            <input type="text" id="po-vendor" placeholder="Nama supplier/vendor" oninput="updatePreviewNoPO()">
                         </div>
                         <div class="form-group">
-                            <label>No. PO</label>
-                            <input type="text" id="po-no" disabled value="Otomatis saat diterbitkan">
+                            <label>No. PO (preview — nomor urut & final baru dikunci saat Terbitkan)</label>
+                            <input type="text" id="po-no-preview" disabled value="- isi Nama Supplier & minimal 1 baris barang -">
                         </div>
                     </div>
+                    <p class="mb-hint">Format: <code>No Urut/No PR1,No PR2,.../Bulan(Romawi)/Tahun/AS</code> — otomatis tambah <code>/P</code> di akhir kalau ada PPN di salah satu baris.</p>
 
-                    <div class="form-group">
-                        <label>Pilih Vendor (dari penawaran yang sudah diinput)</label>
-                        <select id="po-vendor-select" onchange="pilihVendorPO()">
-                            <option value="">- Ketik No. PR dulu -</option>
-                        </select>
+                    <div class="opb-items-header" style="margin-top:16px;">
+                        <h3>Detail Barang</h3>
+                        <button class="btn-secondary" type="button" onclick="tambahBarisPO()">+ Tambah Baris</button>
                     </div>
 
-                    <div id="po-detail-wrap" style="display:none;">
-
-                        <div class="opb-header-grid" style="grid-template-columns:1fr 1fr 1fr;">
-                            <div class="form-group">
-                                <label>Harga (Rp)</label>
-                                <input type="text" id="po-harga" disabled>
-                            </div>
-                            <div class="form-group">
-                                <label>Estimasi Pengiriman</label>
-                                <input type="text" id="po-estimasi" disabled>
-                            </div>
-                            <div class="form-group">
-                                <label>Tanggal PO</label>
-                                <input type="text" id="po-tanggal-display" disabled>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Catatan (opsional)</label>
-                            <textarea id="po-catatan" placeholder="Catatan tambahan untuk vendor / internal"></textarea>
-                        </div>
-
-                        <table class="tbl">
-                            <thead>
-                                <tr>
-                                    <th style="width:34px;">No</th>
-                                    <th>Nama Barang</th>
-                                    <th style="width:90px;">Jumlah</th>
-                                    <th style="width:80px;">Satuan</th>
-                                </tr>
-                            </thead>
-                            <tbody id="po-items-body"></tbody>
-                        </table>
-
-                        <button class="btn-primary" type="button" id="po-submit-btn" style="width:auto; padding:12px 26px; margin-top:16px;" onclick="terbitkanPO()">🧾 Terbitkan PO</button>
-
+                    <div style="overflow-x:auto;">
+                    <table class="tbl opb-items-table" style="min-width:1400px;">
+                        <thead>
+                            <tr>
+                                <th style="width:30px;">No</th>
+                                <th style="width:110px;">No PR Urut</th>
+                                <th style="width:160px;">Nama Barang</th>
+                                <th style="width:70px;">Jumlah</th>
+                                <th style="width:70px;">Satuan</th>
+                                <th style="width:110px;">Harga Satuan</th>
+                                <th style="width:100px;">Diskon (Rp)</th>
+                                <th style="width:100px;">PPh 23 (Rp)</th>
+                                <th style="width:100px;">PPN (Rp)</th>
+                                <th style="width:120px;">Total Harga</th>
+                                <th style="width:140px;">Ket. Supplier</th>
+                                <th style="width:140px;">Ket. Internal</th>
+                                <th style="width:120px;">Dibeli Oleh</th>
+                                <th style="width:44px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="po-items-body"></tbody>
+                    </table>
                     </div>
+
+                    <datalist id="po-nopr-urut-datalist"></datalist>
+
+                    <div class="opb-totals">
+                        <span>GRAND TOTAL <strong id="po-grand-total">Rp 0</strong></span>
+                    </div>
+
+                    <button class="btn-primary" type="button" id="po-submit-btn" style="width:auto; padding:12px 26px; margin-top:16px;" onclick="terbitkanPO()">🧾 Terbitkan PO</button>
 
                 </div>
             </div>
@@ -3980,10 +3972,12 @@ function cetakSuratJalanGabungan(noSJ, tanggalDisplay, rows){
 // =========================================================
 // MODUL PURCHASING: INPUT PO & LIST PO
 // =========================================================
+const BULAN_ROMAWI = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
+const PO_KODE_TETAP = "AS"; // kode tetap sesuai format Excel kamu — edit di sini kalau berubah
+
 let unsubInputPO = null;
-let poPrMap = {}; // no_pr -> { docId, d }
-let poVendorTerpilih = null; // { vendor, harga, estimasi_pengiriman }
-let poTanggalISO = "";
+let poItemMap = {}; // "noPRUrut" -> { docId, noPR, namaBarang, satuan, jumlahDiminta }
+let poRowCount = 0;
 
 function pantauPurchasingInputPO(){
 
@@ -3993,104 +3987,178 @@ function pantauPurchasingInputPO(){
 
     unsubInputPO = onSnapshot(q, (snapshot) => {
 
-        poPrMap = {};
-        let optionsHtml = "";
+        poItemMap = {};
 
         snapshot.forEach(docSnap => {
             const d = docSnap.data();
-            if(!d.no_pr) return;
-            poPrMap[d.no_pr] = { docId: docSnap.id, d };
-            optionsHtml += `<option value="${d.no_pr}"></option>`;
+            const noPR = d.no_pr || "-";
+            (d.items || []).forEach((it, idx) => {
+                const noUrut = noUrutItem(noPR, idx);
+                poItemMap[noUrut] = {
+                    docId: docSnap.id,
+                    noPR: noPR,
+                    namaBarang: it.nama_barang,
+                    satuan: it.satuan || "",
+                    jumlahDiminta: it.jumlah
+                };
+            });
         });
 
-        const dl = document.getElementById("po-nopr-datalist");
-        if(dl) dl.innerHTML = optionsHtml;
+        const dl = document.getElementById("po-nopr-urut-datalist");
+        if(dl) dl.innerHTML = Object.keys(poItemMap).map(k => `<option value="${k}"></option>`).join("");
 
     }, err => console.error("Gagal memuat data Input PO:", err));
 }
 
 function resetFormPO(){
-    document.getElementById("po-nopr").value = "";
-    document.getElementById("po-no").value = "Otomatis saat diterbitkan";
-    document.getElementById("po-vendor-select").innerHTML = `<option value="">- Ketik No. PR dulu -</option>`;
-    document.getElementById("po-catatan").value = "";
+    document.getElementById("po-vendor").value = "";
     document.getElementById("po-items-body").innerHTML = "";
-    document.getElementById("po-detail-wrap").style.display = "none";
-    document.getElementById("po-msg").style.display = "none";
-    poVendorTerpilih = null;
-    poTanggalISO = new Date().toISOString().slice(0, 10);
-    document.getElementById("po-tanggal-display").value = formatTanggalIndo(poTanggalISO);
+    poRowCount = 0;
+    window.tambahBarisPO();
+    hitungGrandTotalPO();
+    updatePreviewNoPO();
 }
 
-window.isiOtomatisPO = function(){
-
-    const noPR = document.getElementById("po-nopr").value.trim();
-    const vendorSelect = document.getElementById("po-vendor-select");
-    const detailWrap = document.getElementById("po-detail-wrap");
-
-    poVendorTerpilih = null;
-    detailWrap.style.display = "none";
-
-    const found = poPrMap[noPR];
-    if(!found){
-        vendorSelect.innerHTML = `<option value="">- No. PR tidak ditemukan / belum Approve -</option>`;
-        return;
-    }
-
-    const daftarPenawaran = found.d.penawaran_list || [];
-    if(daftarPenawaran.length === 0){
-        vendorSelect.innerHTML = `<option value="">- PR ini belum ada penawaran vendor -</option>`;
-        return;
-    }
-
-    vendorSelect.innerHTML = `<option value="">- Pilih vendor -</option>` +
-        daftarPenawaran.map((p, i) => `<option value="${i}">${p.vendor} — Rp ${(p.harga || 0).toLocaleString("id-ID")}</option>`).join("");
-
-    // Tampilkan daftar barang dari PR (referensi, tetap sama untuk semua vendor)
-    const items = found.d.items || [];
-    document.getElementById("po-items-body").innerHTML = items.map((it, i) => `
-        <tr>
-            <td>${i + 1}</td>
-            <td>${it.nama_barang}</td>
-            <td>${it.jumlah}</td>
-            <td>${it.satuan || "-"}</td>
+function buatBarisPOHTML(id){
+    return `
+        <tr id="po-row-${id}">
+            <td class="po-row-no">-</td>
+            <td><input type="text" id="po-nopr-urut-${id}" list="po-nopr-urut-datalist" placeholder="2608001-1" oninput="isiOtomatisPO(${id})"></td>
+            <td id="po-nama-${id}"><span style="color:#9a9a9a;">-</span></td>
+            <td><input type="number" id="po-jumlah-${id}" min="1" oninput="hitungTotalBarisPO(${id})"></td>
+            <td id="po-satuan-${id}" class="num">-</td>
+            <td><input type="number" id="po-harga-satuan-${id}" min="0" oninput="hitungTotalBarisPO(${id})"></td>
+            <td><input type="number" id="po-diskon-${id}" min="0" value="0" oninput="hitungTotalBarisPO(${id})"></td>
+            <td><input type="number" id="po-pph23-${id}" min="0" value="0" oninput="hitungTotalBarisPO(${id})"></td>
+            <td><input type="number" id="po-ppn-${id}" min="0" value="0" oninput="hitungTotalBarisPO(${id})"></td>
+            <td class="num" id="po-total-${id}">Rp 0</td>
+            <td><input type="text" id="po-ket-supplier-${id}"></td>
+            <td><input type="text" id="po-ket-internal-${id}"></td>
+            <td><input type="text" id="po-dibeli-oleh-${id}"></td>
+            <td><button class="btn-remove-filled" type="button" onclick="hapusBarisPO(${id})" title="Hapus baris">🗑️</button></td>
         </tr>
-    `).join("");
+    `;
 }
 
-window.pilihVendorPO = function(){
-    const noPR = document.getElementById("po-nopr").value.trim();
-    const idx = document.getElementById("po-vendor-select").value;
-    const detailWrap = document.getElementById("po-detail-wrap");
+function nomoriUlangPO(){
+    document.querySelectorAll("#po-items-body tr").forEach((row, i) => {
+        row.querySelector(".po-row-no").textContent = i + 1;
+    });
+}
 
-    if(idx === ""){
-        detailWrap.style.display = "none";
-        poVendorTerpilih = null;
+window.tambahBarisPO = function(){
+    poRowCount++;
+    document.getElementById("po-items-body").insertAdjacentHTML("beforeend", buatBarisPOHTML(poRowCount));
+    nomoriUlangPO();
+}
+
+window.hapusBarisPO = function(id){
+    const row = document.getElementById(`po-row-${id}`);
+    if(row) row.remove();
+    nomoriUlangPO();
+    hitungGrandTotalPO();
+    updatePreviewNoPO();
+}
+
+window.isiOtomatisPO = function(id){
+    const noUrutEl = document.getElementById(`po-nopr-urut-${id}`);
+    const namaCell = document.getElementById(`po-nama-${id}`);
+    const satuanCell = document.getElementById(`po-satuan-${id}`);
+    const jumlahEl = document.getElementById(`po-jumlah-${id}`);
+
+    const kode = noUrutEl.value.trim();
+    const data = poItemMap[kode];
+
+    if(!data){
+        namaCell.innerHTML = `<span style="color:#9a9a9a;">-</span>`;
+        satuanCell.textContent = "-";
+        updatePreviewNoPO();
         return;
     }
 
-    const found = poPrMap[noPR];
-    if(!found) return;
+    namaCell.textContent = data.namaBarang;
+    satuanCell.textContent = data.satuan || "-";
+    if(!jumlahEl.value) jumlahEl.value = data.jumlahDiminta;
 
-    const p = (found.d.penawaran_list || [])[Number(idx)];
-    if(!p) return;
-
-    poVendorTerpilih = p;
-    document.getElementById("po-harga").value = `Rp ${(p.harga || 0).toLocaleString("id-ID")}`;
-    document.getElementById("po-estimasi").value = p.estimasi_pengiriman || "-";
-    detailWrap.style.display = "block";
+    hitungTotalBarisPO(id);
+    updatePreviewNoPO();
 }
 
-async function generateNoPO(tanggalISO){
-    const { yy, mm, key } = komponenTahunBulan(tanggalISO);
-    const counterRef = doc(db, "counters", `po_${key}`);
-    const nomor = await runTransaction(db, async (tx) => {
+window.hitungTotalBarisPO = function(id){
+    const jumlah = Number(document.getElementById(`po-jumlah-${id}`).value) || 0;
+    const harga = Number(document.getElementById(`po-harga-satuan-${id}`).value) || 0;
+    const diskon = Number(document.getElementById(`po-diskon-${id}`).value) || 0;
+    const pph23 = Number(document.getElementById(`po-pph23-${id}`).value) || 0;
+    const ppn = Number(document.getElementById(`po-ppn-${id}`).value) || 0;
+
+    const total = (jumlah * harga) - diskon - pph23 + ppn;
+    document.getElementById(`po-total-${id}`).textContent = `Rp ${total.toLocaleString("id-ID")}`;
+
+    hitungGrandTotalPO();
+    updatePreviewNoPO();
+}
+
+function hitungGrandTotalPO(){
+    let total = 0;
+    document.querySelectorAll("#po-items-body tr").forEach(row => {
+        const id = row.id.replace("po-row-", "");
+        const jumlah = Number(document.getElementById(`po-jumlah-${id}`).value) || 0;
+        const harga = Number(document.getElementById(`po-harga-satuan-${id}`).value) || 0;
+        const diskon = Number(document.getElementById(`po-diskon-${id}`).value) || 0;
+        const pph23 = Number(document.getElementById(`po-pph23-${id}`).value) || 0;
+        const ppn = Number(document.getElementById(`po-ppn-${id}`).value) || 0;
+        total += (jumlah * harga) - diskon - pph23 + ppn;
+    });
+    document.getElementById("po-grand-total").textContent = `Rp ${total.toLocaleString("id-ID")}`;
+}
+
+// Kumpulkan daftar No PR unik dari semua baris yang sudah terisi No PR Urut
+function daftarNoPRDariBarisPO(){
+    const set = new Set();
+    document.querySelectorAll("#po-items-body tr").forEach(row => {
+        const id = row.id.replace("po-row-", "");
+        const kode = document.getElementById(`po-nopr-urut-${id}`).value.trim();
+        const data = poItemMap[kode];
+        if(data) set.add(data.noPR);
+    });
+    return Array.from(set);
+}
+
+function adaPPNDiBarisPO(){
+    let ada = false;
+    document.querySelectorAll("#po-items-body tr").forEach(row => {
+        const id = row.id.replace("po-row-", "");
+        if((Number(document.getElementById(`po-ppn-${id}`).value) || 0) > 0) ada = true;
+    });
+    return ada;
+}
+
+function updatePreviewNoPO(){
+    const previewEl = document.getElementById("po-no-preview");
+    const vendor = document.getElementById("po-vendor").value.trim();
+    const daftarPR = daftarNoPRDariBarisPO();
+
+    if(vendor === "" || daftarPR.length === 0){
+        previewEl.value = "- isi Nama Supplier & minimal 1 baris barang -";
+        return;
+    }
+
+    const now = new Date();
+    const bulan = BULAN_ROMAWI[now.getMonth()];
+    const tahun = String(now.getFullYear()).slice(-2);
+    const suffix = adaPPNDiBarisPO() ? "/P" : "";
+
+    previewEl.value = `[No Urut]/${daftarPR.join(",")}/${bulan}/${tahun}/${PO_KODE_TETAP}${suffix}`;
+}
+
+async function generateNoUrutPO(){
+    const counterRef = doc(db, "counters", "po_urut");
+    return await runTransaction(db, async (tx) => {
         const snap = await tx.get(counterRef);
         const next = snap.exists() ? (snap.data().terakhir || 0) + 1 : 1;
         tx.set(counterRef, { terakhir: next }, { merge: true });
         return next;
     });
-    return `PO${yy}${mm}${String(nomor).padStart(3, "0")}`;
 }
 
 window.terbitkanPO = async function(){
@@ -4100,11 +4168,50 @@ window.terbitkanPO = async function(){
     msgEl.style.display = "none";
     msgEl.className = "form-msg";
 
-    const noPR = document.getElementById("po-nopr").value.trim();
-    const found = poPrMap[noPR];
+    const vendor = document.getElementById("po-vendor").value.trim();
+    if(vendor === ""){
+        msgEl.textContent = "Nama Supplier/Vendor wajib diisi.";
+        msgEl.classList.add("err");
+        msgEl.style.display = "block";
+        return;
+    }
 
-    if(!found || !poVendorTerpilih){
-        msgEl.textContent = "Pilih No. PR yang valid dan vendor-nya terlebih dahulu.";
+    const rows = document.querySelectorAll("#po-items-body tr");
+    const items = [];
+    let grandTotal = 0;
+
+    rows.forEach(row => {
+        const id = row.id.replace("po-row-", "");
+        const noPRUrut = document.getElementById(`po-nopr-urut-${id}`).value.trim();
+        const data = poItemMap[noPRUrut];
+        const namaBarang = data ? data.namaBarang : "";
+        const jumlah = Number(document.getElementById(`po-jumlah-${id}`).value) || 0;
+        const satuan = data ? (data.satuan || "") : "";
+        const hargaSatuan = Number(document.getElementById(`po-harga-satuan-${id}`).value) || 0;
+        const diskon = Number(document.getElementById(`po-diskon-${id}`).value) || 0;
+        const pph23 = Number(document.getElementById(`po-pph23-${id}`).value) || 0;
+        const ppn = Number(document.getElementById(`po-ppn-${id}`).value) || 0;
+        const totalHarga = (jumlah * hargaSatuan) - diskon - pph23 + ppn;
+
+        if(namaBarang !== "" && jumlah > 0){
+            items.push({
+                no_pr_urut: noPRUrut,
+                no_pr: data ? data.noPR : "",
+                nama_barang: namaBarang,
+                jumlah, satuan,
+                harga_satuan: hargaSatuan,
+                diskon, pph23, ppn,
+                total_harga: totalHarga,
+                keterangan_supplier: document.getElementById(`po-ket-supplier-${id}`).value.trim(),
+                keterangan_internal: document.getElementById(`po-ket-internal-${id}`).value.trim(),
+                dibeli_oleh: document.getElementById(`po-dibeli-oleh-${id}`).value.trim()
+            });
+            grandTotal += totalHarga;
+        }
+    });
+
+    if(items.length === 0){
+        msgEl.textContent = "Isi minimal satu baris barang dengan No PR Urut yang valid dan jumlah > 0.";
         msgEl.classList.add("err");
         msgEl.style.display = "block";
         return;
@@ -4115,28 +4222,43 @@ window.terbitkanPO = async function(){
 
     try{
 
-        const noPO = await generateNoPO(poTanggalISO);
-        const items = found.d.items || [];
-        const catatan = document.getElementById("po-catatan").value.trim();
+        const daftarPR = Array.from(new Set(items.map(it => it.no_pr).filter(Boolean)));
+        const noUrut = await generateNoUrutPO();
+        const now = new Date();
+        const bulan = BULAN_ROMAWI[now.getMonth()];
+        const tahun = String(now.getFullYear()).slice(-2);
+        const adaPPN = items.some(it => it.ppn > 0);
+        const suffix = adaPPN ? "/P" : "";
+        const tanggalISO = now.toISOString().slice(0, 10);
+
+        const noPO = `${String(noUrut).padStart(3, "0")}/${daftarPR.join(",")}/${bulan}/${tahun}/${PO_KODE_TETAP}${suffix}`;
 
         await addDoc(collection(db, "po_barang"), {
             no_po: noPO,
-            no_pr: noPR,
-            tanggal: poTanggalISO,
-            tanggal_display: formatTanggalIndo(poTanggalISO),
-            vendor: poVendorTerpilih.vendor,
-            harga_total: poVendorTerpilih.harga || 0,
-            estimasi_pengiriman: poVendorTerpilih.estimasi_pengiriman || "",
+            no_urut: noUrut,
+            daftar_no_pr: daftarPR,
+            vendor: vendor,
+            tanggal: tanggalISO,
+            tanggal_display: formatTanggalIndo(tanggalISO),
             items: items,
-            catatan: catatan,
+            grand_total: grandTotal,
+            ada_ppn: adaPPN,
             status: "diterbitkan",
             dibuat_oleh: auth.currentUser.email,
             created_at: serverTimestamp()
         });
 
-        await setDoc(doc(db, "permintaan_barang", found.docId), {
-            po_no: noPO
-        }, { merge: true });
+        // Tandai referensi No PO di setiap PR terkait (informasi tambahan, bukan pengunci)
+        for(const noPR of daftarPR){
+            const contoh = Object.values(poItemMap).find(x => x.noPR === noPR);
+            if(contoh){
+                try{
+                    await setDoc(doc(db, "permintaan_barang", contoh.docId), {
+                        po_no: noPO
+                    }, { merge: true });
+                } catch(e){ /* abaikan kalau gagal, tidak kritikal */ }
+            }
+        }
 
         msgEl.textContent = `PO ${noPO} berhasil diterbitkan.`;
         msgEl.classList.add("ok");
@@ -4188,9 +4310,9 @@ function pantauPurchasingListPO(){
 <tr>
     <td>${d.tanggal_display || d.tanggal || "-"}</td>
     <td>${d.no_po || "-"}</td>
-    <td>${d.no_pr || "-"}</td>
+    <td>${(d.daftar_no_pr || []).join(", ") || "-"}</td>
     <td>${d.vendor || "-"}</td>
-    <td>Rp ${(d.harga_total || 0).toLocaleString("id-ID")}</td>
+    <td>Rp ${(d.grand_total || 0).toLocaleString("id-ID")}</td>
     <td><span class="status-pill approve">Diterbitkan</span></td>
     <td><button class="btn-ic-edit" type="button" onclick="cetakPO('${docSnap.id}')">🖨️ Cetak</button></td>
 </tr>`;
@@ -4210,9 +4332,15 @@ window.cetakPO = function(id){
     const baris = items.map((it, i) => `
 <tr>
     <td class="num">${i + 1}</td>
+    <td>${it.no_pr || "-"}</td>
     <td>${it.nama_barang}</td>
     <td class="num">${it.jumlah}</td>
     <td class="num">${it.satuan || "-"}</td>
+    <td class="num">Rp ${(it.harga_satuan || 0).toLocaleString("id-ID")}</td>
+    <td class="num">Rp ${(it.diskon || 0).toLocaleString("id-ID")}</td>
+    <td class="num">Rp ${(it.pph23 || 0).toLocaleString("id-ID")}</td>
+    <td class="num">Rp ${(it.ppn || 0).toLocaleString("id-ID")}</td>
+    <td class="num">Rp ${(it.total_harga || 0).toLocaleString("id-ID")}</td>
 </tr>`).join("");
 
     const html = `
@@ -4225,26 +4353,30 @@ window.cetakPO = function(id){
         </div>
         <div class="print-nopr">
             <div class="label">No. PO</div>
-            <div class="value">${d.no_po}</div>
+            <div class="value" style="font-size:13px;">${d.no_po}</div>
         </div>
     </div>
 
     <div class="print-info-grid">
         <div><span class="lbl">Tanggal</span><span class="val">${d.tanggal_display || d.tanggal}</span></div>
-        <div><span class="lbl">No. PR Terkait</span><span class="val">${d.no_pr || "-"}</span></div>
+        <div><span class="lbl">No. PR Terkait</span><span class="val">${(d.daftar_no_pr || []).join(", ") || "-"}</span></div>
         <div><span class="lbl">Vendor</span><span class="val">${d.vendor || "-"}</span></div>
-        <div><span class="lbl">Estimasi Pengiriman</span><span class="val">${d.estimasi_pengiriman || "-"}</span></div>
-        <div><span class="lbl">Total Nilai</span><span class="val">Rp ${(d.harga_total || 0).toLocaleString("id-ID")}</span></div>
-        <div><span class="lbl">Catatan</span><span class="val">${d.catatan || "-"}</span></div>
+        <div><span class="lbl">Grand Total</span><span class="val">Rp ${(d.grand_total || 0).toLocaleString("id-ID")}</span></div>
     </div>
 
     <table>
         <thead>
             <tr>
-                <th style="width:34px;">No</th>
+                <th style="width:30px;">No</th>
+                <th style="width:80px;">No PR</th>
                 <th>Nama Barang</th>
-                <th style="width:90px;">Jumlah</th>
-                <th style="width:70px;">Satuan</th>
+                <th style="width:60px;">Jml</th>
+                <th style="width:55px;">Satuan</th>
+                <th style="width:90px;">Harga Satuan</th>
+                <th style="width:80px;">Diskon</th>
+                <th style="width:80px;">PPh23</th>
+                <th style="width:80px;">PPN</th>
+                <th style="width:100px;">Total</th>
             </tr>
         </thead>
         <tbody>${baris}</tbody>
