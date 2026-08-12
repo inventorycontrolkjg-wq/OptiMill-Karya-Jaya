@@ -400,6 +400,85 @@ table.tbl td{
 /* ============== AREA CETAK (hanya tampil saat print) ============== */
 #print-area{ display:none; }
 
+/* ---- Format cetak PO ala Excel (Purchase Order formal) ---- */
+.po-cetak-excel{ font-family:'Lexend', Arial, sans-serif; font-size:11.5px; color:#111; }
+
+table.po-cetak-header{
+    width:100%;
+    border-collapse:collapse;
+    margin-bottom:10px;
+}
+table.po-cetak-header td{
+    border:1px solid #7fa8d9;
+    background:#eaf1fb;
+    padding:5px 8px;
+    vertical-align:top;
+}
+table.po-cetak-header .po-judul{
+    font-size:17px;
+    font-weight:700;
+    text-align:center;
+    vertical-align:middle;
+    width:180px;
+}
+table.po-cetak-header .po-label{ width:60px; font-weight:600; white-space:nowrap; }
+table.po-cetak-header .po-isi{ min-width:160px; }
+table.po-cetak-header .po-nopo-value{
+    text-align:center;
+    font-weight:700;
+    font-size:12.5px;
+    background:#fff;
+    vertical-align:middle;
+}
+
+.po-instruksi{ font-weight:600; font-size:12px; margin:10px 0 6px; }
+
+table.po-cetak-items{
+    width:100%;
+    border-collapse:collapse;
+    margin-bottom:8px;
+}
+table.po-cetak-items th{
+    border:1px solid #7fa8d9;
+    background:#eaf1fb;
+    padding:5px 6px;
+    font-size:10.5px;
+    text-transform:uppercase;
+}
+table.po-cetak-items td{
+    border:1px solid #b8c9de;
+    padding:4px 6px;
+}
+
+table.po-cetak-summary{
+    width:320px;
+    margin-left:auto;
+    border-collapse:collapse;
+    margin-bottom:14px;
+}
+table.po-cetak-summary td{
+    border:1px solid #b8c9de;
+    padding:5px 8px;
+}
+table.po-cetak-summary .po-sum-label{ background:#eaf1fb; font-weight:600; width:55%; }
+table.po-cetak-summary .po-sum-val{ text-align:right; }
+table.po-cetak-summary .po-sum-total td{ font-weight:700; font-size:13.5px; background:#eaf1fb; }
+
+.po-cetak-perhatian{
+    font-size:10.5px;
+    line-height:1.6;
+    margin-bottom:26px;
+}
+
+table.po-cetak-ttd{
+    width:100%;
+    border-collapse:collapse;
+    text-align:center;
+    font-size:11px;
+}
+table.po-cetak-ttd td{ padding:4px; font-weight:600; }
+table.po-cetak-ttd .po-ttd-space td{ height:50px; border-bottom:1px solid #333; }
+
 @media print{
     body.printing-mode > *:not(#print-area){ display:none !important; }
     #print-area{
@@ -1680,6 +1759,21 @@ table.tbl td{
                             <input type="text" id="po-no-preview" disabled value="- isi Nama Supplier & minimal 1 baris barang -">
                         </div>
                     </div>
+
+                    <div class="opb-header-grid" style="grid-template-columns:1fr 1fr 1fr;">
+                        <div class="form-group">
+                            <label>Attn (opsional)</label>
+                            <input type="text" id="po-attn" placeholder="Nama contact person vendor">
+                        </div>
+                        <div class="form-group">
+                            <label>Telp (opsional)</label>
+                            <input type="text" id="po-telp" placeholder="No telepon vendor">
+                        </div>
+                        <div class="form-group">
+                            <label>Fax (opsional)</label>
+                            <input type="text" id="po-fax" placeholder="No fax vendor">
+                        </div>
+                    </div>
                     <p class="mb-hint">Format: <code>No Urut/No PR1,No PR2,.../Bulan(Romawi)/Tahun/AS</code> — otomatis tambah <code>/P</code> di akhir kalau ada PPN di salah satu baris.</p>
 
                     <div class="opb-items-header" style="margin-top:16px;">
@@ -1733,10 +1827,14 @@ table.tbl td{
                             <tr>
                                 <th>Tanggal</th>
                                 <th>No. PO</th>
-                                <th>No. PR</th>
-                                <th>Vendor</th>
-                                <th>Total Nilai</th>
-                                <th>Status</th>
+                                <th>Nama Barang</th>
+                                <th>Qty</th>
+                                <th>Keterangan</th>
+                                <th>Harga</th>
+                                <th>Diskon</th>
+                                <th>PPh23</th>
+                                <th>PPN</th>
+                                <th>Total</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -4037,6 +4135,9 @@ function pantauPurchasingInputPO(){
 
 function resetFormPO(){
     document.getElementById("po-vendor").value = "";
+    document.getElementById("po-attn").value = "";
+    document.getElementById("po-telp").value = "";
+    document.getElementById("po-fax").value = "";
     document.getElementById("po-items-body").innerHTML = "";
     poRowCount = 0;
     window.tambahBarisPO();
@@ -4282,6 +4383,9 @@ window.terbitkanPO = async function(){
             no_urut: noUrut,
             daftar_no_pr: daftarPR,
             vendor: vendor,
+            attn: document.getElementById("po-attn").value.trim(),
+            telp: document.getElementById("po-telp").value.trim(),
+            fax: document.getElementById("po-fax").value.trim(),
             tanggal: tanggalISO,
             tanggal_display: formatTanggalIndo(tanggalISO),
             items: items,
@@ -4350,16 +4454,24 @@ function pantauPurchasingListPO(){
             const d = docSnap.data();
             poListMap[docSnap.id] = d;
 
-            html += `
+            const items = d.items && d.items.length ? d.items : [{}];
+
+            items.forEach((it, i) => {
+                html += `
 <tr>
-    <td>${d.tanggal_display || d.tanggal || "-"}</td>
-    <td>${d.no_po || "-"}</td>
-    <td>${(d.daftar_no_pr || []).join(", ") || "-"}</td>
-    <td>${d.vendor || "-"}</td>
-    <td>Rp ${(d.grand_total || 0).toLocaleString("id-ID")}</td>
-    <td><span class="status-pill approve">Diterbitkan</span></td>
-    <td><button class="btn-ic-edit" type="button" onclick="cetakPO('${docSnap.id}')">🖨️ Cetak</button></td>
+    <td>${i === 0 ? (d.tanggal_display || d.tanggal || "-") : ""}</td>
+    <td>${i === 0 ? (d.no_po || "-") : ""}</td>
+    <td>${it.nama_barang || "-"}</td>
+    <td class="num">${it.jumlah ?? "-"}</td>
+    <td>${it.keterangan_supplier || "-"}</td>
+    <td class="num">Rp ${(it.harga_satuan || 0).toLocaleString("id-ID")}</td>
+    <td class="num">Rp ${(it.diskon || 0).toLocaleString("id-ID")}</td>
+    <td class="num">Rp ${(it.pph23 || 0).toLocaleString("id-ID")}</td>
+    <td class="num">Rp ${(it.ppn || 0).toLocaleString("id-ID")}</td>
+    <td class="num">Rp ${(it.total_harga || 0).toLocaleString("id-ID")}</td>
+    <td>${i === 0 ? `<button class="btn-ic-edit" type="button" onclick="cetakPO('${docSnap.id}')">🖨️ Cetak</button>` : ""}</td>
 </tr>`;
+            });
         });
 
         tbody.innerHTML = html;
@@ -4373,69 +4485,112 @@ window.cetakPO = function(id){
     if(!d) return;
 
     const items = d.items || [];
-    const baris = items.map((it, i) => `
+    const JUMLAH_BARIS_MIN = 10;
+
+    let baris = items.map((it, i) => {
+        const jumlahRp = (it.jumlah || 0) * (it.harga_satuan || 0);
+        return `
 <tr>
     <td class="num">${i + 1}</td>
-    <td>${it.no_pr || "-"}</td>
-    <td>${it.nama_barang}</td>
-    <td class="num">${it.jumlah}</td>
+    <td>${it.nama_barang || "-"}</td>
     <td class="num">${it.satuan || "-"}</td>
+    <td class="num">${it.jumlah ?? "-"}</td>
     <td class="num">Rp ${(it.harga_satuan || 0).toLocaleString("id-ID")}</td>
-    <td class="num">Rp ${(it.diskon || 0).toLocaleString("id-ID")}</td>
-    <td class="num">Rp ${(it.pph23 || 0).toLocaleString("id-ID")}</td>
-    <td class="num">Rp ${(it.ppn || 0).toLocaleString("id-ID")}</td>
-    <td class="num">Rp ${(it.total_harga || 0).toLocaleString("id-ID")}</td>
-</tr>`).join("");
+    <td class="num">Rp ${jumlahRp.toLocaleString("id-ID")}</td>
+    <td>${it.keterangan_supplier || "-"}</td>
+</tr>`;
+    }).join("");
+
+    // Padding baris kosong sampai minimal 10 baris, biar tampilan form-nya konsisten seperti kertas PO
+    for(let i = items.length; i < JUMLAH_BARIS_MIN; i++){
+        baris += `
+<tr>
+    <td class="num">${i + 1}</td>
+    <td>-</td>
+    <td class="num">-</td>
+    <td class="num">-</td>
+    <td class="num">Rp -</td>
+    <td class="num">Rp -</td>
+    <td>-</td>
+</tr>`;
+    }
+
+    const totalDiskon = items.reduce((a, b) => a + (b.diskon || 0), 0);
+    const totalPPh23 = items.reduce((a, b) => a + (b.pph23 || 0), 0);
+    const totalPPN = items.reduce((a, b) => a + (b.ppn || 0), 0);
 
     const html = `
-<div class="print-doc">
+<div class="print-doc po-cetak-excel">
 
-    <div class="print-head">
-        <div>
-            <h1>OptiMill Karya Jaya</h1>
-            <p>Purchase Order (PO)</p>
-        </div>
-        <div class="print-nopr">
-            <div class="label">No. PO</div>
-            <div class="value" style="font-size:13px;">${d.no_po}</div>
-        </div>
-    </div>
+    <table class="po-cetak-header">
+        <tr>
+            <td class="po-judul" rowspan="4">PURCHASE ORDER</td>
+            <td class="po-label">Kepada Yth</td>
+            <td class="po-isi">${d.vendor || "-"}</td>
+            <td class="po-label" rowspan="2">No PO:</td>
+        </tr>
+        <tr>
+            <td class="po-label">Attn:</td>
+            <td class="po-isi">${d.attn || "-"}</td>
+        </tr>
+        <tr>
+            <td class="po-label">Telp:</td>
+            <td class="po-isi">${d.telp || "-"}</td>
+            <td class="po-nopo-value" rowspan="2">${d.no_po}</td>
+        </tr>
+        <tr>
+            <td class="po-label">Fax:</td>
+            <td class="po-isi">${d.fax || "-"}</td>
+        </tr>
+    </table>
 
-    <div class="print-info-grid">
-        <div><span class="lbl">Tanggal</span><span class="val">${d.tanggal_display || d.tanggal}</span></div>
-        <div><span class="lbl">No. PR Terkait</span><span class="val">${(d.daftar_no_pr || []).join(", ") || "-"}</span></div>
-        <div><span class="lbl">Vendor</span><span class="val">${d.vendor || "-"}</span></div>
-        <div><span class="lbl">Grand Total</span><span class="val">Rp ${(d.grand_total || 0).toLocaleString("id-ID")}</span></div>
-    </div>
+    <p class="po-instruksi">Harap Dikirim ke Alamat Kami, Barang Sebagai Berikut:</p>
 
-    <table>
+    <table class="po-cetak-items">
         <thead>
             <tr>
                 <th style="width:30px;">No</th>
-                <th style="width:80px;">No PR</th>
                 <th>Nama Barang</th>
-                <th style="width:60px;">Jml</th>
-                <th style="width:55px;">Satuan</th>
+                <th style="width:60px;">Satuan</th>
+                <th style="width:50px;">Qty</th>
                 <th style="width:90px;">Harga Satuan</th>
-                <th style="width:80px;">Diskon</th>
-                <th style="width:80px;">PPh23</th>
-                <th style="width:80px;">PPN</th>
-                <th style="width:100px;">Total</th>
+                <th style="width:100px;">Jumlah</th>
+                <th style="width:110px;">Keterangan</th>
             </tr>
         </thead>
         <tbody>${baris}</tbody>
     </table>
 
-    <div class="print-sign-grid">
-        <div class="sign-box">
-            Diterbitkan oleh
-            <div class="line">Purchasing</div>
-        </div>
-        <div class="sign-box">
-            Disetujui oleh
-            <div class="line">Pimpinan</div>
-        </div>
+    <table class="po-cetak-summary">
+        <tr><td class="po-sum-label">Diskon</td><td class="po-sum-val">Rp ${totalDiskon.toLocaleString("id-ID")}</td></tr>
+        <tr><td class="po-sum-label">Pph pasal 23</td><td class="po-sum-val">Rp ${totalPPh23.toLocaleString("id-ID")}</td></tr>
+        <tr><td class="po-sum-label">PPN</td><td class="po-sum-val">Rp ${totalPPN.toLocaleString("id-ID")}</td></tr>
+        <tr class="po-sum-total"><td class="po-sum-label">TOTAL</td><td class="po-sum-val">Rp ${(d.grand_total || 0).toLocaleString("id-ID")}</td></tr>
+    </table>
+
+    <div class="po-cetak-perhatian">
+        <b>Perhatian:</b><br>
+        - Order pembelian harus dilampirkan pada saat penagihan<br>
+        - No order pembelian harus dicantumkan pada nota<br>
+        - Syarat-syarat pembayaran: 30 HARI<br>
+        - Tanggal kirim: SEGERA
     </div>
+
+    <table class="po-cetak-ttd">
+        <tr>
+            <td>Mengetahui</td>
+            <td>Dibuat Oleh</td>
+            <td>Menyetujui</td>
+            <td>Supplier</td>
+        </tr>
+        <tr class="po-ttd-space"><td></td><td></td><td></td><td></td></tr>
+        <tr>
+            <td>Pimpinan</td>
+            <td>Purchasing</td>
+            <td>Pimpinan</td>
+            <td>&nbsp;</td>
+        </tr>
+    </table>
 
     <div class="print-footer-note">Dicetak dari sistem Purchasing &amp; Finance - ${new Date().toLocaleString("id-ID")}</div>
 
