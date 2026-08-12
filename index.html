@@ -406,84 +406,86 @@ table.tbl td{
 /* ============== AREA CETAK (hanya tampil saat print) ============== */
 #print-area{ display:none; }
 
-/* ---- Format cetak PO ala Excel (Purchase Order formal) ---- */
-.po-cetak-excel{ font-family:'Lexend', Arial, sans-serif; font-size:11.5px; color:#111; }
+/* ---- Format cetak PO ala Excel (Purchase Order formal) — diperkecil supaya pas di kertas 1/2 F4 (21,5 x 16,5 cm) ---- */
+.po-cetak-excel{ font-family:'Lexend', Arial, sans-serif; font-size:9px; color:#111; }
 
 table.po-cetak-header{
     width:100%;
     border-collapse:collapse;
-    margin-bottom:10px;
+    margin-bottom:6px;
 }
 table.po-cetak-header td{
     border:1px solid #7fa8d9;
     background:#eaf1fb;
-    padding:5px 8px;
+    padding:3px 6px;
     vertical-align:top;
 }
 table.po-cetak-header .po-judul{
-    font-size:17px;
+    font-size:13px;
     font-weight:700;
     text-align:center;
     vertical-align:middle;
-    width:180px;
+    width:140px;
 }
-table.po-cetak-header .po-label{ width:60px; font-weight:600; white-space:nowrap; }
-table.po-cetak-header .po-isi{ min-width:160px; }
+table.po-cetak-header .po-label{ width:50px; font-weight:600; white-space:nowrap; }
+table.po-cetak-header .po-isi{ min-width:120px; }
 table.po-cetak-header .po-nopo-value{
     text-align:center;
     font-weight:700;
-    font-size:12.5px;
+    font-size:10px;
     background:#fff;
     vertical-align:middle;
 }
 
-.po-instruksi{ font-weight:600; font-size:12px; margin:10px 0 6px; }
+.po-instruksi{ font-weight:600; font-size:9px; margin:6px 0 4px; }
 
 table.po-cetak-items{
     width:100%;
     border-collapse:collapse;
-    margin-bottom:8px;
+    margin-bottom:5px;
 }
 table.po-cetak-items th{
     border:1px solid #7fa8d9;
     background:#eaf1fb;
-    padding:5px 6px;
-    font-size:10.5px;
+    padding:2px 4px;
+    font-size:8px;
     text-transform:uppercase;
 }
 table.po-cetak-items td{
     border:1px solid #b8c9de;
-    padding:4px 6px;
+    padding:2px 4px;
 }
 
 table.po-cetak-summary{
-    width:320px;
+    width:220px;
     margin-left:auto;
     border-collapse:collapse;
-    margin-bottom:14px;
+    margin-bottom:8px;
 }
 table.po-cetak-summary td{
     border:1px solid #b8c9de;
-    padding:5px 8px;
+    padding:2px 6px;
 }
 table.po-cetak-summary .po-sum-label{ background:#eaf1fb; font-weight:600; width:55%; }
 table.po-cetak-summary .po-sum-val{ text-align:right; }
-table.po-cetak-summary .po-sum-total td{ font-weight:700; font-size:13.5px; background:#eaf1fb; }
+table.po-cetak-summary .po-sum-total td{ font-weight:700; font-size:10px; background:#eaf1fb; }
 
 .po-cetak-perhatian{
-    font-size:10.5px;
-    line-height:1.6;
-    margin-bottom:26px;
+    font-size:7.5px;
+    line-height:1.4;
+    margin-bottom:8px;
 }
 
 table.po-cetak-ttd{
     width:100%;
     border-collapse:collapse;
     text-align:center;
-    font-size:11px;
+    font-size:8px;
 }
-table.po-cetak-ttd td{ padding:4px; font-weight:600; }
-table.po-cetak-ttd .po-ttd-space td{ height:50px; border-bottom:1px solid #333; }
+table.po-cetak-ttd td{ padding:2px; font-weight:600; }
+table.po-cetak-ttd .po-ttd-space td{ height:22px; border-bottom:1px solid #333; }
+
+.po-cetak-excel .print-footer-note{ font-size:6.5px; margin-top:4px; }
 
 @media print{
     body.printing-mode > *:not(#print-area){ display:none !important; }
@@ -494,6 +496,14 @@ table.po-cetak-ttd .po-ttd-space td{ height:50px; border-bottom:1px solid #333; 
         color:#111;
     }
     @page{ margin:16mm; }
+
+    /* Halaman khusus cetak PO: 1/2 F4 (21,5 x 16,5 cm), margin lebih kecil */
+    .po-cetak-excel{ page: po-half-f4; }
+}
+
+@page po-half-f4{
+    size:215mm 165mm;
+    margin:8mm;
 }
 
 .print-doc{ width:100%; }
@@ -4741,7 +4751,7 @@ window.cetakPO = function(id){
     if(!d) return;
 
     const items = d.items || [];
-    const JUMLAH_BARIS_MIN = 10;
+    const JUMLAH_BARIS_MIN = 6; // dikurangi dari 10 supaya muat di kertas 1/2 F4
 
     let baris = items.map((it, i) => {
         const jumlahRp = (it.jumlah || 0) * (it.harga_satuan || 0);
