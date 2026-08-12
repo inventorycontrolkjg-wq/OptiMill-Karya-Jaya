@@ -720,6 +720,17 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
     margin-bottom:4px;
 }
 
+.pim-catatan-input{
+    width:160px;
+    min-height:52px;
+    padding:6px 8px;
+    font-size:12px;
+    font-family:inherit;
+    border:1px solid #e2e2e2;
+    border-radius:7px;
+    resize:vertical;
+}
+
 .detail-barang-list{
     font-size:11.5px;
     min-width:210px;
@@ -1955,6 +1966,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                                 <th>Detail Barang</th>
                                 <th>Penawaran</th>
                                 <th>Status</th>
+                                <th>Catatan</th>
                                 <th>Approvement</th>
                             </tr>
                         </thead>
@@ -3410,6 +3422,10 @@ function pantauPurchasingListPermintaan(){
             const catatan = d.catatan_purchasing || "";
             const btnCatatanLabel = catatan ? "📝 Lihat/Edit Catatan" : "📝 + Catatan";
 
+            const catatanPimpinanHtml = d.catatan_pimpinan
+                ? `<div style="margin-top:4px; font-size:11.5px; color:#b26a00;"><b>Catatan Pimpinan:</b> ${d.catatan_pimpinan}</div>`
+                : "";
+
             const approvementOleh = d.approvement_oleh || "";
 
             // Kalau Purchasing sendiri yang jadi approver, tampilkan tombol approve/hold langsung di sini
@@ -3428,7 +3444,7 @@ function pantauPurchasingListPermintaan(){
     <td>${d.keterangan || "-"}</td>
     <td><button class="btn-ic-edit" type="button" onclick="bukaFormPenawaran('${docSnap.id}')">${btnPenawaranLabel}</button></td>
     <td><button class="btn-ic-edit" type="button" onclick="bukaFormCatatan('${docSnap.id}')">${btnCatatanLabel}</button></td>
-    <td><span class="status-pill ${status}">${labelStatus}</span></td>
+    <td><span class="status-pill ${status}">${labelStatus}</span>${catatanPimpinanHtml}</td>
     <td>
         <select class="pur-approvement-select" onchange="setApprovementOleh('${docSnap.id}', this.value)">
             <option value="" ${approvementOleh === "" ? "selected" : ""}>- Pilih -</option>
@@ -5036,6 +5052,7 @@ function pantauPimpinanReview(){
     <td>${renderDetailBarangHtml(d)}</td>
     <td>${penawaranHtml}${catatan}</td>
     <td><span class="status-pill ${status}">${labelStatus}</span></td>
+    <td><textarea id="pim-catatan-${id}" class="pim-catatan-input" placeholder="Catatan (opsional)…">${d.catatan_pimpinan || ""}</textarea></td>
     <td>
         <button class="btn-ic-save" type="button" onclick="putuskanPimpinan('${id}', 'approve')">✔ Approve</button>
         <button class="btn-ic-cancel" type="button" onclick="putuskanPimpinan('${id}', 'hold')">⏸ Hold</button>
@@ -5047,11 +5064,20 @@ function pantauPimpinanReview(){
 }
 
 window.putuskanPimpinan = function(id, keputusan){
-    setDoc(doc(db, "permintaan_barang", id), {
+    const catatanEl = document.getElementById(`pim-catatan-${id}`);
+    const payload = {
         status: keputusan,
         diputuskan_oleh: auth.currentUser.email,
         diputuskan_pada: serverTimestamp()
-    }, { merge: true }).catch(e => alert("Gagal menyimpan keputusan: " + e.message));
+    };
+    // catatanEl cuma ada di halaman Review & Approval milik pimpinan --
+    // tombol Approve/Hold yang sama juga dipakai purchasing untuk self-approve
+    // barang receh, dan kasus itu tidak punya (dan tidak perlu) catatan pimpinan.
+    if(catatanEl){
+        payload.catatan_pimpinan = catatanEl.value.trim();
+    }
+    setDoc(doc(db, "permintaan_barang", id), payload, { merge: true })
+        .catch(e => alert("Gagal menyimpan keputusan: " + e.message));
 }
 
 // -------- List Pengeluaran (semua BKB, bukan cuma milik sendiri) --------
