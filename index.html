@@ -3976,10 +3976,36 @@ const BULAN_ROMAWI = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","X
 const PO_KODE_TETAP = "AS"; // kode tetap sesuai format Excel kamu — edit di sini kalau berubah
 
 let unsubInputPO = null;
+let unsubPOUsed = null;
 let poItemMap = {}; // "noPRUrut" -> { docId, noPR, namaBarang, satuan, jumlahDiminta }
+let poUsedNoPRUrutSet = new Set(); // No PR Urut yang sudah pernah masuk PO manapun
 let poRowCount = 0;
 
+function perbaruiDatalistPO(){
+    const dl = document.getElementById("po-nopr-urut-datalist");
+    if(!dl) return;
+    dl.innerHTML = Object.keys(poItemMap)
+        .filter(k => !poUsedNoPRUrutSet.has(k))
+        .map(k => `<option value="${k}"></option>`).join("");
+}
+
+function pantauPOUsedNoPRUrut(){
+    if(unsubPOUsed) return;
+    unsubPOUsed = onSnapshot(collection(db, "po_barang"), (snapshot) => {
+        poUsedNoPRUrutSet = new Set();
+        snapshot.forEach(docSnap => {
+            const d = docSnap.data();
+            (d.items || []).forEach(it => {
+                if(it.no_pr_urut) poUsedNoPRUrutSet.add(it.no_pr_urut);
+            });
+        });
+        perbaruiDatalistPO();
+    }, err => console.error("Gagal memuat data PO terpakai:", err));
+}
+
 function pantauPurchasingInputPO(){
+
+    pantauPOUsedNoPRUrut();
 
     if(unsubInputPO) return;
 
@@ -4004,8 +4030,7 @@ function pantauPurchasingInputPO(){
             });
         });
 
-        const dl = document.getElementById("po-nopr-urut-datalist");
-        if(dl) dl.innerHTML = Object.keys(poItemMap).map(k => `<option value="${k}"></option>`).join("");
+        perbaruiDatalistPO();
 
     }, err => console.error("Gagal memuat data Input PO:", err));
 }
@@ -4067,6 +4092,16 @@ window.isiOtomatisPO = function(id){
     const jumlahEl = document.getElementById(`po-jumlah-${id}`);
 
     const kode = noUrutEl.value.trim();
+
+    if(poUsedNoPRUrutSet.has(kode)){
+        namaCell.innerHTML = `<span style="color:#c62828;">⚠ Sudah pernah di-PO</span>`;
+        satuanCell.textContent = "-";
+        noUrutEl.style.borderColor = "#c62828";
+        updatePreviewNoPO();
+        return;
+    }
+    noUrutEl.style.borderColor = "";
+
     const data = poItemMap[kode];
 
     if(!data){
@@ -4179,10 +4214,17 @@ window.terbitkanPO = async function(){
     const rows = document.querySelectorAll("#po-items-body tr");
     const items = [];
     let grandTotal = 0;
+    let adaYangDilewati = false;
 
     rows.forEach(row => {
         const id = row.id.replace("po-row-", "");
         const noPRUrut = document.getElementById(`po-nopr-urut-${id}`).value.trim();
+
+        if(noPRUrut !== "" && poUsedNoPRUrutSet.has(noPRUrut)){
+            adaYangDilewati = true;
+            return; // sudah pernah di-PO, jangan diikutkan
+        }
+
         const data = poItemMap[noPRUrut];
         const namaBarang = data ? data.namaBarang : "";
         const jumlah = Number(document.getElementById(`po-jumlah-${id}`).value) || 0;
@@ -4211,7 +4253,9 @@ window.terbitkanPO = async function(){
     });
 
     if(items.length === 0){
-        msgEl.textContent = "Isi minimal satu baris barang dengan No PR Urut yang valid dan jumlah > 0.";
+        msgEl.textContent = adaYangDilewati
+            ? "Semua baris yang diisi ternyata No PR Urut-nya sudah pernah di-PO. Cek kembali."
+            : "Isi minimal satu baris barang dengan No PR Urut yang valid dan jumlah > 0.";
         msgEl.classList.add("err");
         msgEl.style.display = "block";
         return;
@@ -4260,7 +4304,7 @@ window.terbitkanPO = async function(){
             }
         }
 
-        msgEl.textContent = `PO ${noPO} berhasil diterbitkan.`;
+        msgEl.textContent = `PO ${noPO} berhasil diterbitkan.` + (adaYangDilewati ? " (Ada baris yang dilewati karena No PR Urut-nya sudah pernah di-PO.)" : "");
         msgEl.classList.add("ok");
         msgEl.style.display = "block";
 
