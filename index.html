@@ -497,13 +497,13 @@ table.po-cetak-ttd .po-ttd-space td{ height:22px; border-bottom:1px solid #333; 
     }
     @page{ margin:16mm; }
 
-    /* Halaman khusus cetak PO: 1/2 F4 (21,5 x 16,5 cm), margin lebih kecil */
+    /* Halaman khusus cetak PO: 1/2 F4 potret (16,5 x 21,5 cm), margin lebih kecil */
     .po-cetak-excel{ page: po-half-f4; }
 }
 
 @page po-half-f4{
-    size:215mm 165mm;
-    margin:8mm;
+    size:165mm 215mm; /* potret: lebar 16,5cm x tinggi 21,5cm (1/2 F4 berdiri) */
+    margin:6mm;
 }
 
 .print-doc{ width:100%; }
@@ -4807,13 +4807,13 @@ window.cetakPO = function(id){
     <table class="po-cetak-items">
         <thead>
             <tr>
-                <th style="width:30px;">No</th>
+                <th style="width:18px;">No</th>
                 <th>Nama Barang</th>
-                <th style="width:60px;">Satuan</th>
-                <th style="width:50px;">Qty</th>
-                <th style="width:90px;">Harga Satuan</th>
-                <th style="width:100px;">Jumlah</th>
-                <th style="width:110px;">Keterangan</th>
+                <th style="width:36px;">Satuan</th>
+                <th style="width:30px;">Qty</th>
+                <th style="width:58px;">Harga Satuan</th>
+                <th style="width:62px;">Jumlah</th>
+                <th style="width:60px;">Keterangan</th>
             </tr>
         </thead>
         <tbody>${baris}</tbody>
