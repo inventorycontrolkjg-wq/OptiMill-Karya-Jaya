@@ -2754,23 +2754,29 @@ window.importMasterKaryawanMassal = async function(){
 }
 
 window.autoisiSatuan = function(id){
-    const namaEl = document.getElementById(`opb-nama-${id}`);
-    const satuanEl = document.getElementById(`opb-satuan-${id}`);
-    const nama = namaEl.value.trim();
-    const satuanDefault = masterBarangMap[nama];
+    // Perubahan DOM ditunda 1 tick: kalau dilakukan langsung di dalam event
+    // "input", browser membatalkan popup saran datalist yang sedang tampil
+    // (jadi saran tidak ikut menyaring saat mengetik, baru muncul saat diklik ulang).
+    setTimeout(() => {
+        const namaEl = document.getElementById(`opb-nama-${id}`);
+        const satuanEl = document.getElementById(`opb-satuan-${id}`);
+        if(!namaEl || !satuanEl) return;
+        const nama = namaEl.value.trim();
+        const satuanDefault = masterBarangMap[nama];
 
-    if(!nama || satuanDefault === undefined){
-        // Nama kosong atau belum/tidak cocok dengan Master Barang -> kosongkan satuan
-        satuanEl.innerHTML = `<option value="">-</option>`;
-        satuanEl.value = "";
-        return;
-    }
+        if(!nama || satuanDefault === undefined){
+            // Nama kosong atau belum/tidak cocok dengan Master Barang -> kosongkan satuan
+            satuanEl.innerHTML = `<option value="">-</option>`;
+            satuanEl.value = "";
+            return;
+        }
 
-    const satuanBersih = (satuanDefault || "").trim();
-    satuanEl.innerHTML = satuanBersih
-        ? `<option value="${satuanBersih}">${satuanBersih}</option>`
-        : `<option value="">-</option>`;
-    satuanEl.value = satuanBersih;
+        const satuanBersih = (satuanDefault || "").trim();
+        satuanEl.innerHTML = satuanBersih
+            ? `<option value="${satuanBersih}">${satuanBersih}</option>`
+            : `<option value="">-</option>`;
+        satuanEl.value = satuanBersih;
+    }, 0);
 }
 
 function buatBarisOpbHTML(id){
@@ -3925,41 +3931,45 @@ function resetFormSJ(){
 
 // -------- Isi otomatis Nama Barang, Diminta, Sudah Kirim, Sisa, Satuan dari No. PR Urut --------
 window.isiOtomatisSJ = function(id, jagaNilaiKirim){
-    const nourutEl = document.getElementById(`sj-nourut-${id}`);
-    const namaEl = document.getElementById(`sj-nama-${id}`);
-    const dimintaEl = document.getElementById(`sj-diminta-${id}`);
-    const sudahEl = document.getElementById(`sj-sudahkirim-${id}`);
-    const sisaEl = document.getElementById(`sj-sisa-${id}`);
-    const satuanEl = document.getElementById(`sj-satuan-${id}`);
-    const kirimEl = document.getElementById(`sj-kirim-${id}`);
+    // Ditunda 1 tick, alasan sama seperti autoisiSatuan di atas.
+    setTimeout(() => {
+        const nourutEl = document.getElementById(`sj-nourut-${id}`);
+        const namaEl = document.getElementById(`sj-nama-${id}`);
+        const dimintaEl = document.getElementById(`sj-diminta-${id}`);
+        const sudahEl = document.getElementById(`sj-sudahkirim-${id}`);
+        const sisaEl = document.getElementById(`sj-sisa-${id}`);
+        const satuanEl = document.getElementById(`sj-satuan-${id}`);
+        const kirimEl = document.getElementById(`sj-kirim-${id}`);
+        if(!nourutEl || !namaEl || !dimintaEl || !sudahEl || !sisaEl || !satuanEl || !kirimEl) return;
 
-    const noUrut = nourutEl.value.trim();
-    const row = sjRowsMap[noUrut];
+        const noUrut = nourutEl.value.trim();
+        const row = sjRowsMap[noUrut];
 
-    if(!noUrut || !row){
-        namaEl.innerHTML = noUrut ? `<span style="color:#c62828;">Tidak ditemukan / sudah selesai dikirim</span>` : `<span style="color:#9a9a9a;">-</span>`;
-        dimintaEl.textContent = "-";
-        sudahEl.textContent = "-";
-        sisaEl.textContent = "-";
-        satuanEl.textContent = "-";
-        kirimEl.value = "";
-        kirimEl.disabled = true;
-        kirimEl.max = "";
-        return;
-    }
+        if(!noUrut || !row){
+            namaEl.innerHTML = noUrut ? `<span style="color:#c62828;">Tidak ditemukan / sudah selesai dikirim</span>` : `<span style="color:#9a9a9a;">-</span>`;
+            dimintaEl.textContent = "-";
+            sudahEl.textContent = "-";
+            sisaEl.textContent = "-";
+            satuanEl.textContent = "-";
+            kirimEl.value = "";
+            kirimEl.disabled = true;
+            kirimEl.max = "";
+            return;
+        }
 
-    namaEl.textContent = row.namaBarang;
-    dimintaEl.textContent = row.totalDiminta;
-    sudahEl.innerHTML = `<span class="sj-sudah-val">${row.sudahDikirim}</span>`;
-    sisaEl.innerHTML = `<span class="sj-sisa-val">${row.sisa}</span>`;
-    satuanEl.textContent = row.satuan || "-";
-    kirimEl.disabled = false;
-    kirimEl.max = row.sisa;
+        namaEl.textContent = row.namaBarang;
+        dimintaEl.textContent = row.totalDiminta;
+        sudahEl.innerHTML = `<span class="sj-sudah-val">${row.sudahDikirim}</span>`;
+        sisaEl.innerHTML = `<span class="sj-sisa-val">${row.sisa}</span>`;
+        satuanEl.textContent = row.satuan || "-";
+        kirimEl.disabled = false;
+        kirimEl.max = row.sisa;
 
-    // Kalau baris ini baru pertama kali cocok (bukan sekadar refresh data), isi default = sisa
-    if(!jagaNilaiKirim || kirimEl.value === ""){
-        kirimEl.value = row.sisa;
-    }
+        // Kalau baris ini baru pertama kali cocok (bukan sekadar refresh data), isi default = sisa
+        if(!jagaNilaiKirim || kirimEl.value === ""){
+            kirimEl.value = row.sisa;
+        }
+    }, 0);
 }
 
 window.submitBuatSuratJalanGabungan = async function(){
@@ -4286,37 +4296,41 @@ window.hapusBarisPO = function(id){
 }
 
 window.isiOtomatisPO = function(id){
-    const noUrutEl = document.getElementById(`po-nopr-urut-${id}`);
-    const namaCell = document.getElementById(`po-nama-${id}`);
-    const satuanCell = document.getElementById(`po-satuan-${id}`);
-    const jumlahEl = document.getElementById(`po-jumlah-${id}`);
+    // Ditunda 1 tick, alasan sama seperti autoisiSatuan di atas.
+    setTimeout(() => {
+        const noUrutEl = document.getElementById(`po-nopr-urut-${id}`);
+        const namaCell = document.getElementById(`po-nama-${id}`);
+        const satuanCell = document.getElementById(`po-satuan-${id}`);
+        const jumlahEl = document.getElementById(`po-jumlah-${id}`);
+        if(!noUrutEl || !namaCell || !satuanCell || !jumlahEl) return;
 
-    const kode = noUrutEl.value.trim();
+        const kode = noUrutEl.value.trim();
 
-    if(poUsedNoPRUrutSet.has(kode)){
-        namaCell.innerHTML = `<span style="color:#c62828;">⚠ Sudah pernah di-PO</span>`;
-        satuanCell.textContent = "-";
-        noUrutEl.style.borderColor = "#c62828";
+        if(poUsedNoPRUrutSet.has(kode)){
+            namaCell.innerHTML = `<span style="color:#c62828;">⚠ Sudah pernah di-PO</span>`;
+            satuanCell.textContent = "-";
+            noUrutEl.style.borderColor = "#c62828";
+            updatePreviewNoPO();
+            return;
+        }
+        noUrutEl.style.borderColor = "";
+
+        const data = poItemMap[kode];
+
+        if(!data){
+            namaCell.innerHTML = `<span style="color:#9a9a9a;">-</span>`;
+            satuanCell.textContent = "-";
+            updatePreviewNoPO();
+            return;
+        }
+
+        namaCell.textContent = data.namaBarang;
+        satuanCell.textContent = data.satuan || "-";
+        if(!jumlahEl.value) jumlahEl.value = data.jumlahDiminta;
+
+        hitungTotalBarisPO(id);
         updatePreviewNoPO();
-        return;
-    }
-    noUrutEl.style.borderColor = "";
-
-    const data = poItemMap[kode];
-
-    if(!data){
-        namaCell.innerHTML = `<span style="color:#9a9a9a;">-</span>`;
-        satuanCell.textContent = "-";
-        updatePreviewNoPO();
-        return;
-    }
-
-    namaCell.textContent = data.namaBarang;
-    satuanCell.textContent = data.satuan || "-";
-    if(!jumlahEl.value) jumlahEl.value = data.jumlahDiminta;
-
-    hitungTotalBarisPO(id);
-    updatePreviewNoPO();
+    }, 0);
 }
 
 window.hitungTotalBarisPO = function(id){
@@ -5592,36 +5606,38 @@ window.hapusBarisPnm = function(id){
 }
 
 window.isiNamaBarangPnm = function(id){
+    // Ditunda 1 tick, alasan sama seperti autoisiSatuan di atas.
+    setTimeout(() => {
+        const namaEl = document.getElementById(`pnm-namabarang-${id}`);
+        const satuanCell = document.getElementById(`pnm-satuan-${id}`);
+        const sebelumCell = document.getElementById(`pnm-stoksebelum-${id}`);
+        if(!namaEl || !satuanCell || !sebelumCell) return;
 
-    const namaEl = document.getElementById(`pnm-namabarang-${id}`);
-    const satuanCell = document.getElementById(`pnm-satuan-${id}`);
-    const sebelumCell = document.getElementById(`pnm-stoksebelum-${id}`);
+        const nama = namaEl.value.trim();
+        const satuanMaster = masterBarangMap[nama];
 
-    const nama = namaEl.value.trim();
-    const satuanMaster = masterBarangMap[nama];
+        if(!nama || satuanMaster === undefined){
+            namaEl.dataset.terisi = "";
+            satuanCell.innerHTML = `<span class="bkb-stok-value kosong">-</span>`;
+            sebelumCell.innerHTML = `<span class="bkb-stok-value kosong">-</span>`;
+            delete sebelumCell.dataset.stok;
+            hitungStokSesudahPnm(id);
+            return;
+        }
 
-    if(!nama || satuanMaster === undefined){
-        namaEl.dataset.terisi = "";
-        satuanCell.innerHTML = `<span class="bkb-stok-value kosong">-</span>`;
-        sebelumCell.innerHTML = `<span class="bkb-stok-value kosong">-</span>`;
-        delete sebelumCell.dataset.stok;
+        namaEl.dataset.terisi = "1";
+
+        const satuanBersih = (satuanMaster || "").trim();
+        satuanCell.innerHTML = satuanBersih
+            ? `<span class="bkb-stok-value">${satuanBersih}</span>`
+            : `<span class="bkb-stok-value kosong">-</span>`;
+
+        const stok = typeof masterBarangStokMap[nama] === "number" ? masterBarangStokMap[nama] : 0;
+        sebelumCell.dataset.stok = stok;
+        sebelumCell.innerHTML = `<span class="bkb-stok-value">${stok} ${satuanBersih}</span>`;
+
         hitungStokSesudahPnm(id);
-        return;
-    }
-
-    namaEl.dataset.terisi = "1";
-
-    const satuanBersih = (satuanMaster || "").trim();
-    satuanCell.innerHTML = satuanBersih
-        ? `<span class="bkb-stok-value">${satuanBersih}</span>`
-        : `<span class="bkb-stok-value kosong">-</span>`;
-
-    const stok = typeof masterBarangStokMap[nama] === "number" ? masterBarangStokMap[nama] : 0;
-    sebelumCell.dataset.stok = stok;
-    sebelumCell.innerHTML = `<span class="bkb-stok-value">${stok} ${satuanBersih}</span>`;
-
-    hitungStokSesudahPnm(id);
-
+    }, 0);
 }
 
 window.hitungStokSesudahPnm = function(id){
