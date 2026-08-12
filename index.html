@@ -2980,11 +2980,12 @@ function namaDenganRole(nama, role){
 function hitungSisaDiterimaSJ(d){
     const items = d.items || [];
     const suratJalanList = d.surat_jalan || [];
-    return items.map(it => {
+    const noPR = d.no_pr || "-";
+    return items.map((it, idx) => {
         const sudahDiterima = suratJalanList.reduce((total, sj) => {
             if(sj.status !== "diterima") return total;
-            const match = (sj.items || []).find(x => x.nama_barang === it.nama_barang);
-            return total + (match ? match.jumlah : 0);
+            const match = cocokBarisSJ(sj, it, idx, noPR);
+            return total + (match ? (Number(match.jumlah) || 0) : 0);
         }, 0);
         const totalDiminta = it.jumlah_diminta ?? it.jumlah ?? 0;
         return { nama_barang: it.nama_barang, total: totalDiminta, sudah_diterima: sudahDiterima, sisa: Math.max(0, totalDiminta - sudahDiterima) };
@@ -3455,20 +3456,96 @@ function renderDetailBarangHtml(d){
     return `<div class="detail-barang-list">${baris}</div>`;
 }
 
+// =========================================================
+// RINGKASAN PROGRES PER ITEM
+// Satu sumber kebenaran untuk pertanyaan "item ini sudah sampai mana?".
+// Dipakai tampilan status, dan nanti jadi dasar tiga laporan pembelian:
+//   - belum dibeli      -> tahap === "belum_dibeli"
+//   - sudah dibeli      -> po !== null
+//   - belum diterima    -> po !== null && kurang_diterima > 0
+// =========================================================
+function ringkasProgresItem(d){
+
+    const noPR = d.no_pr || "-";
+    const progress = d.item_progress || {};
+    const sisaKirim = hitungSisaItemSJ(d);
+
+    return (d.items || []).map((it, idx) => {
+
+        const noUrut = noUrutItem(noPR, idx);
+        const p = progress[noUrut] || {};
+        const po = p.po || null;
+
+        const diminta = it.jumlah_diminta ?? it.jumlah ?? 0;
+        const dipesan = po ? (Number(po.jumlah) || 0) : 0;
+        const dikirim = sisaKirim[idx] ? sisaKirim[idx].sudah_dikirim : 0;
+        const diterima = Number(p.diterima) || 0;
+
+        // Patokan "belum diterima" adalah jumlah yang di-PO, bukan yang diminta,
+        // karena purchasing bisa saja membeli lebih sedikit dari permintaan.
+        const kurangDiterima = po ? Math.max(0, dipesan - diterima) : 0;
+
+        let tahap = "belum_dibeli";
+        if(po && diterima >= dipesan && dipesan > 0) tahap = "selesai";
+        else if(po && diterima > 0) tahap = "diterima_sebagian";
+        else if(po) tahap = "belum_diterima";
+
+        return {
+            no_urut: noUrut,
+            nama_barang: it.nama_barang,
+            satuan: it.satuan || "",
+            diminta: diminta,
+            dipesan: dipesan,
+            dikirim: dikirim,
+            diterima: diterima,
+            kurang_diterima: kurangDiterima,
+            po: po,
+            tahap: tahap
+        };
+    });
+}
+
+const LABEL_TAHAP = {
+    belum_dibeli:      { teks: "Belum dibeli",      warna: "#b26a00" },
+    belum_diterima:    { teks: "Belum diterima",    warna: "#1565c0" },
+    diterima_sebagian: { teks: "Diterima sebagian", warna: "#7b1fa2" },
+    selesai:           { teks: "Selesai",           warna: "#2e7d32" }
+};
+
 // -------- Purchasing: List Permintaan Approve (status barang + faktur) --------
 let unsubPurApprove = null;
 let purApproveMap = {};
 
+// Cocokkan baris Surat Jalan ke item PR lewat no_urut (mis. "2608001-1").
+// Dokumen lama belum menyimpan no_urut, jadi tetap disediakan jalur cadangan
+// berdasarkan nama barang supaya data lama masih terbaca.
+function cocokBarisSJ(sj, it, idx, noPR){
+    const noUrut = noUrutItem(noPR, idx);
+    const byUrut = (sj.items || []).find(x => x.no_urut === noUrut);
+    if(byUrut) return byUrut;
+    const adaNoUrut = (sj.items || []).some(x => x.no_urut);
+    if(adaNoUrut) return null;
+    return (sj.items || []).find(x => x.nama_barang === it.nama_barang) || null;
+}
+
 function hitungSisaItemSJ(d){
     const items = d.items || [];
     const suratJalanList = d.surat_jalan || [];
-    return items.map(it => {
+    const noPR = d.no_pr || "-";
+    return items.map((it, idx) => {
         const sudahDikirim = suratJalanList.reduce((total, sj) => {
-            const match = (sj.items || []).find(x => x.nama_barang === it.nama_barang);
-            return total + (match ? match.jumlah : 0);
+            const match = cocokBarisSJ(sj, it, idx, noPR);
+            return total + (match ? (Number(match.jumlah) || 0) : 0);
         }, 0);
         const totalDiminta = it.jumlah_diminta ?? it.jumlah ?? 0;
-        return { nama_barang: it.nama_barang, satuan: it.satuan, total: totalDiminta, sudah_dikirim: sudahDikirim, sisa: Math.max(0, totalDiminta - sudahDikirim) };
+        return {
+            no_urut: noUrutItem(noPR, idx),
+            nama_barang: it.nama_barang,
+            satuan: it.satuan,
+            total: totalDiminta,
+            sudah_dikirim: sudahDikirim,
+            sisa: Math.max(0, totalDiminta - sudahDikirim)
+        };
     });
 }
 
@@ -3563,7 +3640,15 @@ window.buatSuratJalan = function(id){
         let jml = Number(jmlStr) || 0;
         if(jml <= 0) continue;
         if(jml > it.sisa) jml = it.sisa;
-        itemsUntukSJ.push({ nama_barang: it.nama_barang, jumlah: jml, satuan: it.satuan || "" });
+        const po = ((d.item_progress || {})[it.no_urut] || {}).po || null;
+        itemsUntukSJ.push({
+            no_urut: it.no_urut,
+            nama_barang: it.nama_barang,
+            jumlah: jml,
+            satuan: it.satuan || "",
+            no_po: po ? (po.no_po || "") : "",
+            vendor: po ? (po.vendor || "") : ""
+        });
     }
 
     if(itemsUntukSJ.length === 0){
@@ -3759,9 +3844,12 @@ function pantauPurchasingBuatSJ(){
             const noPR = d.no_pr || "-";
             const sisaList = hitungSisaItemSJ(d);
 
+            const progress = d.item_progress || {};
+
             sisaList.forEach((it, idx) => {
                 if(it.sisa <= 0) return;
                 const noUrut = noUrutItem(noPR, idx);
+                const po = (progress[noUrut] || {}).po || null;
                 sjRowsMap[noUrut] = {
                     docId: docSnap.id,
                     itemIndex: idx,
@@ -3771,7 +3859,9 @@ function pantauPurchasingBuatSJ(){
                     satuan: it.satuan || "",
                     totalDiminta: it.total,
                     sudahDikirim: it.sudah_dikirim,
-                    sisa: it.sisa
+                    sisa: it.sisa,
+                    noPO: po ? (po.no_po || "") : "",
+                    vendor: po ? (po.vendor || "") : ""
                 };
             });
         });
@@ -3915,7 +4005,14 @@ window.submitBuatSuratJalanGabungan = async function(){
         }
 
         if(!dipilihPerDoc[row.docId]) dipilihPerDoc[row.docId] = [];
-        dipilihPerDoc[row.docId].push({ nama_barang: row.namaBarang, jumlah: qty, satuan: row.satuan });
+        dipilihPerDoc[row.docId].push({
+            no_urut: row.noUrut,
+            nama_barang: row.namaBarang,
+            jumlah: qty,
+            satuan: row.satuan,
+            no_po: row.noPO || "",
+            vendor: row.vendor || ""
+        });
 
         untukCetak.push({
             no_urut: row.noUrut,
@@ -4380,7 +4477,9 @@ window.terbitkanPO = async function(){
 
         const noPO = `${String(noUrut).padStart(3, "0")}/${daftarPR.join(",")}/${bulan}/${tahun}/${PO_KODE_TETAP}${suffix}`;
 
-        await addDoc(collection(db, "po_barang"), {
+        const batch = writeBatch(db);
+
+        batch.set(doc(collection(db, "po_barang")), {
             no_po: noPO,
             no_urut: noUrut,
             daftar_no_pr: daftarPR,
@@ -4398,17 +4497,40 @@ window.terbitkanPO = async function(){
             created_at: serverTimestamp()
         });
 
-        // Tandai referensi No PO di setiap PR terkait (informasi tambahan, bukan pengunci)
-        for(const noPR of daftarPR){
-            const contoh = Object.values(poItemMap).find(x => x.noPR === noPR);
-            if(contoh){
-                try{
-                    await setDoc(doc(db, "permintaan_barang", contoh.docId), {
-                        po_no: noPO
-                    }, { merge: true });
-                } catch(e){ /* abaikan kalau gagal, tidak kritikal */ }
-            }
-        }
+        // Tandai jejak PO di tiap ITEM PR, bukan di level dokumen PR.
+        // Satu PR bisa dibeli sebagian dulu, sisanya menyusul di PO berikutnya —
+        // jejak per item inilah yang nanti dipakai laporan "sudah / belum dibeli".
+        const perDoc = {};
+        items.forEach(it => {
+            const info = poItemMap[it.no_pr_urut];
+            if(!info) return;
+            if(!perDoc[info.docId]) perDoc[info.docId] = {};
+            perDoc[info.docId][it.no_pr_urut] = {
+                no_po: noPO,
+                vendor: vendor,
+                jumlah: it.jumlah,
+                satuan: it.satuan || "",
+                harga_satuan: it.harga_satuan,
+                total_harga: it.total_harga,
+                tanggal: tanggalISO,
+                dibuat_oleh: auth.currentUser.email
+            };
+        });
+
+        Object.keys(perDoc).forEach(docId => {
+            const perubahan = {
+                daftar_po: arrayUnion(noPO),
+                po_no: noPO // dipertahankan supaya tampilan lama tetap jalan
+            };
+            Object.keys(perDoc[docId]).forEach(noUrut => {
+                perubahan[`item_progress.${noUrut}.po`] = perDoc[docId][noUrut];
+            });
+            batch.update(doc(db, "permintaan_barang", docId), perubahan);
+        });
+
+        // PO dan jejaknya tersimpan bersamaan — tidak mungkin ada PO
+        // yang terbit tanpa item PR-nya ikut tertandai.
+        await batch.commit();
 
         msgEl.textContent = `PO ${noPO} berhasil diterbitkan.` + (adaYangDilewati ? " (Ada baris yang dilewati karena No PR Urut-nya sudah pernah di-PO.)" : "");
         msgEl.classList.add("ok");
@@ -5104,53 +5226,86 @@ async function previewNoBKB(tanggalISO){
     }
 }
 
-async function generateNoBKB(tanggalISO){
+// Simpan BKB dalam satu transaksi: ambil nomor, potong stok, tulis dokumen.
+// Kalau salah satu gagal, tidak ada yang tersimpan dan nomor tidak terpakai.
+async function simpanBkbTransaksi(status, items, dataDoc){
+
+    const tanggalISO = dataDoc.tanggal;
     const { yy, mm, key } = komponenTahunBulan(tanggalISO);
     const counterRef = doc(db, "counters", `bkb_${key}`);
-    const nomorBerikutnya = await runTransaction(db, async (tx) => {
-        const snap = await tx.get(counterRef);
-        const next = snap.exists() ? (snap.data().terakhir || 0) + 1 : 1;
-        tx.set(counterRef, { terakhir: next }, { merge: true });
-        return next;
+    const docRef = doc(collection(db, "pengambilan_barang"));
+    const potongStok = status !== "draft";
+
+    return await runTransaction(db, async (tx) => {
+
+        // ---- semua READ dulu ----
+        const snapCounter = await tx.get(counterRef);
+        const rencana = potongStok ? await bacaRencanaStok(tx, items) : [];
+        if(potongStok) validasiStokCukup(rencana);
+
+        // ---- baru WRITE ----
+        const nomor = nomorBerikutnyaDari(snapCounter);
+        const noBKB = `${yy}${mm}${String(nomor).padStart(3, "0")}`;
+
+        tx.set(counterRef, { terakhir: nomor }, { merge: true });
+        if(potongStok) tulisRencanaStok(tx, rencana, -1);
+        tx.set(docRef, Object.assign({ no_bkb: noBKB }, dataDoc));
+
+        return noBKB;
     });
-    return `${yy}${mm}${String(nomorBerikutnya).padStart(3, "0")}`;
 }
 
 // -------- Update stok Master Barang secara atomik --------
-// arah: -1 untuk pengambilan/pemakaian (kurangi stok), +1 untuk penerimaan (tambah stok)
-// Melempar Error kalau stok tidak cukup (khusus arah -1), supaya stok tidak pernah minus.
-async function terapkanPerubahanStok(items, arah){
+// Helper ini sengaja dipecah supaya perubahan stok, penomoran dokumen, dan
+// penyimpanan dokumennya bisa dijalankan dalam SATU transaksi. Kalau salah satu
+// gagal, semuanya batal — stok tidak akan pernah berkurang tanpa ada dokumennya.
 
-    if(!items || items.length === 0) return;
-
-    await runTransaction(db, async (tx) => {
-
-        const rencana = [];
-
-        // Semua READ dulu (aturan Firestore transaction: read sebelum write)
-        for(const it of items){
-            const id = slugBarang(it.nama_barang);
-            if(!id) continue;
-            const ref = doc(db, "master_barang", id);
-            const snap = await tx.get(ref);
-            const stokSekarang = (snap.exists() && typeof snap.data().stok === "number") ? snap.data().stok : 0;
-            rencana.push({ ref, nama: it.nama_barang, stokSekarang, jumlah: Number(it.jumlah) || 0 });
-        }
-
-        if(arah < 0){
-            const kurang = rencana.find(r => r.stokSekarang < r.jumlah);
-            if(kurang){
-                throw new Error(`Stok "${kurang.nama}" tidak cukup (tersedia ${kurang.stokSekarang}, diminta ${kurang.jumlah}).`);
-            }
-        }
-
-        rencana.forEach(r => {
-            const stokBaru = r.stokSekarang + (arah * r.jumlah);
-            tx.set(r.ref, { stok: stokBaru, updated_at: serverTimestamp() }, { merge: true });
-        });
-
+// Gabungkan baris dengan barang yang sama supaya tidak ada dua write ke
+// dokumen master_barang yang sama dalam satu transaksi (write terakhir menimpa
+// yang sebelumnya dan stok jadi salah hitung).
+function ringkasItemPerBarang(items){
+    const map = {};
+    (items || []).forEach(it => {
+        const id = slugBarang(it.nama_barang || "");
+        if(!id) return;
+        if(!map[id]) map[id] = { id, nama: it.nama_barang, jumlah: 0 };
+        map[id].jumlah += Number(it.jumlah) || 0;
     });
+    return Object.values(map);
+}
 
+// TAHAP BACA — panggil sebelum ada write apa pun di dalam transaksi.
+async function bacaRencanaStok(tx, items){
+    const rencana = [];
+    for(const r of ringkasItemPerBarang(items)){
+        const ref = doc(db, "master_barang", r.id);
+        const snap = await tx.get(ref);
+        const stokSekarang = (snap.exists() && typeof snap.data().stok === "number") ? snap.data().stok : 0;
+        rencana.push({ ref, nama: r.nama, stokSekarang, jumlah: r.jumlah });
+    }
+    return rencana;
+}
+
+function validasiStokCukup(rencana){
+    const kurang = rencana.find(r => r.stokSekarang < r.jumlah);
+    if(kurang){
+        throw new Error(`Stok "${kurang.nama}" tidak cukup (tersedia ${kurang.stokSekarang}, diminta ${kurang.jumlah}).`);
+    }
+}
+
+// TAHAP TULIS — arah: -1 pengambilan (kurangi stok), +1 penerimaan (tambah stok)
+function tulisRencanaStok(tx, rencana, arah){
+    rencana.forEach(r => {
+        tx.set(r.ref, {
+            stok: r.stokSekarang + (arah * r.jumlah),
+            updated_at: serverTimestamp()
+        }, { merge: true });
+    });
+}
+
+// Ambil nomor berikutnya dari counter yang sudah dibaca di tahap baca.
+function nomorBerikutnyaDari(snapCounter){
+    return snapCounter.exists() ? (snapCounter.data().terakhir || 0) + 1 : 1;
 }
 
 function resetFormBkb(){
@@ -5237,14 +5392,7 @@ async function simpanBkb(status){
 
     try{
 
-        if(status !== "draft"){
-            await terapkanPerubahanStok(items, -1);
-        }
-
-        const noBKB = await generateNoBKB(bkbTanggalISO);
-
-        await addDoc(collection(db, "pengambilan_barang"), {
-            no_bkb: noBKB,
+        const noBKB = await simpanBkbTransaksi(status, items, {
             tanggal: bkbTanggalISO,
             tanggal_display: formatTanggalIndo(bkbTanggalISO),
             jam: jam,
@@ -5398,7 +5546,7 @@ window.cariSuratJalanUntukPenerimaan = async function(){
             keteranganCell.className = pnmKeteranganOtomatis ? "bkb-namabarang-cell" : "bkb-namabarang-cell kosong";
         });
 
-        pnmSJTerhubung = { docId: docIdDitemukan, noSJ: ditemukan.sj.no_sj };
+        pnmSJTerhubung = { docId: docIdDitemukan, noSJ: ditemukan.sj.no_sj, noPR: ditemukan.d.no_pr || "" };
         statusEl.textContent = `✔ Ditemukan — ${ditemukan.sj.items.length} barang otomatis terisi dari ${ditemukan.sj.no_sj} (No PR: ${ditemukan.d.no_pr || "-"}).`;
         statusEl.classList.add("ok");
 
@@ -5525,16 +5673,77 @@ function ambilItemPnm(){
     return { items, totalJumlah };
 }
 
-async function generateNoPenerimaan(tanggalISO){
+// Simpan Penerimaan dalam satu transaksi: ambil nomor, tambah stok, tulis
+// dokumen, tandai Surat Jalan sudah diterima, dan catat progres per item PR.
+// Semua sekaligus — tidak ada lagi kemungkinan stok bertambah tapi status SJ
+// gagal ikut berubah.
+async function simpanPnmTransaksi(status, items, sjTerhubung, dataDoc){
+
+    const tanggalISO = dataDoc.tanggal;
     const { yy, mm, key } = komponenTahunBulan(tanggalISO);
     const counterRef = doc(db, "counters", `pnm_${key}`);
-    const nomorBerikutnya = await runTransaction(db, async (tx) => {
-        const snap = await tx.get(counterRef);
-        const next = snap.exists() ? (snap.data().terakhir || 0) + 1 : 1;
-        tx.set(counterRef, { terakhir: next }, { merge: true });
-        return next;
+    const docRef = doc(collection(db, "penerimaan_barang"));
+    const final = status !== "draft";
+    const refPR = (final && sjTerhubung) ? doc(db, "permintaan_barang", sjTerhubung.docId) : null;
+
+    return await runTransaction(db, async (tx) => {
+
+        // ---- semua READ dulu ----
+        const snapCounter = await tx.get(counterRef);
+        const snapPR = refPR ? await tx.get(refPR) : null;
+        const rencana = final ? await bacaRencanaStok(tx, items) : [];
+
+        // ---- baru WRITE ----
+        const nomor = nomorBerikutnyaDari(snapCounter);
+        const noPnm = `PNM${yy}${mm}${String(nomor).padStart(3, "0")}`;
+
+        tx.set(counterRef, { terakhir: nomor }, { merge: true });
+        if(final) tulisRencanaStok(tx, rencana, +1);
+
+        tx.set(docRef, Object.assign({
+            no_penerimaan: noPnm,
+            no_sj: sjTerhubung ? sjTerhubung.noSJ : "",
+            no_pr: sjTerhubung ? (sjTerhubung.noPR || "") : ""
+        }, dataDoc));
+
+        if(snapPR && snapPR.exists()){
+            const dPR = snapPR.data();
+            const waktuTerima = new Date().toISOString();
+
+            const sjLama = (dPR.surat_jalan || []).find(sj => sj.no_sj === sjTerhubung.noSJ);
+            const daftarBaru = (dPR.surat_jalan || []).map(sj =>
+                sj.no_sj === sjTerhubung.noSJ
+                    ? Object.assign({}, sj, { status: "diterima", diterima_pada: waktuTerima })
+                    : sj
+            );
+
+            const perubahan = { surat_jalan: daftarBaru };
+            const progressLama = dPR.item_progress || {};
+
+            // Jumlah yang dicatat adalah yang benar-benar diinput gudang di form,
+            // bukan angka di Surat Jalan — barang bisa saja datang kurang.
+            const jumlahDiinput = {};
+            (items || []).forEach(it => {
+                const nama = it.nama_barang || "";
+                jumlahDiinput[nama] = (jumlahDiinput[nama] || 0) + (Number(it.jumlah) || 0);
+            });
+
+            (sjLama ? (sjLama.items || []) : []).forEach(baris => {
+                if(!baris.no_urut) return; // dokumen lama tanpa no_urut, dilewati
+                const qty = (baris.nama_barang in jumlahDiinput)
+                    ? jumlahDiinput[baris.nama_barang]
+                    : (Number(baris.jumlah) || 0);
+                if(qty <= 0) return;
+                const sudah = Number((progressLama[baris.no_urut] || {}).diterima) || 0;
+                perubahan[`item_progress.${baris.no_urut}.diterima`] = sudah + qty;
+                perubahan[`item_progress.${baris.no_urut}.diterima_pada`] = waktuTerima;
+            });
+
+            tx.update(refPR, perubahan);
+        }
+
+        return noPnm;
     });
-    return `PNM${yy}${mm}${String(nomorBerikutnya).padStart(3, "0")}`;
 }
 
 function validasiFormPnm(status){
@@ -5581,14 +5790,7 @@ async function simpanPnm(status){
 
     try{
 
-        if(status !== "draft"){
-            await terapkanPerubahanStok(items, +1);
-        }
-
-        const noPnm = await generateNoPenerimaan(tanggal);
-
-        await addDoc(collection(db, "penerimaan_barang"), {
-            no_penerimaan: noPnm,
+        const noPnm = await simpanPnmTransaksi(status, items, pnmSJTerhubung, {
             tanggal: tanggal,
             tanggal_display: formatTanggalIndo(tanggal),
             referensi: referensi,
@@ -5602,22 +5804,6 @@ async function simpanPnm(status){
             dibuat_oleh_email: auth.currentUser.email,
             created_at: serverTimestamp()
         });
-
-        if(status !== "draft" && pnmSJTerhubung){
-            try{
-                const refPR = doc(db, "permintaan_barang", pnmSJTerhubung.docId);
-                const snapPR = await getDoc(refPR);
-                if(snapPR.exists()){
-                    const dPR = snapPR.data();
-                    const daftarBaru = (dPR.surat_jalan || []).map(sj =>
-                        sj.no_sj === pnmSJTerhubung.noSJ ? { ...sj, status: "diterima", diterima_pada: new Date().toISOString() } : sj
-                    );
-                    await setDoc(refPR, { surat_jalan: daftarBaru }, { merge: true });
-                }
-            } catch(sjErr){
-                console.error("Gagal update status Surat Jalan:", sjErr);
-            }
-        }
 
         msgEl.textContent = status === "draft"
             ? `Draft ${noPnm} berhasil disimpan.`
