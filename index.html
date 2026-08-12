@@ -4730,6 +4730,15 @@ window.terbitkanPO = async function(){
 let unsubListPO = null;
 let poListMap = {};
 
+// Tampilkan kosong (bukan "Rp 0") kalau nilainya nol atau tidak ada.
+function rpAtauKosong(v){
+    return v ? `Rp ${v.toLocaleString("id-ID")}` : "";
+}
+// Tampilkan kosong (bukan "-") kalau teksnya tidak ada.
+function teksAtauKosong(v){
+    return v || "";
+}
+
 function pantauPurchasingListPO(){
 
     if(unsubListPO) unsubListPO();
@@ -4760,18 +4769,18 @@ function pantauPurchasingListPO(){
             items.forEach((it, i) => {
                 html += `
 <tr>
-    <td>${i === 0 ? (d.tanggal_display || d.tanggal || "-") : ""}</td>
-    <td>${i === 0 ? (d.no_po || "-") : ""}</td>
-    <td>${it.nama_barang || "-"}</td>
-    <td class="num">${it.jumlah ?? "-"}</td>
-    <td>${it.keterangan_supplier || "-"}</td>
-    <td class="num">Rp ${(it.harga_satuan || 0).toLocaleString("id-ID")}</td>
-    <td class="num">Rp ${(it.diskon || 0).toLocaleString("id-ID")}</td>
-    <td class="num">Rp ${(it.pph23 || 0).toLocaleString("id-ID")}</td>
-    <td class="num">Rp ${(it.ppn || 0).toLocaleString("id-ID")}</td>
-    <td class="num">Rp ${(it.total_harga || 0).toLocaleString("id-ID")}</td>
-    <td>${i === 0 ? (d.metode_payment || "-") : ""}</td>
-    <td>${i === 0 ? (d.metode_payment === "KREDIT" ? (d.tenor || "-") : "-") : ""}</td>
+    <td>${i === 0 ? teksAtauKosong(d.tanggal_display || d.tanggal) : ""}</td>
+    <td>${i === 0 ? teksAtauKosong(d.no_po) : ""}</td>
+    <td>${teksAtauKosong(it.nama_barang)}</td>
+    <td class="num">${it.jumlah ?? ""}</td>
+    <td>${teksAtauKosong(it.keterangan_supplier)}</td>
+    <td class="num">${rpAtauKosong(it.harga_satuan)}</td>
+    <td class="num">${rpAtauKosong(it.diskon)}</td>
+    <td class="num">${rpAtauKosong(it.pph23)}</td>
+    <td class="num">${rpAtauKosong(it.ppn)}</td>
+    <td class="num">${rpAtauKosong(it.total_harga)}</td>
+    <td>${i === 0 ? teksAtauKosong(d.metode_payment) : ""}</td>
+    <td>${i === 0 ? teksAtauKosong(d.metode_payment === "KREDIT" ? d.tenor : "") : ""}</td>
     <td>${i === 0 ? `<button class="btn-ic-edit" type="button" onclick="cetakPO('${docSnap.id}')">🖨️ Cetak</button>` : ""}</td>
 </tr>`;
             });
