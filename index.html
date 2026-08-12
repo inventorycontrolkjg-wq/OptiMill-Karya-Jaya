@@ -1670,6 +1670,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:50px; border-bottom:1px solid #333; 
                                 <th>Tanggal</th>
                                 <th>No PR</th>
                                 <th>Detail Barang</th>
+                                <th>Keterangan</th>
                                 <th>Input Penawaran</th>
                                 <th>Catatan dr Purchasing</th>
                                 <th>Status</th>
@@ -3247,6 +3248,7 @@ function pantauPurchasingListPermintaan(){
     <td>${tgl}</td>
     <td>${d.no_pr || "-"}</td>
     <td>${renderDetailBarangHtml(d)}</td>
+    <td>${d.keterangan || "-"}</td>
     <td><button class="btn-ic-edit" type="button" onclick="bukaFormPenawaran('${docSnap.id}')">${btnPenawaranLabel}</button></td>
     <td><button class="btn-ic-edit" type="button" onclick="bukaFormCatatan('${docSnap.id}')">${btnCatatanLabel}</button></td>
     <td><span class="status-pill ${status}">${labelStatus}</span></td>
