@@ -1810,6 +1810,8 @@ table.po-cetak-ttd .po-ttd-space td{ height:50px; border-bottom:1px solid #333; 
                                 <th style="width:140px;">Ket. Supplier</th>
                                 <th style="width:140px;">Ket. Internal</th>
                                 <th style="width:120px;">Dibeli Oleh</th>
+                                <th style="width:110px;">Metode Payment</th>
+                                <th style="width:100px;">Tenor</th>
                                 <th style="width:44px;">Aksi</th>
                             </tr>
                         </thead>
@@ -1847,6 +1849,8 @@ table.po-cetak-ttd .po-ttd-space td{ height:50px; border-bottom:1px solid #333; 
                                 <th>PPh23</th>
                                 <th>PPN</th>
                                 <th>Total</th>
+                                <th>Metode Payment</th>
+                                <th>Tenor</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -4341,6 +4345,13 @@ function buatBarisPOHTML(id){
             <td><input type="text" id="po-ket-supplier-${id}"></td>
             <td><input type="text" id="po-ket-internal-${id}"></td>
             <td><input type="text" id="po-dibeli-oleh-${id}"></td>
+            <td>
+                <select id="po-metode-payment-${id}" onchange="toggleTenorPO(${id})">
+                    <option value="CASH">CASH</option>
+                    <option value="KREDIT">KREDIT</option>
+                </select>
+            </td>
+            <td><input type="text" id="po-tenor-${id}" placeholder="-" disabled style="background:#f2f2f2;"></td>
             <td><button class="btn-remove-filled" type="button" onclick="hapusBarisPO(${id})" title="Hapus baris">🗑️</button></td>
         </tr>
     `;
@@ -4402,6 +4413,23 @@ window.isiOtomatisPO = function(id){
         hitungTotalBarisPO(id);
         updatePreviewNoPO();
     }, 0);
+}
+
+window.toggleTenorPO = function(id){
+    const metodeEl = document.getElementById(`po-metode-payment-${id}`);
+    const tenorEl = document.getElementById(`po-tenor-${id}`);
+    if(!metodeEl || !tenorEl) return;
+
+    if(metodeEl.value === "KREDIT"){
+        tenorEl.disabled = false;
+        tenorEl.style.background = "";
+        tenorEl.placeholder = "cth: 30 hari";
+    } else {
+        tenorEl.disabled = true;
+        tenorEl.style.background = "#f2f2f2";
+        tenorEl.value = "";
+        tenorEl.placeholder = "-";
+    }
 }
 
 window.hitungTotalBarisPO = function(id){
@@ -4531,7 +4559,11 @@ window.terbitkanPO = async function(){
                 total_harga: totalHarga,
                 keterangan_supplier: document.getElementById(`po-ket-supplier-${id}`).value.trim(),
                 keterangan_internal: document.getElementById(`po-ket-internal-${id}`).value.trim(),
-                dibeli_oleh: document.getElementById(`po-dibeli-oleh-${id}`).value.trim()
+                dibeli_oleh: document.getElementById(`po-dibeli-oleh-${id}`).value.trim(),
+                metode_payment: document.getElementById(`po-metode-payment-${id}`).value,
+                tenor: document.getElementById(`po-metode-payment-${id}`).value === "KREDIT"
+                    ? document.getElementById(`po-tenor-${id}`).value.trim()
+                    : ""
             });
             grandTotal += totalHarga;
         }
@@ -4675,6 +4707,8 @@ function pantauPurchasingListPO(){
     <td class="num">Rp ${(it.pph23 || 0).toLocaleString("id-ID")}</td>
     <td class="num">Rp ${(it.ppn || 0).toLocaleString("id-ID")}</td>
     <td class="num">Rp ${(it.total_harga || 0).toLocaleString("id-ID")}</td>
+    <td>${it.metode_payment || "-"}</td>
+    <td>${it.metode_payment === "KREDIT" ? (it.tenor || "-") : "-"}</td>
     <td>${i === 0 ? `<button class="btn-ic-edit" type="button" onclick="cetakPO('${docSnap.id}')">🖨️ Cetak</button>` : ""}</td>
 </tr>`;
             });
