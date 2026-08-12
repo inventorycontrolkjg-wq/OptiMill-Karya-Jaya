@@ -3305,23 +3305,22 @@ function pantauPurchasingListPermintaan(){
         const emptyEl = document.getElementById("pur-list-empty");
         purListMap = {};
 
-        if(snapshot.empty){
-            tbody.innerHTML = "";
-            emptyEl.style.display = "block";
-            return;
-        }
-        emptyEl.style.display = "none";
-
         let html = "";
+        let jumlahTampil = 0;
 
         snapshot.forEach(docSnap => {
             const d = docSnap.data();
+            const status = d.status || "menunggu";
+
+            // Yang sudah Approve tidak ditampilkan di sini lagi — sudah pindah ke List Permintaan Approve
+            if(status === "approve") return;
+
             purListMap[docSnap.id] = d;
+            jumlahTampil++;
 
             const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
 
-            const status = d.status || "menunggu";
-            const labelStatus = status === "approve" ? "Approve" : (status === "hold" ? "Hold" : "Menunggu");
+            const labelStatus = status === "hold" ? "Hold" : "Menunggu";
 
             const daftarPenawaran = d.penawaran_list || [];
             const btnPenawaranLabel = daftarPenawaran.length > 0
@@ -3362,6 +3361,7 @@ function pantauPurchasingListPermintaan(){
         });
 
         tbody.innerHTML = html;
+        emptyEl.style.display = jumlahTampil === 0 ? "block" : "none";
 
     }, err => console.error("Gagal memuat List Permintaan (Purchasing):", err));
 }
