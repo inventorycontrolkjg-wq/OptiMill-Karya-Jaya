@@ -287,6 +287,7 @@ table.tbl{
     width:100%;
     border-collapse:collapse;
     font-size:13px;
+    border:1px solid #dfe3ea;
 }
 
 table.tbl th{
@@ -297,14 +298,20 @@ table.tbl th{
     font-size:11.5px;
     text-transform:uppercase;
     letter-spacing:.3px;
-    border-bottom:1px solid #eee;
+    border:1px solid #dfe3ea;
+    background:#f7f9fc;
 }
 
 table.tbl td{
     padding:11px 8px;
-    border-bottom:1px solid #f4f4f4;
+    border:1px solid #e9ecf1;
     vertical-align:middle;
 }
+
+/* Warna selang-seling per grup dokumen (No PO / No PR / No BKB / No Penerimaan)
+   supaya baris yang masih satu dokumen gampang dibedakan dari dokumen berikutnya. */
+table.tbl tr.tbl-grp-b td{ background:#f4f8fd; }
+table.tbl tr.tbl-grp-first td{ border-top:2px solid #b8c9de; }
 
 .status-pill{
     font-size:11px;
@@ -3187,6 +3194,8 @@ function pantauSemuaPermintaan(){
         semuaPermintaanMap = {};
         let htmlProses = "";
         let htmlSelesai = "";
+        let grpProses = 0;
+        let grpSelesai = 0;
 
         snapshot.forEach((docSnap) => {
 
@@ -3226,6 +3235,10 @@ function pantauSemuaPermintaan(){
             // selain itu (menunggu approval / approve tapi belum diterima / ditolak) masuk tab Proses.
             const sudahSelesai = statusClass === "diterima";
 
+            if(sudahSelesai) grpSelesai++; else grpProses++;
+            const grpNomor = sudahSelesai ? grpSelesai : grpProses;
+            const grpClass = grpNomor % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a";
+
             const items = d.items || [];
             const noPR = d.no_pr || "-";
             const diajukanOleh = namaDenganRole(d.pembuat, d.dibuat_oleh_role) || d.dibuat_oleh_email || "-";
@@ -3235,7 +3248,7 @@ function pantauSemuaPermintaan(){
 
             if(items.length === 0){
                 potongan = `
-<tr>
+<tr class="${grpClass} tbl-grp-first">
     <td>${tgl}</td>
     <td>${noPR}</td>
     <td>-</td>
@@ -3251,7 +3264,7 @@ function pantauSemuaPermintaan(){
                     const jumlah = it.jumlah_diminta ?? it.jumlah ?? "-";
                     if(i === 0){
                         potongan += `
-<tr>
+<tr class="${grpClass} tbl-grp-first">
     <td rowspan="${jumlahBaris}">${tgl}</td>
     <td rowspan="${jumlahBaris}">${noPR}</td>
     <td>${noUrutItem(noPR, i)}</td>
@@ -3264,7 +3277,7 @@ function pantauSemuaPermintaan(){
 `;
                     } else {
                         potongan += `
-<tr>
+<tr class="${grpClass}">
     <td>${noUrutItem(noPR, i)}</td>
     <td style="white-space:normal;">${it.nama_barang || "-"}</td>
     <td>${jumlah}</td>
@@ -4818,16 +4831,19 @@ function pantauPurchasingListPO(){
         emptyEl.style.display = "none";
 
         let html = "";
+        let grp = 0;
 
         snapshot.forEach(docSnap => {
             const d = docSnap.data();
             poListMap[docSnap.id] = d;
 
             const items = d.items && d.items.length ? d.items : [{}];
+            grp++;
+            const grpClass = grp % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a";
 
             items.forEach((it, i) => {
                 html += `
-<tr>
+<tr class="${grpClass}${i === 0 ? ' tbl-grp-first' : ''}">
     <td>${i === 0 ? teksAtauKosong(d.tanggal_display || d.tanggal) : ""}</td>
     <td>${i === 0 ? teksAtauKosong(d.no_po) : ""}</td>
     <td>${teksAtauKosong(it.nama_barang)}</td>
@@ -5107,12 +5123,15 @@ function pantauSemuaPengeluaran(){
         emptyEl.style.display = "none";
 
         let html = "";
+        let grp = 0;
         semuaPengeluaranMap = {};
 
         snapshot.forEach((docSnap) => {
 
             const d = docSnap.data();
             semuaPengeluaranMap[docSnap.id] = d;
+            grp++;
+            const grpClass = grp % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a";
 
             const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : (d.tanggal || "-");
             const status = d.status || "submit";
@@ -5123,7 +5142,7 @@ function pantauSemuaPengeluaran(){
             if(items.length > 1) ringkasBarang += ` +${items.length - 1} lainnya`;
 
             html += `
-<tr>
+<tr class="${grpClass}">
     <td>${tgl}</td>
     <td>${d.no_bkb || "-"}</td>
     <td>${d.nama_user || d.dibuat_oleh_email || "-"}</td>
@@ -6140,12 +6159,15 @@ function pantauSemuaPenerimaan(){
         emptyEl.style.display = "none";
 
         let html = "";
+        let grp = 0;
         semuaPenerimaanMap = {};
 
         snapshot.forEach((docSnap) => {
 
             const d = docSnap.data();
             semuaPenerimaanMap[docSnap.id] = d;
+            grp++;
+            const grpClass = grp % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a";
 
             const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : (d.tanggal || "-");
             const status = d.status || "diajukan";
@@ -6154,9 +6176,9 @@ function pantauSemuaPenerimaan(){
             const items = d.items || [];
             const daftarBarang = items.length ? items : [{ nama_barang: "-", jumlah: "-", satuan: "" }];
 
-            daftarBarang.forEach(it => {
+            daftarBarang.forEach((it, i) => {
                 html += `
-<tr>
+<tr class="${grpClass}${i === 0 ? ' tbl-grp-first' : ''}">
     <td>${tgl}</td>
     <td>${d.no_penerimaan || "-"}</td>
     <td>${d.penerima || "-"}</td>
