@@ -1786,20 +1786,6 @@ table.po-cetak-ttd .po-ttd-space td{ height:50px; border-bottom:1px solid #333; 
                         </div>
                     </div>
 
-                    <div class="opb-header-grid" style="grid-template-columns:1fr 1fr 1fr;">
-                        <div class="form-group">
-                            <label>Attn (opsional)</label>
-                            <input type="text" id="po-attn" placeholder="Nama contact person vendor">
-                        </div>
-                        <div class="form-group">
-                            <label>Telp (opsional)</label>
-                            <input type="text" id="po-telp" placeholder="No telepon vendor">
-                        </div>
-                        <div class="form-group">
-                            <label>Fax (opsional)</label>
-                            <input type="text" id="po-fax" placeholder="No fax vendor">
-                        </div>
-                    </div>
                     <p class="mb-hint">Format: <code>No Urut/No PR1,No PR2,.../Bulan(Romawi)/Tahun/AS</code> — otomatis tambah <code>/P</code> di akhir kalau ada PPN di salah satu baris.</p>
 
                     <div class="opb-items-header" style="margin-top:16px;">
@@ -4332,9 +4318,6 @@ function pantauPurchasingInputPO(){
 
 function resetFormPO(){
     document.getElementById("po-vendor").value = "";
-    document.getElementById("po-attn").value = "";
-    document.getElementById("po-telp").value = "";
-    document.getElementById("po-fax").value = "";
     document.getElementById("po-items-body").innerHTML = "";
     poRowCount = 0;
     window.tambahBarisPO();
@@ -4586,9 +4569,6 @@ window.terbitkanPO = async function(){
             no_urut: noUrut,
             daftar_no_pr: daftarPR,
             vendor: vendor,
-            attn: document.getElementById("po-attn").value.trim(),
-            telp: document.getElementById("po-telp").value.trim(),
-            fax: document.getElementById("po-fax").value.trim(),
             tanggal: tanggalISO,
             tanggal_display: formatTanggalIndo(tanggalISO),
             items: items,
@@ -4750,23 +4730,15 @@ window.cetakPO = function(id){
 
     <table class="po-cetak-header">
         <tr>
-            <td class="po-judul" rowspan="4">PURCHASE ORDER</td>
+            <td class="po-judul" rowspan="2">PURCHASE ORDER</td>
             <td class="po-label">Kepada Yth</td>
             <td class="po-isi">${d.vendor || "-"}</td>
             <td class="po-label" rowspan="2">No PO:</td>
-        </tr>
-        <tr>
-            <td class="po-label">Attn:</td>
-            <td class="po-isi">${d.attn || "-"}</td>
-        </tr>
-        <tr>
-            <td class="po-label">Telp:</td>
-            <td class="po-isi">${d.telp || "-"}</td>
             <td class="po-nopo-value" rowspan="2">${d.no_po}</td>
         </tr>
         <tr>
-            <td class="po-label">Fax:</td>
-            <td class="po-isi">${d.fax || "-"}</td>
+            <td class="po-label">Tanggal:</td>
+            <td class="po-isi">${d.tanggal_display || "-"}</td>
         </tr>
     </table>
 
