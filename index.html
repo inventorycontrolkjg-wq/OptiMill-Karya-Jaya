@@ -1268,11 +1268,11 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
             <!-- ============================================= -->
             <!-- GUDANG: LIST PERMINTAAN -->
             <!-- ============================================= -->
-            <div class="page" id="page-list-permintaan">
+            <div class="page" id="page-list-permintaan-proses">
 
                 <div class="page-header">
-                    <h2>📋 List Permintaan Barang</h2>
-                    <p>Semua permintaan barang yang sudah diajukan tim gudang</p>
+                    <h2>📋 List Permintaan Barang (Proses)</h2>
+                    <p>Permintaan yang masih menunggu approval atau barangnya belum diterima lengkap oleh gudang</p>
                 </div>
 
                 <div class="panel">
@@ -1289,9 +1289,37 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                                 <th>Aksi</th>
                             </tr>
                         </thead>
-                        <tbody id="pb-list-body"></tbody>
+                        <tbody id="pb-list-body-proses"></tbody>
                     </table>
-                    <div class="empty-state" id="pb-empty" style="display:none;">Belum ada permintaan yang diajukan.</div>
+                    <div class="empty-state" id="pb-empty-proses" style="display:none;">Tidak ada permintaan yang masih berjalan.</div>
+                </div>
+
+            </div>
+
+            <div class="page" id="page-list-permintaan-selesai">
+
+                <div class="page-header">
+                    <h2>✅ List Permintaan Barang (Selesai)</h2>
+                    <p>Permintaan yang barangnya sudah diterima lengkap oleh gudang</p>
+                </div>
+
+                <div class="panel">
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>No. PR</th>
+                                <th>No PR Urut</th>
+                                <th>Diajukan Oleh</th>
+                                <th>Barang</th>
+                                <th>Jumlah</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pb-list-body-selesai"></tbody>
+                    </table>
+                    <div class="empty-state" id="pb-empty-selesai" style="display:none;">Belum ada permintaan yang selesai.</div>
                 </div>
 
             </div>
@@ -2130,7 +2158,8 @@ const NAV_ITEMS = {
         { id:"input-permintaan", label:"📝 Input Permintaan" },
         { id:"input-pemakaian", label:"📤 Pengambilan Barang (BKB)" },
         { id:"input-penerimaan", label:"📥 Input Penerimaan" },
-        { id:"list-permintaan", label:"📋 List Permintaan" },
+        { id:"list-permintaan-proses", label:"📋 List Permintaan (Proses)" },
+        { id:"list-permintaan-selesai", label:"✅ List Permintaan (Selesai)" },
         { id:"list-pengeluaran", label:"📃 List Pengeluaran" },
         { id:"list-penerimaan", label:"📃 List Penerimaan" },
         { id:"history", label:"🕒 History Keluar/Masuk" },
@@ -2176,7 +2205,7 @@ window.showPage = function(id){
         siapkanDropdownOpb();
         resetFormOpb();
     }
-    if(id === "list-permintaan"){
+    if(id === "list-permintaan-proses" || id === "list-permintaan-selesai"){
         pantauSemuaPermintaan();
     }
     if(id === "list-pengeluaran"){
@@ -3126,7 +3155,7 @@ function hitungSisaDiterimaSJ(d){
     });
 }
 
-// -------- List Permintaan (semua permintaan, bukan cuma milik sendiri) --------
+// -------- List Permintaan (semua permintaan, dipecah 2 tabel: Proses & Selesai) --------
 function pantauSemuaPermintaan(){
 
     if(unsubPermintaan) unsubPermintaan();
@@ -3138,19 +3167,14 @@ function pantauSemuaPermintaan(){
 
     unsubPermintaan = onSnapshot(q, (snapshot) => {
 
-        const tbody = document.getElementById("pb-list-body");
-        const emptyEl = document.getElementById("pb-empty");
+        const tbodyProses = document.getElementById("pb-list-body-proses");
+        const emptyProses = document.getElementById("pb-empty-proses");
+        const tbodySelesai = document.getElementById("pb-list-body-selesai");
+        const emptySelesai = document.getElementById("pb-empty-selesai");
 
-        if(snapshot.empty){
-            tbody.innerHTML = "";
-            emptyEl.style.display = "block";
-            return;
-        }
-
-        emptyEl.style.display = "none";
-
-        let html = "";
         semuaPermintaanMap = {};
+        let htmlProses = "";
+        let htmlSelesai = "";
 
         snapshot.forEach((docSnap) => {
 
@@ -3163,7 +3187,10 @@ function pantauSemuaPermintaan(){
             let labelStatus = "Menunggu";
             let statusClass = "menunggu";
 
-            if(status === "hold"){
+            if(status === "ditolak"){
+                labelStatus = "Ditolak";
+                statusClass = "ditolak";
+            } else if(status === "hold"){
                 labelStatus = "Hold";
                 statusClass = "hold";
             } else if(status === "approve"){
@@ -3183,13 +3210,19 @@ function pantauSemuaPermintaan(){
                 }
             }
 
+            // "Close" (barang sudah diterima lengkap gudang) masuk tab Selesai,
+            // selain itu (menunggu approval / approve tapi belum diterima / ditolak) masuk tab Proses.
+            const sudahSelesai = statusClass === "diterima";
+
             const items = d.items || [];
             const noPR = d.no_pr || "-";
             const diajukanOleh = namaDenganRole(d.pembuat, d.dibuat_oleh_role) || d.dibuat_oleh_email || "-";
             const jumlahBaris = items.length || 1;
 
+            let potongan = "";
+
             if(items.length === 0){
-                html += `
+                potongan = `
 <tr>
     <td>${tgl}</td>
     <td>${noPR}</td>
@@ -3205,7 +3238,7 @@ function pantauSemuaPermintaan(){
                 items.forEach((it, i) => {
                     const jumlah = it.jumlah_diminta ?? it.jumlah ?? "-";
                     if(i === 0){
-                        html += `
+                        potongan += `
 <tr>
     <td rowspan="${jumlahBaris}">${tgl}</td>
     <td rowspan="${jumlahBaris}">${noPR}</td>
@@ -3218,7 +3251,7 @@ function pantauSemuaPermintaan(){
 </tr>
 `;
                     } else {
-                        html += `
+                        potongan += `
 <tr>
     <td>${noUrutItem(noPR, i)}</td>
     <td style="white-space:normal;">${it.nama_barang || "-"}</td>
@@ -3230,9 +3263,19 @@ function pantauSemuaPermintaan(){
                 });
             }
 
+            if(sudahSelesai) htmlSelesai += potongan;
+            else htmlProses += potongan;
+
         });
 
-        tbody.innerHTML = html;
+        if(tbodyProses){
+            tbodyProses.innerHTML = htmlProses;
+            if(emptyProses) emptyProses.style.display = htmlProses ? "none" : "block";
+        }
+        if(tbodySelesai){
+            tbodySelesai.innerHTML = htmlSelesai;
+            if(emptySelesai) emptySelesai.style.display = htmlSelesai ? "none" : "block";
+        }
 
     }, (err) => {
         console.error("Gagal memuat permintaan:", err);
