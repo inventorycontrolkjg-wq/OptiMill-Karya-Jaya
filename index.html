@@ -448,16 +448,24 @@ table.po-cetak-items{
 table.po-cetak-items th{
     border:1px solid #333;
     background:#fff;
-    padding:3px 4px;
-    font-size:9.5px;
+    padding:0 4px;
+    height:20px;
+    box-sizing:border-box;
+    font-size:10px;
     text-align:center;
+    vertical-align:middle;
 }
 table.po-cetak-items td{
     border:1px solid #333;
-    padding:2px 5px;
+    padding:0 5px;
+    height:20px;
+    box-sizing:border-box;
+    font-size:10px;
+    vertical-align:middle;
+    line-height:1.1;
 }
-table.po-cetak-items td.po-rp-cell{ padding:2px 0; }
-.po-rp-flex{ display:flex; justify-content:space-between; padding:0 6px; }
+table.po-cetak-items td.po-rp-cell{ padding:0; }
+.po-rp-flex{ display:flex; justify-content:space-between; align-items:center; height:20px; padding:0 6px; box-sizing:border-box; }
 
 table.po-cetak-summary{
     width:230px;
