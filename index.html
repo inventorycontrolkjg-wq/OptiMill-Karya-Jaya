@@ -1627,7 +1627,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
 
             </div>
 
-            <div class="page" id="page-list-penerimaan">
+            <div class="page page-wide" id="page-list-penerimaan">
 
                 <div class="page-header">
                     <h2>📃 List Penerimaan</h2>
@@ -1638,11 +1638,15 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                     <table class="tbl">
                         <thead>
                             <tr>
-                                <th>Tanggal</th>
                                 <th>No Penerimaan</th>
-                                <th>Diterima Oleh</th>
-                                <th>Barang</th>
+                                <th>No OPB Urut</th>
+                                <th>Nama Barang</th>
                                 <th>Jumlah</th>
+                                <th>Satuan</th>
+                                <th>Divisi</th>
+                                <th>Keterangan</th>
+                                <th>Tanggal Penerimaan</th>
+                                <th>User Penerima</th>
                                 <th>Status</th>
                                 <th>Aksi</th>
                             </tr>
@@ -5862,6 +5866,7 @@ let semuaPenerimaanMap = {};
 let pnmTanggalISO = "";
 let pnmSJTerhubung = null; // { docId, noSJ } kalau item diisi otomatis dari Surat Jalan
 let pnmKeteranganOtomatis = ""; // keterangan dari permintaan awal, terisi saat cari No SJ
+let pnmDivisiOtomatis = ""; // divisi dari permintaan awal, terisi saat cari No SJ
 
 function resetFormPnm(){
     document.getElementById("pnm-items-body").innerHTML = "";
@@ -5871,6 +5876,7 @@ function resetFormPnm(){
     document.getElementById("pnm-sj-status").className = "bkb-barcode-status";
     pnmSJTerhubung = null;
     pnmKeteranganOtomatis = "";
+    pnmDivisiOtomatis = "";
 
     pnmTanggalISO = new Date().toISOString().slice(0, 10);
     document.getElementById("pnm-tanggal").value = pnmTanggalISO;
@@ -5931,6 +5937,7 @@ window.cariSuratJalanUntukPenerimaan = async function(){
         document.getElementById("pnm-items-body").innerHTML = "";
         pnmRowCount = 0;
         pnmKeteranganOtomatis = ditemukan.d.keterangan || "";
+        pnmDivisiOtomatis = ditemukan.d.divisi || "";
 
         ditemukan.sj.items.forEach(it => {
             window.tambahBarisPnm();
@@ -5941,6 +5948,7 @@ window.cariSuratJalanUntukPenerimaan = async function(){
             const namaEl = document.getElementById(`pnm-namabarang-${id}`);
             namaEl.value = it.nama_barang;
             namaEl.dataset.terisi = "1";
+            namaEl.dataset.noUrut = it.no_urut || "";
 
             const satuanCell = document.getElementById(`pnm-satuan-${id}`);
             satuanCell.innerHTML = `<span class="bkb-stok-value">${satuanMaster || "-"}</span>`;
@@ -6073,6 +6081,7 @@ function ambilItemPnm(){
         if(nama !== "" && jumlah !== ""){
             const jml = Number(jumlah);
             items.push({
+                no_urut: namaEl.dataset.noUrut || "",
                 nama_barang: nama,
                 jumlah: jml,
                 satuan: satuan,
@@ -6210,6 +6219,7 @@ async function simpanPnm(status){
             referensi: referensi,
             penerima: penerima,
             keterangan: keterangan,
+            divisi: pnmDivisiOtomatis,
             items: items,
             total_item: items.length,
             total_jumlah: totalJumlah,
@@ -6288,19 +6298,35 @@ function pantauSemuaPenerimaan(){
 
             const items = d.items || [];
             const daftarBarang = items.length ? items : [{ nama_barang: "-", jumlah: "-", satuan: "" }];
+            const jumlahBaris = daftarBarang.length;
 
             daftarBarang.forEach((it, i) => {
-                html += `
-<tr class="${grpClass}${i === 0 ? ' tbl-grp-first' : ''}">
-    <td>${tgl}</td>
-    <td>${d.no_penerimaan || "-"}</td>
-    <td>${d.penerima || "-"}</td>
-    <td style="white-space:normal;">${it.nama_barang || "-"}${it.satuan ? ` (${it.satuan})` : ""}</td>
-    <td>${it.jumlah ?? "-"}</td>
-    <td><span class="status-pill ${status === 'draft' ? 'menunggu' : 'disetujui'}">${labelStatus}</span></td>
-    <td><button class="btn-icon-print" type="button" onclick="cetakPenerimaan('${docSnap.id}')">🖨️ Cetak</button></td>
+                if(i === 0){
+                    html += `
+<tr class="${grpClass} tbl-grp-first">
+    <td rowspan="${jumlahBaris}">${d.no_penerimaan || "-"}</td>
+    <td>${it.no_urut || "-"}</td>
+    <td style="white-space:normal;">${it.nama_barang || "-"}</td>
+    <td class="num">${it.jumlah ?? "-"}</td>
+    <td>${it.satuan || "-"}</td>
+    <td rowspan="${jumlahBaris}">${d.divisi || "-"}</td>
+    <td rowspan="${jumlahBaris}" style="white-space:normal;">${d.keterangan || "-"}</td>
+    <td rowspan="${jumlahBaris}">${tgl}</td>
+    <td rowspan="${jumlahBaris}">${d.penerima || "-"}</td>
+    <td rowspan="${jumlahBaris}"><span class="status-pill ${status === 'draft' ? 'menunggu' : 'disetujui'}">${labelStatus}</span></td>
+    <td rowspan="${jumlahBaris}"><button class="btn-icon-print" type="button" onclick="cetakPenerimaan('${docSnap.id}')">🖨️ Cetak</button></td>
 </tr>
 `;
+                } else {
+                    html += `
+<tr class="${grpClass}">
+    <td>${it.no_urut || "-"}</td>
+    <td style="white-space:normal;">${it.nama_barang || "-"}</td>
+    <td class="num">${it.jumlah ?? "-"}</td>
+    <td>${it.satuan || "-"}</td>
+</tr>
+`;
+                }
             });
 
         });
