@@ -1685,7 +1685,23 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                         <input type="text" id="ic-search" placeholder="Ketik nama barang..." oninput="renderInventoryControl()">
                     </div>
 
-                    <div class="mb-counter">Menampilkan <strong id="ic-shown-count">0</strong> dari <strong id="ic-total-count">0</strong> barang</div>
+                    <div class="mb-counter" style="display:flex; justify-content:space-between; align-items:center;">
+                        <span>Menampilkan <strong id="ic-shown-count">0</strong> dari <strong id="ic-total-count">0</strong> barang</span>
+                        <button class="btn-secondary" type="button" onclick="cekDuplikatMasterBarang()">🔍 Cek Barang Duplikat</button>
+                    </div>
+
+                    <div class="panel" id="ic-duplikat-panel" style="display:none; margin-bottom:18px; background:#fffdf5; border:1px solid #f0e2b3;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <h3 style="margin:0;">Barang yang Kemungkinan Duplikat</h3>
+                            <button class="btn-ic-cancel" type="button" onclick="document.getElementById('ic-duplikat-panel').style.display='none';">Tutup</button>
+                        </div>
+                        <p style="font-size:12px; color:#8d8d8d; margin:0 0 12px;">
+                            Barang-barang berikut punya nama yang mirip (cuma beda tanda kutip/spasi/huruf besar-kecil) tapi
+                            tersimpan sebagai entri terpisah. Cek satu-satu, lalu hapus yang salah/duplikat kalau memang
+                            barangnya sama. <b>Hapus tidak bisa dibatalkan</b> — pastikan dulu stoknya tidak sedang dibutuhkan.
+                        </p>
+                        <div id="ic-duplikat-body"></div>
+                    </div>
 
                     <table class="tbl">
                         <thead>
@@ -2155,6 +2171,7 @@ import {
     setDoc,
     getDoc,
     getDocs,
+    deleteDoc,
     collection,
     addDoc,
     query,
@@ -2502,6 +2519,80 @@ function pantauInventoryControl(){
         inventoryControlData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         renderInventoryControl();
     }, (err) => console.error("Gagal memuat Inventory Control:", err));
+}
+
+// Cari kelompok barang yang namanya cuma beda tanda kutip/spasi/huruf besar-kecil
+// (pakai normalisasiNamaBarang yang sama dengan yang dipakai form input) tapi
+// tersimpan sebagai entri Master Barang yang terpisah -- ini akar masalah kenapa
+// saran nama barang kadang menampilkan versi yang "salah".
+window.cekDuplikatMasterBarang = function(){
+    const panel = document.getElementById("ic-duplikat-panel");
+    const body = document.getElementById("ic-duplikat-body");
+    if(!panel || !body) return;
+
+    const grup = {};
+    inventoryControlData.forEach(it => {
+        const key = normalisasiNamaBarang(it.nama || "");
+        if(!key) return;
+        if(!grup[key]) grup[key] = [];
+        grup[key].push(it);
+    });
+
+    const daftarDuplikat = Object.values(grup).filter(list => {
+        const namaUnik = new Set(list.map(it => it.nama));
+        return namaUnik.size > 1;
+    });
+
+    panel.style.display = "block";
+
+    if(daftarDuplikat.length === 0){
+        body.innerHTML = `<p style="color:#2e7d32; font-weight:600; margin:0;">✔ Tidak ditemukan barang duplikat. Master Barang sudah bersih.</p>`;
+        return;
+    }
+
+    body.innerHTML = `<p style="font-size:12px; margin:0 0 12px;">Ditemukan <b>${daftarDuplikat.length}</b> kelompok barang mirip.</p>` +
+        daftarDuplikat.map((list, gi) => `
+        <div style="border:1px solid #eee; border-radius:10px; padding:12px; margin-bottom:10px; background:#fff;">
+            <div style="font-size:11.5px; color:#b26a00; font-weight:700; margin-bottom:6px;">Grup ${gi + 1} — ${list.length} entri mirip</div>
+            <table class="tbl" style="margin:0;">
+                <thead>
+                    <tr>
+                        <th>Nama Tersimpan</th>
+                        <th style="width:80px;">Satuan</th>
+                        <th style="width:100px;">Stok Akhir</th>
+                        <th style="width:100px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${list.map(it => `
+                        <tr>
+                            <td>${it.nama || "-"}</td>
+                            <td>${it.satuan_default || "-"}</td>
+                            <td class="ic-num">${typeof it.stok === "number" ? it.stok : "-"}</td>
+                            <td><button class="btn-ic-cancel" style="color:#c62828;" type="button" onclick="hapusMasterBarangDuplikat('${it.id}', ${JSON.stringify(it.nama || "")})">🗑️ Hapus</button></td>
+                        </tr>
+                    `).join("")}
+                </tbody>
+            </table>
+        </div>
+    `).join("");
+}
+
+window.hapusMasterBarangDuplikat = async function(id, nama){
+    const stokTerkait = inventoryControlData.find(it => it.id === id);
+    const stokSekarang = stokTerkait && typeof stokTerkait.stok === "number" ? stokTerkait.stok : 0;
+    const pesanKonfirmasi = stokSekarang > 0
+        ? `"${nama}" masih punya stok ${stokSekarang}. Kalau ini memang duplikat, pastikan stoknya sudah dipindah/digabung ke entri yang benar sebelum dihapus. Tetap hapus?`
+        : `Hapus "${nama}" dari Master Barang? Tindakan ini tidak bisa dibatalkan.`;
+
+    if(!confirm(pesanKonfirmasi)) return;
+
+    try{
+        await deleteDoc(doc(db, "master_barang", id));
+        cekDuplikatMasterBarang(); // refresh daftar setelah salah satu dihapus
+    } catch(e){
+        alert("Gagal menghapus: " + e.message);
+    }
 }
 
 window.renderInventoryControl = function(){
