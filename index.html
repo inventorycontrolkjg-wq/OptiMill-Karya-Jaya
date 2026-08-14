@@ -135,6 +135,22 @@ button.btn-login:disabled{ background:#9db8d8; cursor:not-allowed; }
     border-right:1px solid #edf0f2;
     padding:20px 14px;
     min-height:100vh;
+    overflow:hidden;
+    white-space:nowrap;
+    transition:width .22s ease, padding .22s ease, border-color .22s ease;
+}
+
+.sidebar.collapsed{
+    width:0;
+    padding-left:0;
+    padding-right:0;
+    border-right-color:transparent;
+}
+
+.sidebar.collapsed .sidebar-brand,
+.sidebar.collapsed #sidebar-nav{
+    opacity:0;
+    pointer-events:none;
 }
 
 .sidebar-brand{
@@ -182,9 +198,25 @@ button.btn-login:disabled{ background:#9db8d8; cursor:not-allowed; }
     border-bottom:1px solid #edf0f2;
     padding:14px 22px;
     display:flex;
-    justify-content:flex-end;
+    justify-content:space-between;
     align-items:center;
 }
+
+.btn-sidebar-toggle{
+    background:#f4f6fa;
+    border:1px solid #e2e2e2;
+    color:#555;
+    width:36px;
+    height:36px;
+    border-radius:9px;
+    cursor:pointer;
+    font-size:15px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+}
+.btn-sidebar-toggle:hover{ background:#eef2f7; }
 
 .user-info{
     display:flex;
@@ -1179,6 +1211,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
     <div class="main-col">
 
         <div class="topbar">
+            <button class="btn-sidebar-toggle" type="button" onclick="toggleSidebar()" title="Buka/tutup menu">☰</button>
             <div class="user-info">
                 <span id="user-email"></span>
                 <span class="role-badge" id="user-role-badge">-</span>
@@ -2167,6 +2200,11 @@ window.login = async function(){
 
 window.logout = function(){
     signOut(auth);
+}
+
+window.toggleSidebar = function(){
+    const sidebar = document.getElementById("sidebar");
+    if(sidebar) sidebar.classList.toggle("collapsed");
 }
 
 // =========================================================
