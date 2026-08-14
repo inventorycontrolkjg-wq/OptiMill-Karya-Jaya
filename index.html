@@ -425,6 +425,14 @@ table.tbl tr.tbl-grp-first td{ border-top:2px solid #b8c9de; }
     cursor:default;
 }
 
+.nama-status{
+    font-size:10.5px;
+    margin-top:3px;
+    line-height:1.3;
+}
+.nama-status.cocok{ color:#2e7d32; }
+.nama-status.baru{ color:#b26a00; }
+
 .btn-remove-item{
     background:#fff0f0;
     color:#c62828;
@@ -3047,18 +3055,34 @@ window.autoisiSatuan = function(id){
         const namaEl = document.getElementById(`opb-nama-${id}`);
         const satuanEl = document.getElementById(`opb-satuan-${id}`);
         const stockEl = document.getElementById(`opb-stock-${id}`);
+        const statusEl = document.getElementById(`opb-namastatus-${id}`);
         if(!namaEl || !satuanEl || !stockEl) return;
         const nama = namaEl.value.trim();
         const cocok = cariMasterBarang(nama);
 
         if(!nama || !cocok){
-            // Nama kosong atau belum/tidak cocok dengan Master Barang -> kosongkan satuan & stok
-            satuanEl.innerHTML = `<option value="">-</option>`;
-            satuanEl.value = "";
+            // Nama kosong atau belum/tidak cocok dengan Master Barang.
+            if(nama){
+                // Barang baru (belum ada di Master Barang) -- buka kunci dropdown
+                // supaya tetap bisa dipilih manual, bukan dibiarkan kosong dan
+                // membuat baris ini gagal ikut tersimpan saat diajukan.
+                satuanEl.disabled = false;
+                satuanEl.innerHTML = isiSelectItem("", daftarSatuanGabungan());
+                satuanEl.value = "";
+            } else {
+                satuanEl.disabled = true;
+                satuanEl.innerHTML = `<option value="">-</option>`;
+                satuanEl.value = "";
+            }
             stockEl.value = "";
+            if(statusEl){
+                statusEl.className = nama ? "nama-status baru" : "nama-status";
+                statusEl.textContent = nama ? "⚠ Belum ada di Master Barang — pilih satuan manual di samping" : "";
+            }
             return;
         }
 
+        satuanEl.disabled = true;
         const satuanBersih = (cocok.satuan || "").trim();
         satuanEl.innerHTML = satuanBersih
             ? `<option value="${satuanBersih}">${satuanBersih}</option>`
@@ -3069,7 +3093,13 @@ window.autoisiSatuan = function(id){
         // saat cocoknya lewat jalur normalisasi, mis. tanpa tanda inch). Ini penting
         // supaya pemotongan stok nanti (BKB) menunjuk ke barang yang benar, bukan
         // membuat entri Master Barang baru yang "mirip tapi beda".
-        if(namaEl.value.trim() !== cocok.nama) namaEl.value = cocok.nama;
+        const disesuaikan = namaEl.value.trim() !== cocok.nama;
+        if(disesuaikan) namaEl.value = cocok.nama;
+
+        if(statusEl){
+            statusEl.className = "nama-status cocok";
+            statusEl.textContent = disesuaikan ? `✓ Disesuaikan ke: ${cocok.nama}` : "✓ Ada di Master Barang";
+        }
 
         // Isi otomatis Stok Saat Ini dari Master Barang (bukan diketik manual),
         // supaya pemohon/pimpinan langsung tahu sisa stok saat mengajukan permintaan.
@@ -3081,7 +3111,10 @@ function buatBarisOpbHTML(id){
     return `
         <tr id="opb-row-${id}">
             <td class="opb-row-no">-</td>
-            <td><input type="text" id="opb-nama-${id}" list="master-barang-datalist" placeholder="Nama barang" oninput="autoisiSatuan(${id})"></td>
+            <td>
+                <input type="text" id="opb-nama-${id}" list="master-barang-datalist" placeholder="Nama barang" oninput="autoisiSatuan(${id})">
+                <div class="nama-status" id="opb-namastatus-${id}"></div>
+            </td>
             <td><input type="number" min="1" id="opb-jumlah-${id}" oninput="hitungTotalOpb()"></td>
             <td><select id="opb-satuan-${id}" disabled><option value="">-</option></select></td>
             <td><input type="number" min="0" id="opb-stock-${id}" placeholder="-" readonly class="opb-stock-display"></td>
@@ -3197,6 +3230,7 @@ window.ajukanPermintaan = async function(){
     const rows = document.querySelectorAll("#opb-items-body tr");
     const items = [];
     let totalJumlah = 0;
+    let adaBelumPilihSatuan = false;
 
     rows.forEach(row => {
         const id = row.id.replace("opb-row-", "");
@@ -3214,8 +3248,20 @@ window.ajukanPermintaan = async function(){
                 stock_saat_ini: stock === "" ? null : Number(stock)
             });
             totalJumlah += jml;
+        } else if(nama !== "" && jumlah !== "" && satuan === ""){
+            // Nama & jumlah sudah diisi tapi Satuan belum dipilih -- kemungkinan besar
+            // barang baru yang belum ada di Master Barang. Jangan dibuang diam-diam,
+            // beri tahu supaya tidak ada barang yang "hilang" tanpa disadari.
+            adaBelumPilihSatuan = true;
         }
     });
+
+    if(adaBelumPilihSatuan){
+        msgEl.textContent = "Ada barang yang Satuan-nya belum dipilih (lihat tanda ⚠ di bawah nama barang). Pilih satuannya dulu, atau sesuaikan nama supaya cocok dengan Master Barang.";
+        msgEl.classList.add("err");
+        msgEl.style.display = "block";
+        return;
+    }
 
     if(!tanggal || pembuat === "" || divisi === "" || untuk === ""){
         msgEl.textContent = "Tanggal, Pembuat/Peminta, Divisi, dan Untuk wajib diisi.";
@@ -6028,7 +6074,10 @@ function buatBarisPnmHTML(id){
     return `
         <tr id="pnm-row-${id}">
             <td class="pnm-row-no">-</td>
-            <td><input type="text" id="pnm-namabarang-${id}" list="master-barang-datalist" placeholder="Nama barang" autocomplete="off" oninput="isiNamaBarangPnm(${id})"></td>
+            <td>
+                <input type="text" id="pnm-namabarang-${id}" list="master-barang-datalist" placeholder="Nama barang" autocomplete="off" oninput="isiNamaBarangPnm(${id})">
+                <div class="nama-status" id="pnm-namastatus-${id}"></div>
+            </td>
             <td><input type="number" min="1" id="pnm-jumlah-${id}" oninput="hitungStokSesudahPnm(${id})"></td>
             <td id="pnm-satuan-${id}" class="bkb-satuan-cell"><span class="bkb-stok-value kosong">-</span></td>
             <td id="pnm-stoksebelum-${id}" class="bkb-stok-cell"><span class="bkb-stok-value kosong">-</span></td>
@@ -6064,6 +6113,7 @@ window.isiNamaBarangPnm = function(id){
         const namaEl = document.getElementById(`pnm-namabarang-${id}`);
         const satuanCell = document.getElementById(`pnm-satuan-${id}`);
         const sebelumCell = document.getElementById(`pnm-stoksebelum-${id}`);
+        const statusEl = document.getElementById(`pnm-namastatus-${id}`);
         if(!namaEl || !satuanCell || !sebelumCell) return;
 
         const nama = namaEl.value.trim();
@@ -6074,6 +6124,10 @@ window.isiNamaBarangPnm = function(id){
             satuanCell.innerHTML = `<span class="bkb-stok-value kosong">-</span>`;
             sebelumCell.innerHTML = `<span class="bkb-stok-value kosong">-</span>`;
             delete sebelumCell.dataset.stok;
+            if(statusEl){
+                statusEl.className = nama ? "nama-status baru" : "nama-status";
+                statusEl.textContent = nama ? "⚠ Belum ada di Master Barang" : "";
+            }
             hitungStokSesudahPnm(id);
             return;
         }
@@ -6081,7 +6135,13 @@ window.isiNamaBarangPnm = function(id){
         namaEl.dataset.terisi = "1";
         // Samakan nama yang tersimpan dengan nama resmi di Master Barang, sama
         // seperti di form OPB -- supaya penambahan stok nanti menunjuk ke barang yang benar.
-        if(namaEl.value.trim() !== cocok.nama) namaEl.value = cocok.nama;
+        const disesuaikan = namaEl.value.trim() !== cocok.nama;
+        if(disesuaikan) namaEl.value = cocok.nama;
+
+        if(statusEl){
+            statusEl.className = "nama-status cocok";
+            statusEl.textContent = disesuaikan ? `✓ Disesuaikan ke: ${cocok.nama}` : "✓ Ada di Master Barang";
+        }
 
         const satuanBersih = (cocok.satuan || "").trim();
         satuanCell.innerHTML = satuanBersih
