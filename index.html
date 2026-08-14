@@ -253,6 +253,13 @@ button.btn-login:disabled{ background:#9db8d8; cursor:not-allowed; }
     margin:0 auto;
 }
 
+/* List Permintaan & List Permintaan Approve butuh ruang lebih lebar
+   (kolom Kategori 1-3 + Divisi ditambahkan) -- lepas batas max-width
+   khusus untuk kedua halaman ini, supaya tabelnya selebar area konten. */
+.content:has(.page-wide.active){
+    max-width:none;
+}
+
 .page{ display:none; }
 .page.active{ display:block; }
 
@@ -1784,7 +1791,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
             <!-- ============================================= -->
             <!-- PURCHASING -->
             <!-- ============================================= -->
-            <div class="page" id="page-purchasing-list-permintaan">
+            <div class="page page-wide" id="page-purchasing-list-permintaan">
                 <div class="page-header">
                     <h2>📋 List Permintaan</h2>
                     <p>Input penawaran vendor untuk setiap permintaan yang masuk dari gudang</p>
@@ -1795,6 +1802,10 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                             <tr>
                                 <th>Tanggal</th>
                                 <th>No PR</th>
+                                <th>Kategori 1</th>
+                                <th>Kategori 2</th>
+                                <th>Kategori 3</th>
+                                <th>Divisi</th>
                                 <th>Detail Barang</th>
                                 <th>Keterangan</th>
                                 <th>Input Penawaran</th>
@@ -1809,7 +1820,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                 </div>
             </div>
 
-            <div class="page" id="page-purchasing-list-approve">
+            <div class="page page-wide" id="page-purchasing-list-approve">
                 <div class="page-header">
                     <h2>✅ List Permintaan Approve</h2>
                     <p>Permintaan yang sudah disetujui Pimpinan — buat Surat Jalan per pengiriman & input faktur</p>
@@ -1820,6 +1831,10 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                             <tr>
                                 <th>Tanggal</th>
                                 <th>No. PR</th>
+                                <th>Kategori 1</th>
+                                <th>Kategori 2</th>
+                                <th>Kategori 3</th>
+                                <th>Divisi</th>
                                 <th>Vendor</th>
                                 <th>Status &amp; Surat Jalan</th>
                                 <th>Aksi Kirim</th>
@@ -3491,6 +3506,10 @@ function pantauPurchasingListPermintaan(){
 <tr>
     <td>${tgl}</td>
     <td>${d.no_pr || "-"}</td>
+    <td>${d.kategori1 || "-"}</td>
+    <td>${d.kategori2 || "-"}</td>
+    <td>${d.kategori3 || "-"}</td>
+    <td>${d.divisi || "-"}</td>
     <td>${renderDetailBarangHtml(d)}</td>
     <td>${d.keterangan || "-"}</td>
     <td><button class="btn-ic-edit" type="button" onclick="bukaFormPenawaran('${docSnap.id}')">${btnPenawaranLabel}</button></td>
@@ -3853,6 +3872,10 @@ function pantauPurchasingListApprove(){
 <tr>
     <td>${tgl}</td>
     <td>${d.no_pr || "-"}</td>
+    <td>${d.kategori1 || "-"}</td>
+    <td>${d.kategori2 || "-"}</td>
+    <td>${d.kategori3 || "-"}</td>
+    <td>${d.divisi || "-"}</td>
     <td>${(d.penawaran_list && d.penawaran_list[0]) ? d.penawaran_list[0].vendor : "-"}</td>
     <td><span class="status-pill ${classStatusBarang}">${labelStatusBarang}</span><br>${daftarSJHtml}</td>
     <td>${btnBuatSJ}</td>
