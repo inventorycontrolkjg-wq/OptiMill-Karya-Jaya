@@ -1974,7 +1974,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                 </div>
             </div>
 
-            <div class="page" id="page-purchasing-list-po">
+            <div class="page page-wide" id="page-purchasing-list-po">
                 <div class="page-header">
                     <h2>📑 List PO</h2>
                     <p>Semua Purchase Order yang sudah diterbitkan</p>
@@ -1983,18 +1983,23 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                     <table class="tbl">
                         <thead>
                             <tr>
-                                <th>Tanggal</th>
                                 <th>No. PO</th>
+                                <th>Tanggal</th>
+                                <th>Nama Supplier</th>
+                                <th>Metode Payment</th>
+                                <th>Tenor</th>
+                                <th>No PR Urut</th>
                                 <th>Nama Barang</th>
-                                <th>Qty</th>
-                                <th>Keterangan</th>
-                                <th>Harga</th>
+                                <th>Jumlah</th>
+                                <th>Satuan</th>
+                                <th>Harga Satuan</th>
                                 <th>Diskon</th>
                                 <th>PPh23</th>
                                 <th>PPN</th>
-                                <th>Total</th>
-                                <th>Metode Payment</th>
-                                <th>Tenor</th>
+                                <th>Total Harga</th>
+                                <th>Keterangan Supplier</th>
+                                <th>Keterangan Internal</th>
+                                <th>Dibeli Oleh</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -4905,18 +4910,23 @@ function pantauPurchasingListPO(){
             items.forEach((it, i) => {
                 html += `
 <tr class="${grpClass}${i === 0 ? ' tbl-grp-first' : ''}">
-    <td>${i === 0 ? teksAtauKosong(d.tanggal_display || d.tanggal) : ""}</td>
     <td>${i === 0 ? teksAtauKosong(d.no_po) : ""}</td>
+    <td>${i === 0 ? teksAtauKosong(d.tanggal_display || d.tanggal) : ""}</td>
+    <td>${i === 0 ? teksAtauKosong(d.vendor) : ""}</td>
+    <td>${i === 0 ? teksAtauKosong(d.metode_payment) : ""}</td>
+    <td>${i === 0 ? teksAtauKosong(d.metode_payment === "KREDIT" ? d.tenor : "") : ""}</td>
+    <td>${teksAtauKosong(it.no_pr_urut)}</td>
     <td>${teksAtauKosong(it.nama_barang)}</td>
     <td class="num">${it.jumlah ?? ""}</td>
-    <td>${teksAtauKosong(it.keterangan_supplier)}</td>
+    <td>${teksAtauKosong(it.satuan)}</td>
     <td class="num">${rpAtauKosong(it.harga_satuan)}</td>
     <td class="num">${rpAtauKosong(it.diskon)}</td>
     <td class="num">${rpAtauKosong(it.pph23)}</td>
     <td class="num">${rpAtauKosong(it.ppn)}</td>
     <td class="num">${rpAtauKosong(it.total_harga)}</td>
-    <td>${i === 0 ? teksAtauKosong(d.metode_payment) : ""}</td>
-    <td>${i === 0 ? teksAtauKosong(d.metode_payment === "KREDIT" ? d.tenor : "") : ""}</td>
+    <td>${teksAtauKosong(it.keterangan_supplier)}</td>
+    <td>${teksAtauKosong(it.keterangan_internal)}</td>
+    <td>${teksAtauKosong(it.dibeli_oleh)}</td>
     <td>${i === 0 ? `<button class="btn-ic-edit" type="button" onclick="cetakPO('${docSnap.id}')">🖨️ Cetak</button>` : ""}</td>
 </tr>`;
             });
