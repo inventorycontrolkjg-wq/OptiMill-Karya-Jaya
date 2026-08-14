@@ -2364,6 +2364,7 @@ let semuaPermintaanMap = {};
 let unsubMasterBarang = null;
 let opbRowCount = 0;
 let masterBarangMap = {};
+let masterBarangNormalizedMap = {};
 let masterBarangSatuanSet = new Set();
 let masterBarangByBarcode = {}; // barcode -> { nama, satuan_default, stok }
 
@@ -2414,6 +2415,30 @@ function siapkanDropdownOpb(){
     isiSelect("opb-kategori3", OPB_KATEGORI3, "Pilih kategori");
 }
 
+// Samakan nama barang supaya pencocokan tidak meleset gara-gara tanda kutip/inch,
+// simbol serupa, atau spasi berlebih -- dipakai sebagai jalur cadangan kalau
+// pencocokan persis (case-sensitive, karakter-per-karakter) gagal.
+function normalisasiNamaBarang(s){
+    return (s || "")
+        .toUpperCase()
+        .replace(/[""″ʺ'`]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+// Cari data barang di Master Barang: coba nama persis dulu, kalau gagal baru
+// coba versi yang sudah dinormalisasi. Kalau versi normalisasi ternyata cocok
+// ke lebih dari satu barang berbeda, jangan pilih sembarangan -- balikin null.
+function cariMasterBarang(nama){
+    if(!nama) return null;
+    if(nama in masterBarangMap){
+        return { nama: nama, satuan: masterBarangMap[nama] || "", stok: masterBarangStokMap[nama] };
+    }
+    const alt = masterBarangNormalizedMap[normalisasiNamaBarang(nama)];
+    if(alt && alt !== "AMBIGU") return alt;
+    return null;
+}
+
 // -------- Master Barang (untuk autocomplete Nama Barang & lookup barcode) --------
 function pantauMasterBarang(){
     if(unsubMasterBarang) return;
@@ -2421,6 +2446,7 @@ function pantauMasterBarang(){
     unsubMasterBarang = onSnapshot(q, (snap) => {
         masterBarangMap = {};
         masterBarangStokMap = {};
+        masterBarangNormalizedMap = {};
         masterBarangSatuanSet = new Set();
         masterBarangByBarcode = {};
         let optionsHtml = "";
@@ -2428,6 +2454,15 @@ function pantauMasterBarang(){
             const d = docSnap.data();
             masterBarangMap[d.nama] = d.satuan_default || "";
             masterBarangStokMap[d.nama] = (d.stok !== undefined ? d.stok : null);
+
+            const key = normalisasiNamaBarang(d.nama);
+            const dataBarang = { nama: d.nama, satuan: d.satuan_default || "", stok: (d.stok !== undefined ? d.stok : null) };
+            if(!(key in masterBarangNormalizedMap)){
+                masterBarangNormalizedMap[key] = dataBarang;
+            } else if(masterBarangNormalizedMap[key] !== "AMBIGU" && masterBarangNormalizedMap[key].nama !== d.nama){
+                masterBarangNormalizedMap[key] = "AMBIGU"; // lebih dari satu nama beda yang mirip -- jangan auto-pilih
+            }
+
             if(d.satuan_default) masterBarangSatuanSet.add(d.satuan_default.trim());
             if(d.barcode){
                 masterBarangByBarcode[normalisasiKode(d.barcode)] = {
@@ -3014,9 +3049,9 @@ window.autoisiSatuan = function(id){
         const stockEl = document.getElementById(`opb-stock-${id}`);
         if(!namaEl || !satuanEl || !stockEl) return;
         const nama = namaEl.value.trim();
-        const satuanDefault = masterBarangMap[nama];
+        const cocok = cariMasterBarang(nama);
 
-        if(!nama || satuanDefault === undefined){
+        if(!nama || !cocok){
             // Nama kosong atau belum/tidak cocok dengan Master Barang -> kosongkan satuan & stok
             satuanEl.innerHTML = `<option value="">-</option>`;
             satuanEl.value = "";
@@ -3024,16 +3059,21 @@ window.autoisiSatuan = function(id){
             return;
         }
 
-        const satuanBersih = (satuanDefault || "").trim();
+        const satuanBersih = (cocok.satuan || "").trim();
         satuanEl.innerHTML = satuanBersih
             ? `<option value="${satuanBersih}">${satuanBersih}</option>`
             : `<option value="">-</option>`;
         satuanEl.value = satuanBersih;
 
+        // Samakan nama yang tersimpan dengan nama resmi di Master Barang (termasuk
+        // saat cocoknya lewat jalur normalisasi, mis. tanpa tanda inch). Ini penting
+        // supaya pemotongan stok nanti (BKB) menunjuk ke barang yang benar, bukan
+        // membuat entri Master Barang baru yang "mirip tapi beda".
+        if(namaEl.value.trim() !== cocok.nama) namaEl.value = cocok.nama;
+
         // Isi otomatis Stok Saat Ini dari Master Barang (bukan diketik manual),
         // supaya pemohon/pimpinan langsung tahu sisa stok saat mengajukan permintaan.
-        const stokMaster = masterBarangStokMap[nama];
-        stockEl.value = typeof stokMaster === "number" ? stokMaster : "";
+        stockEl.value = typeof cocok.stok === "number" ? cocok.stok : "";
     }, 0);
 }
 
@@ -5947,11 +5987,13 @@ window.cariSuratJalanUntukPenerimaan = async function(){
         ditemukan.sj.items.forEach(it => {
             window.tambahBarisPnm();
             const id = pnmRowCount;
-            const satuanMaster = masterBarangMap[it.nama_barang] || it.satuan || "";
-            const stokMaster = masterBarangStokMap[it.nama_barang];
+            const cocok = cariMasterBarang(it.nama_barang);
+            const namaFinal = cocok ? cocok.nama : it.nama_barang;
+            const satuanMaster = cocok ? (cocok.satuan || it.satuan || "") : (it.satuan || "");
+            const stokMaster = cocok ? cocok.stok : undefined;
 
             const namaEl = document.getElementById(`pnm-namabarang-${id}`);
-            namaEl.value = it.nama_barang;
+            namaEl.value = namaFinal;
             namaEl.dataset.terisi = "1";
             namaEl.dataset.noUrut = it.no_urut || "";
 
@@ -6025,9 +6067,9 @@ window.isiNamaBarangPnm = function(id){
         if(!namaEl || !satuanCell || !sebelumCell) return;
 
         const nama = namaEl.value.trim();
-        const satuanMaster = masterBarangMap[nama];
+        const cocok = cariMasterBarang(nama);
 
-        if(!nama || satuanMaster === undefined){
+        if(!nama || !cocok){
             namaEl.dataset.terisi = "";
             satuanCell.innerHTML = `<span class="bkb-stok-value kosong">-</span>`;
             sebelumCell.innerHTML = `<span class="bkb-stok-value kosong">-</span>`;
@@ -6037,13 +6079,16 @@ window.isiNamaBarangPnm = function(id){
         }
 
         namaEl.dataset.terisi = "1";
+        // Samakan nama yang tersimpan dengan nama resmi di Master Barang, sama
+        // seperti di form OPB -- supaya penambahan stok nanti menunjuk ke barang yang benar.
+        if(namaEl.value.trim() !== cocok.nama) namaEl.value = cocok.nama;
 
-        const satuanBersih = (satuanMaster || "").trim();
+        const satuanBersih = (cocok.satuan || "").trim();
         satuanCell.innerHTML = satuanBersih
             ? `<span class="bkb-stok-value">${satuanBersih}</span>`
             : `<span class="bkb-stok-value kosong">-</span>`;
 
-        const stok = typeof masterBarangStokMap[nama] === "number" ? masterBarangStokMap[nama] : 0;
+        const stok = typeof cocok.stok === "number" ? cocok.stok : 0;
         sebelumCell.dataset.stok = stok;
         sebelumCell.innerHTML = `<span class="bkb-stok-value">${stok} ${satuanBersih}</span>`;
 
@@ -6077,9 +6122,11 @@ function ambilItemPnm(){
         const id = row.id.replace("pnm-row-", "");
         const namaEl = document.getElementById(`pnm-namabarang-${id}`);
         const nama = namaEl.value.trim();
+        const cocok = cariMasterBarang(nama);
+        const namaFinal = cocok ? cocok.nama : nama; // jaring pengaman kalau isiNamaBarangPnm belum sempat jalan
         const jumlah = document.getElementById(`pnm-jumlah-${id}`).value;
-        const satuan = masterBarangMap[nama] || "";
-        const stokSebelum = typeof masterBarangStokMap[nama] === "number" ? masterBarangStokMap[nama] : 0;
+        const satuan = cocok ? (cocok.satuan || "") : "";
+        const stokSebelum = cocok && typeof cocok.stok === "number" ? cocok.stok : 0;
         const keteranganCell = document.getElementById(`pnm-keterangan-${id}`);
         const keteranganItem = keteranganCell && keteranganCell.textContent !== "-" ? keteranganCell.textContent.trim() : "";
 
@@ -6087,7 +6134,7 @@ function ambilItemPnm(){
             const jml = Number(jumlah);
             items.push({
                 no_urut: namaEl.dataset.noUrut || "",
-                nama_barang: nama,
+                nama_barang: namaFinal,
                 jumlah: jml,
                 satuan: satuan,
                 stok_sebelum: stokSebelum,
