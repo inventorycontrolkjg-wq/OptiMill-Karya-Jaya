@@ -2745,11 +2745,16 @@ window.importMasterBarangMassal = async function(){
             const ref = doc(db, "master_barang", id);
             const dataTulis = {
                 nama: it.nama,
-                satuan_default: it.satuan_default || "",
-                kategori: it.kategori || "",
-                barcode: it.barcode || "",
                 updated_at: serverTimestamp()
             };
+            // Sama seperti stok: kolom ini cuma ditulis kalau memang ada isinya di file.
+            // Sebelumnya satuan/kategori/barcode SELALU ditulis (walau kosong), jadi
+            // re-import file yang kolomnya kosong di baris tertentu akan menimpa data
+            // yang sudah benar dengan string kosong. Ini yang menyebabkan Satuan
+            // hilang meski sudah pernah diisi lewat import sebelumnya.
+            if(it.satuan_default) dataTulis.satuan_default = it.satuan_default;
+            if(it.kategori) dataTulis.kategori = it.kategori;
+            if(it.barcode) dataTulis.barcode = it.barcode;
             // stok cuma ditulis kalau kolomnya memang ada isinya di file --
             // supaya re-import tidak menimpa stok yang sudah berjalan dari transaksi BKB/Penerimaan.
             // Kalau memang ada, angka ini jadi "Stok Awal" periode baru, dan akumulasi
