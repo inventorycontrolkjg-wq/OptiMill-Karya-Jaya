@@ -6118,7 +6118,7 @@ async function simpanPnmTransaksi(status, items, sjTerhubung, dataDoc){
 
         // ---- baru WRITE ----
         const nomor = nomorBerikutnyaDari(snapCounter);
-        const noPnm = `PNM${yy}${mm}${String(nomor).padStart(3, "0")}`;
+        const noPnm = `${yy}${mm}${String(nomor).padStart(3, "0")}`;
 
         tx.set(counterRef, { terakhir: nomor }, { merge: true });
         if(final) tulisRencanaStok(tx, rencana, +1);
