@@ -1326,7 +1326,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
             <!-- ============================================= -->
             <!-- GUDANG: LIST PERMINTAAN -->
             <!-- ============================================= -->
-            <div class="page" id="page-list-permintaan-proses">
+            <div class="page page-wide" id="page-list-permintaan-proses">
 
                 <div class="page-header">
                     <h2>📋 List Permintaan Barang (Proses)</h2>
@@ -1337,12 +1337,18 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                     <table class="tbl">
                         <thead>
                             <tr>
-                                <th>Tanggal</th>
-                                <th>No. PR</th>
+                                <th>No. OPB</th>
                                 <th>No PR Urut</th>
-                                <th>Diajukan Oleh</th>
-                                <th>Barang</th>
-                                <th>Jumlah</th>
+                                <th>Tanggal Input</th>
+                                <th>Kategori 1</th>
+                                <th>Kategori 2</th>
+                                <th>Kategori 3</th>
+                                <th>Divisi</th>
+                                <th>Nama Barang</th>
+                                <th>Jml Diminta</th>
+                                <th>Satuan</th>
+                                <th>Permintaan</th>
+                                <th>Keterangan</th>
                                 <th>Status</th>
                                 <th>Aksi</th>
                             </tr>
@@ -1354,7 +1360,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
 
             </div>
 
-            <div class="page" id="page-list-permintaan-selesai">
+            <div class="page page-wide" id="page-list-permintaan-selesai">
 
                 <div class="page-header">
                     <h2>✅ List Permintaan Barang (Selesai)</h2>
@@ -1365,12 +1371,18 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                     <table class="tbl">
                         <thead>
                             <tr>
-                                <th>Tanggal</th>
-                                <th>No. PR</th>
+                                <th>No. OPB</th>
                                 <th>No PR Urut</th>
-                                <th>Diajukan Oleh</th>
-                                <th>Barang</th>
-                                <th>Jumlah</th>
+                                <th>Tanggal Input</th>
+                                <th>Kategori 1</th>
+                                <th>Kategori 2</th>
+                                <th>Kategori 3</th>
+                                <th>Divisi</th>
+                                <th>Nama Barang</th>
+                                <th>Jml Diminta</th>
+                                <th>Satuan</th>
+                                <th>Permintaan</th>
+                                <th>Keterangan</th>
                                 <th>Status</th>
                                 <th>Aksi</th>
                             </tr>
@@ -3307,12 +3319,18 @@ function pantauSemuaPermintaan(){
             if(items.length === 0){
                 potongan = `
 <tr class="${grpClass} tbl-grp-first">
-    <td>${tgl}</td>
     <td>${noPR}</td>
     <td>-</td>
+    <td>${tgl}</td>
+    <td>${d.kategori1 || "-"}</td>
+    <td>${d.kategori2 || "-"}</td>
+    <td>${d.kategori3 || "-"}</td>
+    <td>${d.divisi || "-"}</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
     <td>${diajukanOleh}</td>
-    <td>-</td>
-    <td>-</td>
+    <td style="white-space:normal;">${d.keterangan || "-"}</td>
     <td><span class="status-pill ${statusClass}">${labelStatus}</span></td>
     <td><button class="btn-icon-print" type="button" onclick="cetakPermintaan('${docSnap.id}')">🖨️ Cetak</button></td>
 </tr>
@@ -3323,13 +3341,19 @@ function pantauSemuaPermintaan(){
                     if(i === 0){
                         potongan += `
 <tr class="${grpClass} tbl-grp-first">
-    <td rowspan="${jumlahBaris}">${tgl}</td>
     <td rowspan="${jumlahBaris}">${noPR}</td>
     <td>${noUrutItem(noPR, i)}</td>
-    <td rowspan="${jumlahBaris}">${diajukanOleh}</td>
+    <td rowspan="${jumlahBaris}">${tgl}</td>
+    <td rowspan="${jumlahBaris}">${d.kategori1 || "-"}</td>
+    <td rowspan="${jumlahBaris}">${d.kategori2 || "-"}</td>
+    <td rowspan="${jumlahBaris}">${d.kategori3 || "-"}</td>
+    <td rowspan="${jumlahBaris}">${d.divisi || "-"}</td>
     <td style="white-space:normal;">${it.nama_barang || "-"}</td>
     <td>${jumlah}</td>
-    <td><span class="status-pill ${statusClass}">${labelStatus}</span></td>
+    <td>${it.satuan || "-"}</td>
+    <td rowspan="${jumlahBaris}">${diajukanOleh}</td>
+    <td rowspan="${jumlahBaris}" style="white-space:normal;">${d.keterangan || "-"}</td>
+    <td rowspan="${jumlahBaris}"><span class="status-pill ${statusClass}">${labelStatus}</span></td>
     <td rowspan="${jumlahBaris}"><button class="btn-icon-print" type="button" onclick="cetakPermintaan('${docSnap.id}')">🖨️ Cetak</button></td>
 </tr>
 `;
@@ -3339,7 +3363,7 @@ function pantauSemuaPermintaan(){
     <td>${noUrutItem(noPR, i)}</td>
     <td style="white-space:normal;">${it.nama_barang || "-"}</td>
     <td>${jumlah}</td>
-    <td><span class="status-pill ${statusClass}">${labelStatus}</span></td>
+    <td>${it.satuan || "-"}</td>
 </tr>
 `;
                     }
