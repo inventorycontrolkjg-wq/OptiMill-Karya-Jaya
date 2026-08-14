@@ -1596,7 +1596,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
 
             </div>
 
-            <div class="page" id="page-list-pengeluaran">
+            <div class="page page-wide" id="page-list-pengeluaran">
 
                 <div class="page-header">
                     <h2>📃 List Pengeluaran</h2>
@@ -1607,12 +1607,15 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                     <table class="tbl">
                         <thead>
                             <tr>
-                                <th>Tanggal</th>
                                 <th>No. BKB</th>
-                                <th>Diambil Oleh</th>
+                                <th>Tanggal</th>
+                                <th>Jam</th>
+                                <th>Nama User</th>
                                 <th>Divisi</th>
-                                <th>Barang</th>
-                                <th>Total Jumlah</th>
+                                <th>Nama Barang</th>
+                                <th>Jumlah</th>
+                                <th>Satuan</th>
+                                <th>Untuk</th>
                                 <th>Status</th>
                                 <th>Aksi</th>
                             </tr>
@@ -5229,25 +5232,40 @@ function pantauSemuaPengeluaran(){
             const grpClass = grp % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a";
 
             const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : (d.tanggal || "-");
+            const jam = d.created_at ? d.created_at.toDate().toLocaleTimeString("id-ID", { hour:"2-digit", minute:"2-digit" }) : "-";
             const status = d.status || "submit";
             const labelStatus = status === "draft" ? "Draft" : "Submitted";
 
-            const items = d.items || [];
-            let ringkasBarang = items.length ? items[0].nama_barang : "-";
-            if(items.length > 1) ringkasBarang += ` +${items.length - 1} lainnya`;
+            const items = d.items && d.items.length ? d.items : [{}];
+            const jumlahBaris = items.length;
 
-            html += `
-<tr class="${grpClass}">
-    <td>${tgl}</td>
-    <td>${d.no_bkb || "-"}</td>
-    <td>${d.nama_user || d.dibuat_oleh_email || "-"}</td>
-    <td>${d.divisi || "-"}</td>
-    <td>${ringkasBarang}</td>
-    <td>${d.total_jumlah ?? "-"}</td>
-    <td><span class="status-pill ${status === 'draft' ? 'menunggu' : 'disetujui'}">${labelStatus}</span></td>
-    <td><button class="btn-icon-print" type="button" onclick="cetakBKB('${docSnap.id}')">🖨️ Cetak</button></td>
+            items.forEach((it, i) => {
+                if(i === 0){
+                    html += `
+<tr class="${grpClass} tbl-grp-first">
+    <td rowspan="${jumlahBaris}">${d.no_bkb || "-"}</td>
+    <td rowspan="${jumlahBaris}">${tgl}</td>
+    <td rowspan="${jumlahBaris}">${jam}</td>
+    <td rowspan="${jumlahBaris}">${d.nama_user || d.dibuat_oleh_email || "-"}</td>
+    <td rowspan="${jumlahBaris}">${d.divisi || "-"}</td>
+    <td style="white-space:normal;">${it.nama_barang || "-"}</td>
+    <td class="num">${it.jumlah ?? "-"}</td>
+    <td>${it.satuan || "-"}</td>
+    <td rowspan="${jumlahBaris}" style="white-space:normal;">${d.untuk || "-"}</td>
+    <td rowspan="${jumlahBaris}"><span class="status-pill ${status === 'draft' ? 'menunggu' : 'disetujui'}">${labelStatus}</span></td>
+    <td rowspan="${jumlahBaris}"><button class="btn-icon-print" type="button" onclick="cetakBKB('${docSnap.id}')">🖨️ Cetak</button></td>
 </tr>
 `;
+                } else {
+                    html += `
+<tr class="${grpClass}">
+    <td style="white-space:normal;">${it.nama_barang || "-"}</td>
+    <td class="num">${it.jumlah ?? "-"}</td>
+    <td>${it.satuan || "-"}</td>
+</tr>
+`;
+                }
+            });
 
         });
 
