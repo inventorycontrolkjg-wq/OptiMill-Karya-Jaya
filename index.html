@@ -790,6 +790,11 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
     min-width:210px;
     max-width:280px;
 }
+.detail-barang-list.detail-barang-list-kode{
+    min-width:0;
+    max-width:none;
+    white-space:nowrap;
+}
 .detail-barang-list .item-line{
     margin-bottom:4px;
     padding-bottom:4px;
@@ -1849,7 +1854,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                                 <th>Kategori 2</th>
                                 <th>Kategori 3</th>
                                 <th>Divisi</th>
-                                <th>No PR Urut</th>
+                                <th style="width:100px;">No PR Urut</th>
                                 <th>Nama Barang</th>
                                 <th>Keterangan</th>
                                 <th>Input Penawaran</th>
@@ -3947,7 +3952,7 @@ function renderNoPrUrutHtml(d){
     if(items.length === 0) return `<span style="color:#9a9a9a;">-</span>`;
     const noPR = d.no_pr || "-";
     const baris = items.map((it, i) => `<div class="item-line"><span class="kode-urut">${noUrutItem(noPR, i)}</span></div>`).join("");
-    return `<div class="detail-barang-list">${baris}</div>`;
+    return `<div class="detail-barang-list detail-barang-list-kode">${baris}</div>`;
 }
 
 function renderNamaBarangHtml(d){
