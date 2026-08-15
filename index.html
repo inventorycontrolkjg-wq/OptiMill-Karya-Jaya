@@ -1849,7 +1849,8 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                                 <th>Kategori 2</th>
                                 <th>Kategori 3</th>
                                 <th>Divisi</th>
-                                <th>Detail Barang</th>
+                                <th>No PR Urut</th>
+                                <th>Nama Barang</th>
                                 <th>Keterangan</th>
                                 <th>Input Penawaran</th>
                                 <th>Catatan dr Purchasing</th>
@@ -3728,7 +3729,8 @@ function pantauPurchasingListPermintaan(){
     <td>${d.kategori2 || "-"}</td>
     <td>${d.kategori3 || "-"}</td>
     <td>${d.divisi || "-"}</td>
-    <td>${renderDetailBarangHtml(d)}</td>
+    <td>${renderNoPrUrutHtml(d)}</td>
+    <td>${renderNamaBarangHtml(d)}</td>
     <td>${d.keterangan || "-"}</td>
     <td><button class="btn-ic-edit" type="button" onclick="bukaFormPenawaran('${docSnap.id}')">${btnPenawaranLabel}</button></td>
     <td><button class="btn-ic-edit" type="button" onclick="bukaFormCatatan('${docSnap.id}')">${btnCatatanLabel}</button></td>
@@ -3933,6 +3935,27 @@ function renderDetailBarangHtml(d){
     const baris = items.map((it, i) => {
         const jumlah = it.jumlah_diminta ?? it.jumlah ?? 0;
         return `<div class="item-line"><span class="kode-urut">${noUrutItem(noPR, i)}</span>${it.nama_barang || "-"} <span class="jml-satuan">(${jumlah} ${it.satuan || ""})</span></div>`;
+    }).join("");
+    return `<div class="detail-barang-list">${baris}</div>`;
+}
+
+// Sama seperti renderDetailBarangHtml, tapi kode urut & nama barang dipecah jadi
+// dua kolom terpisah. Baris di kedua kolom sengaja disusun sebaris-sebaris (pakai
+// class item-line yang sama) supaya tetap sejajar secara visual antar kolom.
+function renderNoPrUrutHtml(d){
+    const items = d.items || [];
+    if(items.length === 0) return `<span style="color:#9a9a9a;">-</span>`;
+    const noPR = d.no_pr || "-";
+    const baris = items.map((it, i) => `<div class="item-line"><span class="kode-urut">${noUrutItem(noPR, i)}</span></div>`).join("");
+    return `<div class="detail-barang-list">${baris}</div>`;
+}
+
+function renderNamaBarangHtml(d){
+    const items = d.items || [];
+    if(items.length === 0) return `<span style="color:#9a9a9a;">-</span>`;
+    const baris = items.map(it => {
+        const jumlah = it.jumlah_diminta ?? it.jumlah ?? 0;
+        return `<div class="item-line">${it.nama_barang || "-"} <span class="jml-satuan">(${jumlah} ${it.satuan || ""})</span></div>`;
     }).join("");
     return `<div class="detail-barang-list">${baris}</div>`;
 }
