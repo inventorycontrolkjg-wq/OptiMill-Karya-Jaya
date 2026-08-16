@@ -1880,13 +1880,10 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                             <tr>
                                 <th>Tanggal</th>
                                 <th>No. PR</th>
-                                <th>Kategori 1</th>
-                                <th>Kategori 2</th>
-                                <th>Kategori 3</th>
                                 <th>Divisi</th>
+                                <th>Detail Barang</th>
                                 <th>Vendor</th>
                                 <th>Status &amp; Surat Jalan</th>
-                                <th>Aksi Kirim</th>
                                 <th>Faktur</th>
                             </tr>
                         </thead>
@@ -4104,10 +4101,6 @@ function pantauPurchasingListApprove(){
                     </div>
                 `).join("");
 
-            const btnBuatSJ = totalSisa > 0
-                ? `<button class="btn-ic-edit" type="button" onclick="buatSuratJalan('${docSnap.id}')">🚚 Buat Surat Jalan</button>`
-                : `<span style="color:#2e7d32; font-size:11.5px; font-weight:600;">✔ Semua sudah dikirim</span>`;
-
             const btnFaktur = d.faktur
                 ? `<button class="btn-ic-edit" type="button" onclick="bukaFormFaktur('${docSnap.id}')">✏️ Edit Faktur</button>`
                 : (adaSJDiterima
@@ -4118,13 +4111,10 @@ function pantauPurchasingListApprove(){
 <tr>
     <td>${tgl}</td>
     <td>${d.no_pr || "-"}</td>
-    <td>${d.kategori1 || "-"}</td>
-    <td>${d.kategori2 || "-"}</td>
-    <td>${d.kategori3 || "-"}</td>
     <td>${d.divisi || "-"}</td>
+    <td>${renderDetailBarangHtml(d)}</td>
     <td>${(d.penawaran_list && d.penawaran_list[0]) ? d.penawaran_list[0].vendor : "-"}</td>
     <td><span class="status-pill ${classStatusBarang}">${labelStatusBarang}</span><br>${daftarSJHtml}</td>
-    <td>${btnBuatSJ}</td>
     <td>${d.faktur ? (d.faktur.no_faktur || "✔ Sudah") : "-"}<br>${btnFaktur}</td>
 </tr>`;
         });
