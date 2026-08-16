@@ -4304,16 +4304,34 @@ async function buatDanSimpanSuratJalan(id, d, itemsUntukSJ){
 }
 
 window.tandaiSJDiterima = async function(id, noSJ){
-    const d = purApproveMap[id];
-    if(!d) return;
     if(!confirm(`Tandai surat jalan ${noSJ} sebagai sudah Diterima?`)) return;
 
-    const daftarBaru = (d.surat_jalan || []).map(sj =>
-        sj.no_sj === noSJ ? { ...sj, status: "diterima", diterima_pada: new Date().toISOString() } : sj
-    );
-
     try{
-        await setDoc(doc(db, "permintaan_barang", id), { surat_jalan: daftarBaru }, { merge: true });
+        // Satu No SJ bisa ada di lebih dari satu dokumen PR (kalau dibuat lewat
+        // "gabung beberapa PR jadi 1 SJ"). Cari SEMUA PR yang punya SJ ini lewat
+        // query langsung ke Firestore -- bukan cuma yang kebetulan sudah ke-load
+        // di halaman yang sedang dibuka -- supaya statusnya konsisten di semua salinan.
+        const snap = await getDocs(query(collection(db, "permintaan_barang"), where("status", "==", "approve")));
+        const batch = writeBatch(db);
+        let ketemu = false;
+
+        snap.forEach(docSnap => {
+            const d = docSnap.data();
+            const adaSJIni = (d.surat_jalan || []).some(sj => sj.no_sj === noSJ);
+            if(!adaSJIni) return;
+            ketemu = true;
+            const daftarBaru = d.surat_jalan.map(sj =>
+                sj.no_sj === noSJ ? { ...sj, status: "diterima", diterima_pada: new Date().toISOString() } : sj
+            );
+            batch.update(doc(db, "permintaan_barang", docSnap.id), { surat_jalan: daftarBaru });
+        });
+
+        if(!ketemu){
+            alert(`Surat Jalan "${noSJ}" tidak ditemukan.`);
+            return;
+        }
+
+        await batch.commit();
     } catch(e){
         alert("Gagal update status surat jalan: " + e.message);
     }
@@ -6259,7 +6277,7 @@ let pnmRowCount = 0;
 let unsubPenerimaan = null;
 let semuaPenerimaanMap = {};
 let pnmTanggalISO = "";
-let pnmSJTerhubung = null; // { docId, noSJ } kalau item diisi otomatis dari Surat Jalan
+let pnmSJTerhubung = null; // { noSJ, docIds: [...] } kalau item diisi otomatis dari Surat Jalan -- docIds bisa lebih dari satu (SJ gabungan beberapa PR)
 let pnmKeteranganOtomatis = ""; // keterangan dari permintaan awal, terisi saat cari No SJ
 let pnmDivisiOtomatis = ""; // divisi dari permintaan awal, terisi saat cari No SJ
 
@@ -6299,28 +6317,29 @@ window.cariSuratJalanUntukPenerimaan = async function(){
     try{
         const snap = await getDocs(query(collection(db, "permintaan_barang"), where("status", "==", "approve")));
 
-        let ditemukan = null;
-        let docIdDitemukan = null;
-
+        // Satu No SJ bisa tersebar di LEBIH DARI SATU dokumen PR -- ini terjadi
+        // kalau saat Buat Surat Jalan, purchasing menggabungkan beberapa No PR
+        // sekaligus jadi satu SJ. Kumpulkan SEMUA PR yang mengandung SJ ini,
+        // jangan cuma yang ketemu paling akhir waktu di-loop (itu penyebab
+        // sebagian barang "hilang" saat gudang cari No SJ di form ini).
+        const semuaDitemukan = [];
         snap.forEach(docSnap => {
             const d = docSnap.data();
             const sj = (d.surat_jalan || []).find(x => (x.no_sj || "").toUpperCase() === noSJ);
-            if(sj){
-                ditemukan = { d, sj };
-                docIdDitemukan = docSnap.id;
-            }
+            if(sj) semuaDitemukan.push({ d, sj, docId: docSnap.id });
         });
 
-        if(!ditemukan){
+        if(semuaDitemukan.length === 0){
             statusEl.textContent = `Surat Jalan "${noSJ}" tidak ditemukan.`;
             statusEl.classList.add("err");
             pnmSJTerhubung = null;
             return;
         }
 
-        if(ditemukan.sj.status === "diterima"){
-            const tglTerima = ditemukan.sj.diterima_pada
-                ? new Date(ditemukan.sj.diterima_pada).toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" })
+        const salahSatuSudahDiterima = semuaDitemukan.find(x => x.sj.status === "diterima");
+        if(salahSatuSudahDiterima){
+            const tglTerima = salahSatuSudahDiterima.sj.diterima_pada
+                ? new Date(salahSatuSudahDiterima.sj.diterima_pada).toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" })
                 : "";
             statusEl.textContent = `Surat Jalan "${noSJ}" sudah pernah diterima${tglTerima ? " pada " + tglTerima : ""}. Tidak bisa ditarik ulang.`;
             statusEl.classList.add("err");
@@ -6328,13 +6347,20 @@ window.cariSuratJalanUntukPenerimaan = async function(){
             return;
         }
 
-        // Isi otomatis daftar barang dari Surat Jalan
+        // Isi otomatis daftar barang -- gabungkan item dari SEMUA PR yang terlibat.
         document.getElementById("pnm-items-body").innerHTML = "";
         pnmRowCount = 0;
-        pnmKeteranganOtomatis = ditemukan.d.keterangan || "";
-        pnmDivisiOtomatis = ditemukan.d.divisi || "";
+        pnmKeteranganOtomatis = semuaDitemukan[0].d.keterangan || "";
+        pnmDivisiOtomatis = semuaDitemukan[0].d.divisi || "";
 
-        ditemukan.sj.items.forEach(it => {
+        const semuaItem = [];
+        semuaDitemukan.forEach(({ d, sj, docId }) => {
+            (sj.items || []).forEach(it => {
+                semuaItem.push(Object.assign({}, it, { __docId: docId }));
+            });
+        });
+
+        semuaItem.forEach(it => {
             window.tambahBarisPnm();
             const id = pnmRowCount;
             const cocok = cariMasterBarang(it.nama_barang);
@@ -6346,6 +6372,7 @@ window.cariSuratJalanUntukPenerimaan = async function(){
             namaEl.value = namaFinal;
             namaEl.dataset.terisi = "1";
             namaEl.dataset.noUrut = it.no_urut || "";
+            namaEl.dataset.docId = it.__docId || ""; // ingat dokumen PR asal item ini
 
             const satuanCell = document.getElementById(`pnm-satuan-${id}`);
             satuanCell.innerHTML = `<span class="bkb-stok-value">${satuanMaster || "-"}</span>`;
@@ -6363,8 +6390,13 @@ window.cariSuratJalanUntukPenerimaan = async function(){
             keteranganCell.className = pnmKeteranganOtomatis ? "bkb-namabarang-cell" : "bkb-namabarang-cell kosong";
         });
 
-        pnmSJTerhubung = { docId: docIdDitemukan, noSJ: ditemukan.sj.no_sj, noPR: ditemukan.d.no_pr || "" };
-        statusEl.textContent = `✔ Ditemukan — ${ditemukan.sj.items.length} barang otomatis terisi dari ${ditemukan.sj.no_sj} (No PR: ${ditemukan.d.no_pr || "-"}).`;
+        pnmSJTerhubung = {
+            noSJ: noSJ,
+            docIds: [...new Set(semuaDitemukan.map(x => x.docId))]
+        };
+
+        const daftarNoPR = semuaDitemukan.map(x => x.d.no_pr || "-").join(", ");
+        statusEl.textContent = `✔ Ditemukan — ${semuaItem.length} barang otomatis terisi dari ${noSJ} (No PR: ${daftarNoPR}).`;
         statusEl.classList.add("ok");
 
     } catch(e){
@@ -6498,6 +6530,7 @@ function ambilItemPnm(){
             const jml = Number(jumlah);
             items.push({
                 no_urut: namaEl.dataset.noUrut || "",
+                doc_id_asal: namaEl.dataset.docId || "", // dokumen PR asal item ini (SJ bisa gabungan beberapa PR)
                 nama_barang: namaFinal,
                 jumlah: jml,
                 satuan: satuan,
@@ -6523,13 +6556,21 @@ async function simpanPnmTransaksi(status, items, sjTerhubung, dataDoc){
     const counterRef = doc(db, "counters", `pnm_${key}`);
     const docRef = doc(collection(db, "penerimaan_barang"));
     const final = status !== "draft";
-    const refPR = (final && sjTerhubung) ? doc(db, "permintaan_barang", sjTerhubung.docId) : null;
+
+    // Satu SJ bisa tersebar di lebih dari satu dokumen PR (hasil "gabung beberapa
+    // PR jadi 1 SJ" saat Buat Surat Jalan) -- semuanya perlu ikut diupdate supaya
+    // statusnya konsisten, bukan cuma salah satu yang kebetulan ditemukan duluan.
+    const docIds = (final && sjTerhubung) ? (sjTerhubung.docIds || []) : [];
+    const refsPR = docIds.map(id => doc(db, "permintaan_barang", id));
 
     return await runTransaction(db, async (tx) => {
 
         // ---- semua READ dulu ----
         const snapCounter = await tx.get(counterRef);
-        const snapPR = refPR ? await tx.get(refPR) : null;
+        const snapsPR = [];
+        for(const ref of refsPR){
+            snapsPR.push(await tx.get(ref));
+        }
         const rencana = final ? await bacaRencanaStok(tx, items) : [];
 
         // ---- baru WRITE ----
@@ -6539,15 +6580,32 @@ async function simpanPnmTransaksi(status, items, sjTerhubung, dataDoc){
         tx.set(counterRef, { terakhir: nomor }, { merge: true });
         if(final) tulisRencanaStok(tx, rencana, +1);
 
+        const noPRGabungan = snapsPR
+            .filter(s => s.exists())
+            .map(s => s.data().no_pr || "-")
+            .join(", ");
+
         tx.set(docRef, Object.assign({
             no_penerimaan: noPnm,
             no_sj: sjTerhubung ? sjTerhubung.noSJ : "",
-            no_pr: sjTerhubung ? (sjTerhubung.noPR || "") : ""
+            no_pr: noPRGabungan
         }, dataDoc));
 
-        if(snapPR && snapPR.exists()){
+        // Jumlah yang dicatat adalah yang benar-benar diinput gudang di form,
+        // dikelompokkan per No PR Urut (bukan nama barang) -- supaya tidak ambigu
+        // kalau ada nama barang yang sama persis dari PR yang berbeda.
+        const jumlahDiinputPerUrut = {};
+        (items || []).forEach(it => {
+            if(!it.no_urut) return;
+            jumlahDiinputPerUrut[it.no_urut] = (jumlahDiinputPerUrut[it.no_urut] || 0) + (Number(it.jumlah) || 0);
+        });
+
+        const waktuTerima = new Date().toISOString();
+
+        snapsPR.forEach((snapPR, idx) => {
+            if(!snapPR.exists()) return;
+            const refPR = refsPR[idx];
             const dPR = snapPR.data();
-            const waktuTerima = new Date().toISOString();
 
             const sjLama = (dPR.surat_jalan || []).find(sj => sj.no_sj === sjTerhubung.noSJ);
             const daftarBaru = (dPR.surat_jalan || []).map(sj =>
@@ -6559,18 +6617,10 @@ async function simpanPnmTransaksi(status, items, sjTerhubung, dataDoc){
             const perubahan = { surat_jalan: daftarBaru };
             const progressLama = dPR.item_progress || {};
 
-            // Jumlah yang dicatat adalah yang benar-benar diinput gudang di form,
-            // bukan angka di Surat Jalan — barang bisa saja datang kurang.
-            const jumlahDiinput = {};
-            (items || []).forEach(it => {
-                const nama = it.nama_barang || "";
-                jumlahDiinput[nama] = (jumlahDiinput[nama] || 0) + (Number(it.jumlah) || 0);
-            });
-
             (sjLama ? (sjLama.items || []) : []).forEach(baris => {
                 if(!baris.no_urut) return; // dokumen lama tanpa no_urut, dilewati
-                const qty = (baris.nama_barang in jumlahDiinput)
-                    ? jumlahDiinput[baris.nama_barang]
+                const qty = (baris.no_urut in jumlahDiinputPerUrut)
+                    ? jumlahDiinputPerUrut[baris.no_urut]
                     : (Number(baris.jumlah) || 0);
                 if(qty <= 0) return;
                 const sudah = Number((progressLama[baris.no_urut] || {}).diterima) || 0;
@@ -6579,7 +6629,7 @@ async function simpanPnmTransaksi(status, items, sjTerhubung, dataDoc){
             });
 
             tx.update(refPR, perubahan);
-        }
+        });
 
         return noPnm;
     });
