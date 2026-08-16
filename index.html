@@ -1536,7 +1536,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                             <div class="form-group">
                                 <label>Scan ID Card</label>
                                 <div class="field-icon-wrap">
-                                    <input type="text" id="bkb-barcode-user" placeholder="Scan ID card..." autocomplete="off" onkeydown="handleBarcodeUserKeydown(event)" onblur="cariUserByBarcode()">
+                                    <input type="password" id="bkb-barcode-user" placeholder="Scan ID card..." autocomplete="off" onkeydown="handleBarcodeUserKeydown(event)" onblur="cariUserByBarcode()">
                                     <span class="field-icon">📇</span>
                                 </div>
                                 <div class="bkb-barcode-status" id="bkb-barcode-user-status"></div>
@@ -7061,12 +7061,10 @@ window.cariUserByBarcode = function cariUserByBarcode(){
 
     namaUserEl.value = bkbScannedUser.nama;
 
-    // Sembunyikan kode ID Card dari layar setelah berhasil dicocokkan -- supaya
-    // tidak ada yang bisa membaca/mencatat kodenya dari layar dan menyalahgunakannya
-    // nanti dengan mengetik manual (tanpa kartu fisik). Field dikunci sampai
-    // "Scan Ulang" diklik, supaya kode yang sudah tersembunyi tidak sengaja
-    // ketimpa/terlihat lagi.
-    inputEl.value = "•".repeat(Math.min(Math.max(kode.length, 6), 10));
+    // Kolom sudah type="password" -- browser otomatis menyamarkan setiap karakter
+    // sejak diketik/discan pertama, jadi kode aslinya tidak pernah tampil polos di
+    // layar sama sekali. Field dikunci setelah cocok supaya tidak sengaja ketimpa;
+    // klik "Scan Ulang" kalau memang perlu scan ulang / ganti orang.
     inputEl.readOnly = true;
 
     statusEl.innerHTML = `✓ Terverifikasi: ${bkbScannedUser.nama} <a href="#" onclick="resetScanUser(); return false;" style="margin-left:8px; text-decoration:underline;">Scan Ulang</a>`;
