@@ -1346,6 +1346,18 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     <p>Permintaan yang masih menunggu approval atau barangnya belum diterima lengkap oleh gudang</p>
                 </div>
 
+                <details style="margin-bottom:14px; font-size:12px; color:#8d8d8d;">
+                    <summary style="cursor:pointer;">⚙️ Alat perawatan data (jalankan hanya kalau diminta developer)</summary>
+                    <div style="margin-top:8px;">
+                        <button class="btn-secondary" type="button" onclick="migrasiStatusSelesaiPR()">Migrasi Status Selesai (sekali jalan)</button>
+                        <div class="form-msg" id="pb-migrasi-status" style="display:none; margin-top:8px;"></div>
+                    </div>
+                </details>
+
+                <div class="form-msg err" id="pb-proses-limit-warning" style="display:none; margin-bottom:12px;">
+                    ⚠ Menampilkan 500 PR proses terbaru. Kalau ada PR lama yang masih tersangkut, gunakan pencarian manual atau hubungi developer.
+                </div>
+
                 <div class="panel">
                     <table class="tbl">
                         <thead>
@@ -1378,6 +1390,21 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                 <div class="page-header">
                     <h2>✅ List Permintaan Barang (Selesai)</h2>
                     <p>Permintaan yang barangnya sudah diterima lengkap oleh gudang</p>
+                </div>
+
+                <div class="form-group" style="max-width:260px; margin-bottom:12px;">
+                    <label>Tampilkan</label>
+                    <select id="pb-selesai-rentang" onchange="gantiRentangPermintaanSelesai(this.value)">
+                        <option value="30">30 Hari Terakhir</option>
+                        <option value="90" selected>90 Hari Terakhir</option>
+                        <option value="180">6 Bulan Terakhir</option>
+                        <option value="365">1 Tahun Terakhir</option>
+                        <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
+                    </select>
+                </div>
+
+                <div class="form-msg err" id="pb-selesai-limit-warning" style="display:none; margin-bottom:12px;">
+                    ⚠ Menampilkan 300 data terbaru di rentang ini. Persempit rentang tanggal atau gunakan pencarian kalau butuh data yang lebih spesifik.
                 </div>
 
                 <div class="panel">
@@ -1616,6 +1643,17 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     <p>Riwayat barang keluar dari gudang (BKB)</p>
                 </div>
 
+                <div class="form-group" style="max-width:260px; margin-bottom:12px;">
+                    <label>Tampilkan</label>
+                    <select id="bkb-list-rentang" onchange="gantiRentangListPengeluaran(this.value)">
+                        <option value="30">30 Hari Terakhir</option>
+                        <option value="90" selected>90 Hari Terakhir</option>
+                        <option value="180">6 Bulan Terakhir</option>
+                        <option value="365">1 Tahun Terakhir</option>
+                        <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
+                    </select>
+                </div>
+
                 <div class="panel">
                     <table class="tbl">
                         <thead>
@@ -1645,6 +1683,17 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                 <div class="page-header">
                     <h2>📃 List Penerimaan</h2>
                     <p>Riwayat barang masuk ke gudang</p>
+                </div>
+
+                <div class="form-group" style="max-width:260px; margin-bottom:12px;">
+                    <label>Tampilkan</label>
+                    <select id="pnm-list-rentang" onchange="gantiRentangListPenerimaan(this.value)">
+                        <option value="30">30 Hari Terakhir</option>
+                        <option value="90" selected>90 Hari Terakhir</option>
+                        <option value="180">6 Bulan Terakhir</option>
+                        <option value="365">1 Tahun Terakhir</option>
+                        <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
+                    </select>
                 </div>
 
                 <div class="panel">
@@ -1937,6 +1986,16 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     <h2>📃 List Surat Jalan</h2>
                     <p>Semua Surat Jalan yang sudah pernah dibuat</p>
                 </div>
+                <div class="form-group" style="max-width:260px; margin-bottom:12px;">
+                    <label>Tampilkan (berdasar tanggal PR asal)</label>
+                    <select id="sj-list-rentang" onchange="gantiRentangListSJ(this.value)">
+                        <option value="30">30 Hari Terakhir</option>
+                        <option value="90" selected>90 Hari Terakhir</option>
+                        <option value="180">6 Bulan Terakhir</option>
+                        <option value="365">1 Tahun Terakhir</option>
+                        <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
+                    </select>
+                </div>
                 <div class="panel">
                     <table class="tbl">
                         <thead>
@@ -2066,6 +2125,16 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                 <div class="page-header">
                     <h2>📑 List PO</h2>
                     <p>Semua Purchase Order yang sudah diterbitkan</p>
+                </div>
+                <div class="form-group" style="max-width:260px; margin-bottom:12px;">
+                    <label>Tampilkan</label>
+                    <select id="po-list-rentang" onchange="gantiRentangListPO(this.value)">
+                        <option value="30">30 Hari Terakhir</option>
+                        <option value="90" selected>90 Hari Terakhir</option>
+                        <option value="180">6 Bulan Terakhir</option>
+                        <option value="365">1 Tahun Terakhir</option>
+                        <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
+                    </select>
                 </div>
                 <div class="panel">
                     <table class="tbl">
@@ -2435,8 +2504,11 @@ window.showPage = function(id){
         siapkanDropdownOpb();
         resetFormOpb();
     }
-    if(id === "list-permintaan-proses" || id === "list-permintaan-selesai"){
-        pantauSemuaPermintaan();
+    if(id === "list-permintaan-proses"){
+        pantauPermintaanProses();
+    }
+    if(id === "list-permintaan-selesai"){
+        pantauPermintaanSelesai();
     }
     if(id === "list-pengeluaran"){
         pantauSemuaPengeluaran();
@@ -3758,6 +3830,7 @@ window.ajukanPermintaan = async function(){
             total_item: items.length,
             total_jumlah: totalJumlah,
             status: "menunggu",
+            selesai: false,
             dibuat_oleh_uid: auth.currentUser.uid,
             dibuat_oleh_email: auth.currentUser.email,
             dibuat_oleh_role: currentUserRole || null,
@@ -3802,6 +3875,62 @@ function hitungSisaDiterimaSJ(d){
     });
 }
 
+// Migrasi SEKALI JALAN: isi field "selesai" (boolean) untuk dokumen PR lama yang
+// dibuat sebelum field ini ada. Setelah field ini terisi di semua dokumen, List
+// Permintaan (Proses/Selesai) bisa query langsung ke Firestore dengan where("selesai",...)
+// alih-alih menarik SEMUA dokumen lalu menyaring di browser -- jauh lebih ringan
+// begitu jumlah PR sudah puluhan ribu.
+window.migrasiStatusSelesaiPR = async function(){
+
+    const statusEl = document.getElementById("pb-migrasi-status");
+    if(statusEl){
+        statusEl.style.display = "block";
+        statusEl.className = "form-msg";
+        statusEl.textContent = "Membaca semua data PR...";
+    }
+
+    try{
+        const snap = await getDocs(collection(db, "permintaan_barang"));
+        const semuaDoc = snap.docs;
+        const ukuranBatch = 400;
+        let diupdate = 0;
+
+        for(let i = 0; i < semuaDoc.length; i += ukuranBatch){
+            const chunk = semuaDoc.slice(i, i + ukuranBatch);
+            const batch = writeBatch(db);
+            let adaDiBatchIni = false;
+
+            chunk.forEach(docSnap => {
+                const d = docSnap.data();
+                const suratJalanList = d.surat_jalan || [];
+                const totalSisa = hitungSisaDiterimaSJ(d).reduce((a, b) => a + b.sisa, 0);
+                const selesaiBaru = suratJalanList.length > 0 && totalSisa <= 0;
+
+                // Cuma ditulis kalau memang belum ada atau nilainya beda, supaya
+                // tidak menghabiskan kuota tulis untuk dokumen yang sudah benar.
+                if(d.selesai !== selesaiBaru){
+                    batch.update(docSnap.ref, { selesai: selesaiBaru });
+                    adaDiBatchIni = true;
+                    diupdate++;
+                }
+            });
+
+            if(adaDiBatchIni) await batch.commit();
+            if(statusEl) statusEl.textContent = `Memproses... ${Math.min(i + ukuranBatch, semuaDoc.length)} / ${semuaDoc.length} (${diupdate} diperbarui)`;
+        }
+
+        if(statusEl){
+            statusEl.className = "form-msg ok";
+            statusEl.textContent = `Selesai. ${diupdate} dari ${semuaDoc.length} PR diperbarui. Silakan refresh halaman ini.`;
+        }
+    } catch(e){
+        if(statusEl){
+            statusEl.className = "form-msg err";
+            statusEl.textContent = "Gagal migrasi: " + e.message;
+        }
+    }
+}
+
 // Status pengiriman PER ITEM (bukan per dokumen PR) -- satu PR bisa punya sebagian
 // item sudah dikirim dan sebagian belum, jadi status/SJ-nya perlu dipecah per baris.
 function hitungStatusKirimPerItem(d){
@@ -3837,79 +3966,48 @@ function hitungStatusKirimPerItem(d){
 }
 
 // -------- List Permintaan (semua permintaan, dipecah 2 tabel: Proses & Selesai) --------
-function pantauSemuaPermintaan(){
+// Bangun baris HTML untuk satu dokumen PR (dipakai baik oleh query Proses maupun Selesai)
+function bangunBarisPermintaan(docSnap, grpClass){
 
-    if(unsubPermintaan) unsubPermintaan();
+    const d = docSnap.data();
+    semuaPermintaanMap[docSnap.id] = d;
 
-    const q = query(
-        collection(db, "permintaan_barang"),
-        orderBy("created_at", "desc")
-    );
+    const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
+    const status = d.status || "menunggu";
 
-    unsubPermintaan = onSnapshot(q, (snapshot) => {
+    let labelStatus = "Menunggu";
+    let statusClass = "menunggu";
 
-        const tbodyProses = document.getElementById("pb-list-body-proses");
-        const emptyProses = document.getElementById("pb-empty-proses");
-        const tbodySelesai = document.getElementById("pb-list-body-selesai");
-        const emptySelesai = document.getElementById("pb-empty-selesai");
-
-        semuaPermintaanMap = {};
-        let htmlProses = "";
-        let htmlSelesai = "";
-        let grpProses = 0;
-        let grpSelesai = 0;
-
-        snapshot.forEach((docSnap) => {
-
-            const d = docSnap.data();
-            semuaPermintaanMap[docSnap.id] = d;
-
-            const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
-            const status = d.status || "menunggu";
-
-            let labelStatus = "Menunggu";
-            let statusClass = "menunggu";
-
-            if(status === "ditolak"){
-                labelStatus = "Ditolak";
-                statusClass = "ditolak";
-            } else if(status === "hold"){
-                labelStatus = "Hold";
+    if(status === "ditolak"){
+        labelStatus = "Ditolak";
+        statusClass = "ditolak";
+    } else if(status === "hold"){
+        labelStatus = "Hold";
+        statusClass = "hold";
+    } else if(status === "approve"){
+        const suratJalanList = d.surat_jalan || [];
+        if(suratJalanList.length === 0){
+            labelStatus = "Approve";
+            statusClass = "approve";
+        } else {
+            const totalSisaDiterima = hitungSisaDiterimaSJ(d).reduce((a, b) => a + b.sisa, 0);
+            if(totalSisaDiterima <= 0){
+                labelStatus = "Close";
+                statusClass = "diterima";
+            } else {
+                labelStatus = "Sebagian Diterima";
                 statusClass = "hold";
-            } else if(status === "approve"){
-                const suratJalanList = d.surat_jalan || [];
-                if(suratJalanList.length === 0){
-                    labelStatus = "Approve";
-                    statusClass = "approve";
-                } else {
-                    const totalSisaDiterima = hitungSisaDiterimaSJ(d).reduce((a, b) => a + b.sisa, 0);
-                    if(totalSisaDiterima <= 0){
-                        labelStatus = "Close";
-                        statusClass = "diterima";
-                    } else {
-                        labelStatus = "Sebagian Diterima";
-                        statusClass = "hold";
-                    }
-                }
             }
+        }
+    }
 
-            // "Close" (barang sudah diterima lengkap gudang) masuk tab Selesai,
-            // selain itu (menunggu approval / approve tapi belum diterima / ditolak) masuk tab Proses.
-            const sudahSelesai = statusClass === "diterima";
+    const items = d.items || [];
+    const noPR = d.no_pr || "-";
+    const diajukanOleh = namaDenganRole(d.pembuat, d.dibuat_oleh_role) || d.dibuat_oleh_email || "-";
+    const jumlahBaris = items.length || 1;
 
-            if(sudahSelesai) grpSelesai++; else grpProses++;
-            const grpNomor = sudahSelesai ? grpSelesai : grpProses;
-            const grpClass = grpNomor % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a";
-
-            const items = d.items || [];
-            const noPR = d.no_pr || "-";
-            const diajukanOleh = namaDenganRole(d.pembuat, d.dibuat_oleh_role) || d.dibuat_oleh_email || "-";
-            const jumlahBaris = items.length || 1;
-
-            let potongan = "";
-
-            if(items.length === 0){
-                potongan = `
+    if(items.length === 0){
+        return `
 <tr class="${grpClass} tbl-grp-first">
     <td>${noPR}</td>
     <td>-</td>
@@ -3927,11 +4025,13 @@ function pantauSemuaPermintaan(){
     <td><button class="btn-icon-print" type="button" onclick="cetakPermintaan('${docSnap.id}')">🖨️ Cetak</button></td>
 </tr>
 `;
-            } else {
-                items.forEach((it, i) => {
-                    const jumlah = it.jumlah_diminta ?? it.jumlah ?? "-";
-                    if(i === 0){
-                        potongan += `
+    }
+
+    let potongan = "";
+    items.forEach((it, i) => {
+        const jumlah = it.jumlah_diminta ?? it.jumlah ?? "-";
+        if(i === 0){
+            potongan += `
 <tr class="${grpClass} tbl-grp-first">
     <td rowspan="${jumlahBaris}">${noPR}</td>
     <td>${noUrutItem(noPR, i)}</td>
@@ -3949,8 +4049,8 @@ function pantauSemuaPermintaan(){
     <td rowspan="${jumlahBaris}"><button class="btn-icon-print" type="button" onclick="cetakPermintaan('${docSnap.id}')">🖨️ Cetak</button></td>
 </tr>
 `;
-                    } else {
-                        potongan += `
+        } else {
+            potongan += `
 <tr class="${grpClass}">
     <td>${noUrutItem(noPR, i)}</td>
     <td style="white-space:normal;">${it.nama_barang || "-"}</td>
@@ -3958,28 +4058,111 @@ function pantauSemuaPermintaan(){
     <td>${it.satuan || "-"}</td>
 </tr>
 `;
-                    }
-                });
-            }
-
-            if(sudahSelesai) htmlSelesai += potongan;
-            else htmlProses += potongan;
-
-        });
-
-        if(tbodyProses){
-            tbodyProses.innerHTML = htmlProses;
-            if(emptyProses) emptyProses.style.display = htmlProses ? "none" : "block";
         }
-        if(tbodySelesai){
-            tbodySelesai.innerHTML = htmlSelesai;
-            if(emptySelesai) emptySelesai.style.display = htmlSelesai ? "none" : "block";
-        }
-
-    }, (err) => {
-        console.error("Gagal memuat permintaan:", err);
     });
 
+    return potongan;
+}
+
+let unsubPermintaanProses = null;
+let unsubPermintaanSelesai = null;
+let permintaanSelesaiRentangHari = "90"; // default: 90 hari terakhir
+
+function pantauSemuaPermintaan(){
+    pantauPermintaanProses();
+    pantauPermintaanSelesai();
+}
+
+// Tab Proses: PR yang belum selesai (menunggu approval, hold, approve tapi
+// belum diterima lengkap, atau ditolak). TIDAK dibatasi tanggal -- PR yang masih
+// berjalan harus selalu kelihatan walau umurnya lama -- tapi tetap ada batas
+// pengaman (limit) supaya query ini tidak pernah tak terbatas.
+function pantauPermintaanProses(){
+
+    if(unsubPermintaanProses) unsubPermintaanProses();
+
+    const BATAS_AMAN = 500;
+    const q = query(
+        collection(db, "permintaan_barang"),
+        where("selesai", "==", false),
+        orderBy("created_at", "desc"),
+        limit(BATAS_AMAN)
+    );
+
+    unsubPermintaanProses = onSnapshot(q, (snapshot) => {
+
+        const tbody = document.getElementById("pb-list-body-proses");
+        const emptyEl = document.getElementById("pb-empty-proses");
+        const warnEl = document.getElementById("pb-proses-limit-warning");
+
+        let html = "";
+        let grp = 0;
+        snapshot.forEach(docSnap => {
+            grp++;
+            html += bangunBarisPermintaan(docSnap, grp % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a");
+        });
+
+        if(tbody){
+            tbody.innerHTML = html;
+            if(emptyEl) emptyEl.style.display = html ? "none" : "block";
+        }
+        if(warnEl) warnEl.style.display = snapshot.size >= BATAS_AMAN ? "block" : "none";
+
+    }, (err) => {
+        console.error("Gagal memuat permintaan proses (cek apakah index Firestore sudah dibuat):", err);
+    });
+}
+
+// Tab Selesai: histori PR yang sudah tuntas diterima gudang. Ini boleh dibatasi
+// rentang tanggal karena sifatnya arsip, bukan sesuatu yang perlu dipantau terus.
+function pantauPermintaanSelesai(){
+
+    if(unsubPermintaanSelesai) unsubPermintaanSelesai();
+
+    const tbody = document.getElementById("pb-list-body-selesai");
+    const emptyEl = document.getElementById("pb-empty-selesai");
+    const warnEl = document.getElementById("pb-selesai-limit-warning");
+    const BATAS_AMAN = 300;
+
+    const constraints = [
+        collection(db, "permintaan_barang"),
+        where("selesai", "==", true)
+    ];
+
+    if(permintaanSelesaiRentangHari !== "all"){
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - Number(permintaanSelesaiRentangHari));
+        constraints.push(where("created_at", ">=", cutoff));
+    }
+
+    constraints.push(orderBy("created_at", "desc"));
+    constraints.push(limit(BATAS_AMAN));
+
+    const q = query(...constraints);
+
+    unsubPermintaanSelesai = onSnapshot(q, (snapshot) => {
+
+        let html = "";
+        let grp = 0;
+        snapshot.forEach(docSnap => {
+            grp++;
+            html += bangunBarisPermintaan(docSnap, grp % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a");
+        });
+
+        if(tbody){
+            tbody.innerHTML = html;
+            if(emptyEl) emptyEl.style.display = html ? "none" : "block";
+        }
+        if(warnEl) warnEl.style.display = snapshot.size >= BATAS_AMAN ? "block" : "none";
+
+    }, (err) => {
+        console.error("Gagal memuat permintaan selesai (cek apakah index Firestore sudah dibuat):", err);
+    });
+}
+
+window.gantiRentangPermintaanSelesai = function(val){
+    permintaanSelesaiRentangHari = val;
+    pantauPermintaanSelesai();
 }
 
 // -------- Cetak dokumen permintaan (mirip PO/invoice) --------
@@ -4076,7 +4259,15 @@ function pantauPurchasingListPermintaan(){
 
     if(unsubPurList) unsubPurList();
 
-    const q = query(collection(db, "permintaan_barang"), orderBy("created_at", "desc"));
+    // Yang sudah approve dipindah tampilannya ke List Permintaan Approve -- disaring
+    // langsung lewat query, bukan menarik semua lalu difilter di browser.
+    const BATAS_AMAN = 500;
+    const q = query(
+        collection(db, "permintaan_barang"),
+        where("status", "in", ["menunggu", "hold", "ditolak"]),
+        orderBy("created_at", "desc"),
+        limit(BATAS_AMAN)
+    );
 
     unsubPurList = onSnapshot(q, (snapshot) => {
 
@@ -4090,9 +4281,6 @@ function pantauPurchasingListPermintaan(){
         snapshot.forEach(docSnap => {
             const d = docSnap.data();
             const status = d.status || "menunggu";
-
-            // Yang sudah Approve tidak ditampilkan di sini lagi — sudah pindah ke List Permintaan Approve
-            if(status === "approve") return;
 
             purListMap[docSnap.id] = d;
             jumlahTampil++;
@@ -4513,7 +4701,11 @@ function pantauPurchasingListApprove(){
 
     if(unsubPurApprove) unsubPurApprove();
 
-    const q = query(collection(db, "permintaan_barang"), where("status", "==", "approve"), orderBy("created_at", "desc"));
+    // Batas pengaman -- halaman ini menampilkan SEMUA PR approve tanpa filter
+    // tanggal (karena PR yang belum selesai diproses harus tetap kelihatan walau
+    // lama), tapi tetap dikunci supaya query-nya tidak pernah tak terbatas.
+    const BATAS_AMAN_APPROVE = 500;
+    const q = query(collection(db, "permintaan_barang"), where("status", "==", "approve"), orderBy("created_at", "desc"), limit(BATAS_AMAN_APPROVE));
 
     unsubPurApprove = onSnapshot(q, (snapshot) => {
 
@@ -5628,12 +5820,23 @@ window.terbitkanPO = async function(){
 // -------- List Surat Jalan (semua SJ dari semua PR, diratakan jadi satu list) --------
 let unsubListSJ = null;
 
+let listSJRentangHari = "90";
+
 function pantauPurchasingListSJ(){
 
     if(unsubListSJ) unsubListSJ();
 
-    // Surat Jalan cuma ada di PR yang statusnya approve, jadi query dipersempit di sini.
-    const q = query(collection(db, "permintaan_barang"), where("status", "==", "approve"), orderBy("created_at", "desc"));
+    // Ini murni log riwayat -- aman dibatasi rentang tanggal + jumlah.
+    const BATAS_AMAN_SJ = 300;
+    const constraints = [collection(db, "permintaan_barang"), where("status", "==", "approve")];
+    if(listSJRentangHari !== "all"){
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - Number(listSJRentangHari));
+        constraints.push(where("created_at", ">=", cutoff));
+    }
+    constraints.push(orderBy("created_at", "desc"));
+    constraints.push(limit(BATAS_AMAN_SJ));
+    const q = query(...constraints);
 
     unsubListSJ = onSnapshot(q, (snapshot) => {
 
@@ -5685,6 +5888,11 @@ function pantauPurchasingListSJ(){
     }, err => console.error("Gagal memuat List Surat Jalan:", err));
 }
 
+window.gantiRentangListSJ = function(val){
+    listSJRentangHari = val;
+    pantauPurchasingListSJ();
+}
+
 // -------- List PO --------
 let unsubListPO = null;
 let poListMap = {};
@@ -5698,11 +5906,23 @@ function teksAtauKosong(v){
     return v || "";
 }
 
+let listPORentangHari = "90";
+
 function pantauPurchasingListPO(){
 
     if(unsubListPO) unsubListPO();
 
-    const q = query(collection(db, "po_barang"), orderBy("created_at", "desc"));
+    // Log riwayat PO -- aman dibatasi rentang tanggal + jumlah.
+    const BATAS_AMAN_PO = 300;
+    const constraints = [collection(db, "po_barang")];
+    if(listPORentangHari !== "all"){
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - Number(listPORentangHari));
+        constraints.push(where("created_at", ">=", cutoff));
+    }
+    constraints.push(orderBy("created_at", "desc"));
+    constraints.push(limit(BATAS_AMAN_PO));
+    const q = query(...constraints);
 
     unsubListPO = onSnapshot(q, (snapshot) => {
 
@@ -5756,6 +5976,11 @@ function pantauPurchasingListPO(){
         tbody.innerHTML = html;
 
     }, err => console.error("Gagal memuat List PO:", err));
+}
+
+window.gantiRentangListPO = function(val){
+    listPORentangHari = val;
+    pantauPurchasingListPO();
 }
 
 window.cetakPO = function(id){
@@ -5992,14 +6217,22 @@ window.putuskanPimpinan = function(id, keputusan){
 let unsubPengeluaran = null;
 let semuaPengeluaranMap = {};
 
+let listPengeluaranRentangHari = "90";
+
 function pantauSemuaPengeluaran(){
 
     if(unsubPengeluaran) unsubPengeluaran();
 
-    const q = query(
-        collection(db, "pengambilan_barang"),
-        orderBy("created_at", "desc")
-    );
+    const BATAS_AMAN_BKB = 300;
+    const constraints = [collection(db, "pengambilan_barang")];
+    if(listPengeluaranRentangHari !== "all"){
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - Number(listPengeluaranRentangHari));
+        constraints.push(where("created_at", ">=", cutoff));
+    }
+    constraints.push(orderBy("created_at", "desc"));
+    constraints.push(limit(BATAS_AMAN_BKB));
+    const q = query(...constraints);
 
     unsubPengeluaran = onSnapshot(q, (snapshot) => {
 
@@ -6069,6 +6302,11 @@ function pantauSemuaPengeluaran(){
         console.error("Gagal memuat data pengeluaran:", err);
     });
 
+}
+
+window.gantiRentangListPengeluaran = function(val){
+    listPengeluaranRentangHari = val;
+    pantauSemuaPengeluaran();
 }
 
 // -------- Cetak dokumen BKB (mirip cetak permintaan) --------
@@ -7005,6 +7243,14 @@ async function simpanPnmTransaksi(status, items, sjTerhubung, dataDoc){
                 perubahan[`item_progress.${baris.no_urut}.diterima_pada`] = waktuTerima;
             });
 
+            // Simpan status "selesai" (boolean) langsung di dokumen -- supaya List
+            // Permintaan (Proses/Selesai) nanti bisa query langsung ke Firestore,
+            // bukan menarik SEMUA dokumen lalu menyaring di browser (itu yang bikin
+            // berat kalau datanya sudah puluhan ribu).
+            const simulasiSetelahUpdate = { items: dPR.items, no_pr: dPR.no_pr, surat_jalan: daftarBaru };
+            const totalSisaSetelahUpdate = hitungSisaDiterimaSJ(simulasiSetelahUpdate).reduce((a, b) => a + b.sisa, 0);
+            perubahan.selesai = daftarBaru.length > 0 && totalSisaSetelahUpdate <= 0;
+
             tx.update(refPR, perubahan);
         });
 
@@ -7101,14 +7347,22 @@ window.submitPenerimaan = function(){
     simpanPnm("diajukan");
 }
 
+let listPenerimaanRentangHari = "90";
+
 function pantauSemuaPenerimaan(){
 
     if(unsubPenerimaan) unsubPenerimaan();
 
-    const q = query(
-        collection(db, "penerimaan_barang"),
-        orderBy("created_at", "desc")
-    );
+    const BATAS_AMAN_PNM = 300;
+    const constraints = [collection(db, "penerimaan_barang")];
+    if(listPenerimaanRentangHari !== "all"){
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - Number(listPenerimaanRentangHari));
+        constraints.push(where("created_at", ">=", cutoff));
+    }
+    constraints.push(orderBy("created_at", "desc"));
+    constraints.push(limit(BATAS_AMAN_PNM));
+    const q = query(...constraints);
 
     unsubPenerimaan = onSnapshot(q, (snapshot) => {
 
@@ -7180,6 +7434,11 @@ function pantauSemuaPenerimaan(){
         console.error("Gagal memuat data penerimaan:", err);
     });
 
+}
+
+window.gantiRentangListPenerimaan = function(val){
+    listPenerimaanRentangHari = val;
+    pantauSemuaPenerimaan();
 }
 
 window.cetakPenerimaan = function(id){
