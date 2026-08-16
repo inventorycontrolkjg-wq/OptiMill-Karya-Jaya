@@ -2386,6 +2386,57 @@ const db = getFirestore(app);
 const CLOUDINARY_CLOUD_NAME = "yfqtucfu";
 const CLOUDINARY_UPLOAD_PRESET = "OptiMill_Karya_Jaya";
 
+// Perkecil foto (JPG/PNG) sebelum diupload -- supaya hemat penyimpanan & bandwidth
+// Cloudinary tanpa mengurangi kejelasan sebagai bukti dokumen. PDF dibiarkan apa
+// adanya karena kompresinya butuh library terpisah dan biasanya sudah cukup ringan.
+async function kompresGambar(file, maxDimensi = 1600, kualitas = 0.75){
+
+    if(!file.type.startsWith("image/")) return file;
+
+    return new Promise((resolve) => {
+        const img = new Image();
+        const urlSementara = URL.createObjectURL(file);
+
+        img.onload = () => {
+            URL.revokeObjectURL(urlSementara);
+
+            let { width, height } = img;
+            if(width > maxDimensi || height > maxDimensi){
+                if(width > height){
+                    height = Math.round(height * (maxDimensi / width));
+                    width = maxDimensi;
+                } else {
+                    width = Math.round(width * (maxDimensi / height));
+                    height = maxDimensi;
+                }
+            }
+
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+
+            canvas.toBlob((blob) => {
+                if(!blob || blob.size >= file.size){
+                    // Kalau hasil kompresi ternyata tidak lebih kecil (jarang, biasanya
+                    // untuk foto yang memang sudah kecil), pakai file asli saja.
+                    resolve(file);
+                    return;
+                }
+                const namaBaru = file.name.replace(/\.(png|jpg|jpeg)$/i, "") + ".jpg";
+                resolve(new File([blob], namaBaru, { type: "image/jpeg" }));
+            }, "image/jpeg", kualitas);
+        };
+
+        img.onerror = () => {
+            URL.revokeObjectURL(urlSementara);
+            resolve(file); // gagal baca gambar -> pakai file asli, jangan sampai upload gagal total
+        };
+
+        img.src = urlSementara;
+    });
+}
+
 async function uploadKeCloudinary(file){
     const formData = new FormData();
     formData.append("file", file);
@@ -4438,18 +4489,34 @@ window.hapusBarisPenawaran = function(id){
     document.getElementById("pw-add-btn").style.display = "block";
 }
 
-window.pilihFilePenawaran = function(id){
+window.pilihFilePenawaran = async function(id){
     const input = document.getElementById(`pw-file-${id}`);
     const statusEl = document.getElementById(`pw-file-status-${id}`);
     if(input.files && input.files[0]){
-        const file = input.files[0];
-        if(file.size > 5 * 1024 * 1024){
-            alert("Ukuran file maksimal 5MB.");
+        const fileAsli = input.files[0];
+        const isPdf = fileAsli.type === "application/pdf";
+
+        // PDF tidak dikompres, jadi batasnya lebih ketat. Foto boleh lebih besar
+        // karena akan otomatis diperkecil sebelum diupload.
+        const batasUkuran = isPdf ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
+        if(fileAsli.size > batasUkuran){
+            alert(isPdf ? "Ukuran PDF maksimal 5MB." : "Ukuran foto maksimal 10MB (akan otomatis dikompres saat diproses).");
             input.value = "";
             return;
         }
-        pwFilesBaru[id] = file;
-        statusEl.textContent = `📎 ${file.name} (belum disimpan, klik "Simpan Penawaran")`;
+
+        statusEl.textContent = "⏳ Memproses file...";
+
+        const fileFinal = await kompresGambar(fileAsli);
+        pwFilesBaru[id] = fileFinal;
+
+        const ukuranAsliKB = Math.round(fileAsli.size / 1024);
+        const ukuranFinalKB = Math.round(fileFinal.size / 1024);
+        const infoUkuran = fileFinal !== fileAsli
+            ? `${ukuranFinalKB} KB, dikompres dari ${ukuranAsliKB} KB`
+            : `${ukuranFinalKB} KB`;
+
+        statusEl.textContent = `📎 ${fileFinal.name} (${infoUkuran}) — belum disimpan, klik "Simpan Penawaran"`;
     }
 }
 
