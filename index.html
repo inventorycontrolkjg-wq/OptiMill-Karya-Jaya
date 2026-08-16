@@ -1255,7 +1255,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
 
                     <div class="form-msg" id="permintaan-msg"></div>
 
-                    <div class="opb-header-grid">
+                    <div class="opb-header-grid" style="grid-template-columns:repeat(6, minmax(0,1fr));">
                         <div class="form-group">
                             <label>Tanggal Input *</label>
                             <div class="field-icon-wrap" style="position:relative;">
@@ -1263,6 +1263,13 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                                 <input type="date" id="opb-tanggal" onchange="opbTanggalBerubah()" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; margin:0; padding:0;">
                                 <span class="field-icon">📅</span>
                             </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Jenis Permintaan *</label>
+                            <select id="opb-jenis" onchange="window.refreshPreviewNoPR()">
+                                <option value="OPB">OPB (Barang)</option>
+                                <option value="TTKK">TTKK (Jasa/Perbaikan)</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>No. PR</label>
@@ -3739,8 +3746,17 @@ window.hitungTotalOpb = function(){
 }
 
 // -------- No. PR: preview (tanpa nge-commit counter) & final (commit saat submit) --------
-async function previewNoPR(tanggalISO){
+// OPB (barang) pakai nomor urut polos yang terus berlanjut selamanya (001, 002, ...),
+// TIDAK direset per bulan/tahun. TTKK (jasa/perbaikan) tetap pakai format lama
+// tahun/bulan/urut (mis. 2608001), direset tiap bulan seperti sebelumnya.
+async function previewNoPR(tanggalISO, jenis){
     try{
+        if(jenis === "OPB"){
+            const counterRef = doc(db, "counters", "pr_opb_global");
+            const snap = await getDoc(counterRef);
+            const next = snap.exists() ? (snap.data().terakhir || 0) + 1 : 1;
+            return String(next).padStart(3, "0");
+        }
         const { yy, mm, key } = komponenTahunBulan(tanggalISO);
         const counterRef = doc(db, "counters", `pr_${key}`);
         const snap = await getDoc(counterRef);
@@ -3759,11 +3775,22 @@ window.opbTanggalBerubah = function(){
 
 window.refreshPreviewNoPR = async function(){
     const tanggalVal = document.getElementById("opb-tanggal").value;
-    document.getElementById("opb-no-pr").value = await previewNoPR(tanggalVal);
+    const jenisVal = document.getElementById("opb-jenis").value;
+    document.getElementById("opb-no-pr").value = await previewNoPR(tanggalVal, jenisVal);
 }
 
 // Generate No. PR final (transaksi, benar-benar increment counter) - dipanggil saat submit
-async function generateNoPR(tanggalISO){
+async function generateNoPR(tanggalISO, jenis){
+    if(jenis === "OPB"){
+        const counterRef = doc(db, "counters", "pr_opb_global");
+        const nomorBerikutnya = await runTransaction(db, async (tx) => {
+            const snap = await tx.get(counterRef);
+            const next = snap.exists() ? (snap.data().terakhir || 0) + 1 : 1;
+            tx.set(counterRef, { terakhir: next }, { merge: true });
+            return next;
+        });
+        return String(nomorBerikutnya).padStart(3, "0");
+    }
     const { yy, mm, key } = komponenTahunBulan(tanggalISO);
     const counterRef = doc(db, "counters", `pr_${key}`);
     const nomorBerikutnya = await runTransaction(db, async (tx) => {
@@ -3781,6 +3808,7 @@ function resetFormOpb(){
     document.getElementById("opb-tanggal").value = todayISO;
     document.getElementById("opb-tanggal-display").value = formatTanggalIndo(todayISO);
     document.getElementById("opb-pembuat").value = "";
+    document.getElementById("opb-jenis").value = "OPB";
     document.getElementById("opb-divisi").value = "";
     document.getElementById("opb-untuk").value = "";
     document.getElementById("opb-kategori1").value = "";
@@ -3802,6 +3830,7 @@ window.ajukanPermintaan = async function(){
     msgEl.className = "form-msg";
 
     const tanggal = document.getElementById("opb-tanggal").value;
+    const jenisPermintaan = document.getElementById("opb-jenis").value;
     const pembuat = document.getElementById("opb-pembuat").value.trim();
     const divisi = document.getElementById("opb-divisi").value;
     const untuk = document.getElementById("opb-untuk").value;
@@ -3846,8 +3875,8 @@ window.ajukanPermintaan = async function(){
         return;
     }
 
-    if(!tanggal || pembuat === "" || divisi === "" || untuk === ""){
-        msgEl.textContent = "Tanggal, Pembuat/Peminta, Divisi, dan Untuk wajib diisi.";
+    if(!tanggal || !jenisPermintaan || pembuat === "" || divisi === "" || untuk === ""){
+        msgEl.textContent = "Tanggal, Jenis Permintaan, Pembuat/Peminta, Divisi, dan Untuk wajib diisi.";
         msgEl.classList.add("err");
         msgEl.style.display = "block";
         return;
@@ -3865,10 +3894,11 @@ window.ajukanPermintaan = async function(){
 
     try{
 
-        const noPR = await generateNoPR(tanggal);
+        const noPR = await generateNoPR(tanggal, jenisPermintaan);
 
         await addDoc(collection(db, "permintaan_barang"), {
             no_pr: noPR,
+            jenis_permintaan: jenisPermintaan,
             tanggal_input: tanggal,
             pembuat: pembuat,
             divisi: divisi,
