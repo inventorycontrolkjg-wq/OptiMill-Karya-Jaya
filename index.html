@@ -1331,6 +1331,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     </table>
 
                     <datalist id="master-barang-datalist"></datalist>
+                    <datalist id="master-karyawan-datalist"></datalist>
 
                     <div class="opb-totals">
                         <span>TOTAL ITEM <strong id="opb-total-item">0</strong></span>
@@ -1598,6 +1599,10 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                             </div>
                             <div class="bkb-ttd-box">
                                 <div class="bkb-ttd-label">Tanda Tangan Petugas Gudang</div>
+                                <div class="form-group" style="margin-bottom:8px;">
+                                    <input type="text" id="bkb-petugas-gudang" list="master-karyawan-datalist-bkb" placeholder="Ketik/pilih nama petugas gudang..." onblur="cariGudangByNama()">
+                                    <datalist id="master-karyawan-datalist-bkb"></datalist>
+                                </div>
                                 <div id="bkb-ttd-gudang"><button class="btn-ttd" type="button" onclick="bukaTtdModal('gudang')"><span class="btn-ttd-icon">✎</span><span>Klik untuk tanda tangan</span></button></div>
                             </div>
                         </div>
@@ -1941,6 +1946,43 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                                 <tr><th style="width:34px;">No</th><th>Bagian</th><th>Nama</th><th>ID Card</th><th>Barcode</th></tr>
                             </thead>
                             <tbody id="mk-preview-body"></tbody>
+                        </table>
+                    </div>
+
+                </div>
+
+                <div class="panel" style="margin-top:18px;">
+
+                    <h3 style="margin:0 0 6px;">✍️ Upload Tanda Tangan (Massal)</h3>
+                    <p class="mb-hint">
+                        Pilih banyak file gambar tanda tangan sekaligus (JPG/PNG). <b>Nama tiap file harus sama persis
+                        dengan ID Card karyawan</b> (contoh: <code>JM.1254.png</code> untuk karyawan dengan ID Card
+                        <code>JM.1254</code>) — sistem mencocokkan otomatis berdasarkan nama file. Karyawan yang punya
+                        tanda tangan tersimpan akan otomatis terisi di form Pengambilan Barang (BKB), tidak perlu tanda
+                        tangan manual lagi.
+                    </p>
+
+                    <div class="mb-upload-box">
+                        <input type="file" id="mk-ttd-files" accept="image/*" multiple>
+                    </div>
+
+                    <div class="mb-actions">
+                        <button class="btn-primary" type="button" onclick="uploadTandaTanganBulk()">Cocokkan &amp; Upload Tanda Tangan</button>
+                    </div>
+
+                    <div class="form-msg" id="mk-ttd-status"></div>
+
+                    <div id="mk-ttd-hasil" style="display:none; margin-top:14px;">
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th style="width:34px;">No</th>
+                                    <th>Nama File</th>
+                                    <th>ID Card Dicari</th>
+                                    <th>Hasil</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mk-ttd-hasil-body"></tbody>
                         </table>
                     </div>
 
@@ -3555,7 +3597,9 @@ window.importMasterSupplierMassal = async function(){
 
 // -------- Master Karyawan (untuk lookup barcode ID card di Form BKB) --------
 let unsubMasterKaryawan = null;
-let masterKaryawanByBarcode = {}; // barcode -> { nama, divisi, id_card }
+let masterKaryawanByBarcode = {}; // barcode -> { id, nama, divisi, id_card, ttd_url }
+let masterKaryawanByNama = {}; // nama persis -> { id, nama, divisi, id_card, ttd_url }
+let masterKaryawanList = []; // semua karyawan, dipakai buat datalist pemilih nama
 let masterKaryawanFileData = [];
 
 function pantauMasterKaryawan(){
@@ -3563,18 +3607,31 @@ function pantauMasterKaryawan(){
     const q = query(collection(db, "master_karyawan"), orderBy("nama"));
     unsubMasterKaryawan = onSnapshot(q, (snap) => {
         masterKaryawanByBarcode = {};
+        masterKaryawanByNama = {};
+        masterKaryawanList = [];
+        let optionsHtml = "";
         snap.forEach(docSnap => {
             const d = docSnap.data();
+            const data = {
+                id: docSnap.id,
+                nama: d.nama || "-",
+                divisi: d.divisi || "",
+                id_card: d.id_card || "",
+                ttd_url: d.ttd_url || ""
+            };
+            masterKaryawanList.push(data);
+            if(d.nama) masterKaryawanByNama[d.nama] = data;
             if(d.barcode){
-                masterKaryawanByBarcode[normalisasiKode(d.barcode)] = {
-                    nama: d.nama || "-",
-                    divisi: d.divisi || "",
-                    id_card: d.id_card || ""
-                };
+                masterKaryawanByBarcode[normalisasiKode(d.barcode)] = data;
             }
+            optionsHtml += `<option value="${data.nama}"></option>`;
         });
         const countEl = document.getElementById("mk-total-count");
         if(countEl) countEl.textContent = snap.size;
+        const dl = document.getElementById("master-karyawan-datalist");
+        if(dl) dl.innerHTML = optionsHtml;
+        const dlBkb = document.getElementById("master-karyawan-datalist-bkb");
+        if(dlBkb) dlBkb.innerHTML = optionsHtml;
     }, (err) => console.error("Gagal memuat master karyawan:", err));
 }
 
@@ -3628,7 +3685,11 @@ window.prosesFileMasterKaryawan = function(){
                 const bagian = cariPersis("bagian") || cariPersis("divisi");
                 const nama = cariPersis("nama");
                 const idCard = cariMengandung("id card") || cariPersis("idcard");
-                const barcode = normalisasiKode(cariMengandung("barcode"));
+                // Kalau file tidak punya kolom barcode terpisah (format baru cuma ada
+                // ID CARD), pakai ID Card sebagai barcode juga -- karena barcode fisik
+                // di kartu karyawan biasanya memang berisi persis nomor ID Card-nya.
+                const barcodeMentah = cariMengandung("barcode");
+                const barcode = normalisasiKode(barcodeMentah || idCard);
 
                 if(nama !== ""){
                     bersih.push({ bagian, nama, id_card: idCard, barcode });
@@ -3764,6 +3825,90 @@ window.importMasterKaryawanMassal = async function(){
     btn.disabled = false;
     btn.textContent = "Import ke Firestore";
 
+}
+
+// -------- Upload Tanda Tangan (Massal) -- cocokkan file ke karyawan lewat nama file (= ID Card) --------
+window.uploadTandaTanganBulk = async function(){
+
+    const filesInput = document.getElementById("mk-ttd-files");
+    const statusEl = document.getElementById("mk-ttd-status");
+    const hasilWrap = document.getElementById("mk-ttd-hasil");
+    const hasilBody = document.getElementById("mk-ttd-hasil-body");
+    const files = filesInput.files;
+
+    statusEl.style.display = "block";
+    statusEl.className = "form-msg";
+
+    if(!files || files.length === 0){
+        statusEl.textContent = "Pilih minimal satu file gambar tanda tangan dulu.";
+        statusEl.classList.add("err");
+        return;
+    }
+
+    if(masterKaryawanList.length === 0){
+        statusEl.textContent = "Master Karyawan masih kosong -- import data karyawan dulu di atas sebelum upload tanda tangan.";
+        statusEl.classList.add("err");
+        return;
+    }
+
+    // Peta ID Card -> karyawan, dari data yang sudah termuat pantauMasterKaryawan().
+    const petaIdCard = {};
+    masterKaryawanList.forEach(k => {
+        if(k.id_card){
+            petaIdCard[normalisasiKode(k.id_card).toUpperCase()] = k;
+        }
+    });
+
+    hasilWrap.style.display = "block";
+    hasilBody.innerHTML = "";
+
+    const daftarFile = Array.from(files);
+    let sukses = 0;
+    let gagal = 0;
+
+    for(let i = 0; i < daftarFile.length; i++){
+
+        const file = daftarFile[i];
+        const namaFileAsli = file.name;
+        const namaTanpaEkstensi = namaFileAsli.replace(/\.[^.]+$/, "");
+        const idCardDicari = normalisasiKode(namaTanpaEkstensi).toUpperCase();
+
+        statusEl.textContent = `Memproses ${i + 1}/${daftarFile.length}: ${namaFileAsli}...`;
+
+        const karyawan = petaIdCard[idCardDicari];
+        let hasilTeks = "";
+        let hasilOk = false;
+
+        if(!karyawan){
+            hasilTeks = "✗ Tidak ditemukan di Master Karyawan (cek nama file = ID Card persis)";
+            gagal++;
+        } else {
+            try{
+                // Sengaja TIDAK dikompres seperti lampiran penawaran -- kompresi
+                // mengubah format ke JPEG dan bisa mengisi latar transparan tanda
+                // tangan jadi hitam. File tanda tangan biasanya sudah kecil juga.
+                const url = await uploadKeCloudinary(file);
+                await setDoc(doc(db, "master_karyawan", karyawan.id), { ttd_url: url }, { merge: true });
+                hasilTeks = `✓ Tersimpan untuk ${karyawan.nama}`;
+                hasilOk = true;
+                sukses++;
+            } catch(err){
+                hasilTeks = "✗ Gagal upload: " + err.message;
+                gagal++;
+            }
+        }
+
+        hasilBody.innerHTML += `
+<tr>
+    <td>${i + 1}</td>
+    <td>${namaFileAsli}</td>
+    <td>${idCardDicari}</td>
+    <td><span style="color:${hasilOk ? '#2e7d32' : '#c62828'};">${hasilTeks}</span></td>
+</tr>`;
+    }
+
+    statusEl.textContent = `Selesai. ${sukses} tanda tangan berhasil disimpan` + (gagal > 0 ? `, ${gagal} gagal/tidak ditemukan (lihat tabel di bawah).` : ".");
+    statusEl.className = "form-msg " + (sukses > 0 ? "ok" : "err");
 }
 
 window.autoisiSatuan = function(id){
@@ -6748,7 +6893,7 @@ window.cetakBKB = function(id){
         <div class="line">Kepala Gudang</div>
     </div>
     <div class="sign-box">
-        Diserahkan oleh Gudang
+        Diserahkan oleh Gudang (${d.petugas_gudang || "-"})
         ${d.ttd_gudang ? `<img src="${d.ttd_gudang}" style="width:100%;max-width:160px;height:60px;object-fit:contain;margin-top:8px;">` : `<div class="line"></div>`}
     </div>
 </div>`;
@@ -6901,6 +7046,33 @@ window.cariUserByBarcode = function cariUserByBarcode(){
         document.getElementById("bkb-divisi").value = bkbScannedUser.divisi;
     }
 
+    // Kalau karyawan ini sudah punya tanda tangan tersimpan (dari Import Master
+    // Karyawan), langsung dipakai -- tidak perlu gambar manual lagi. Tetap bisa
+    // diganti manual kalau memang perlu (klik gambarnya -> "Ubah").
+    if(data.ttd_url){
+        bkbSignatureUser = data.ttd_url;
+        renderKotakTtd("user", data.ttd_url, true);
+    } else {
+        bkbSignatureUser = null;
+        renderKotakTtd("user", null, false);
+    }
+
+}
+
+// -------- Petugas Gudang (dipilih dari nama, bukan scan barcode) --------
+// Sama seperti Nama User: kalau namanya cocok persis dengan Master Karyawan dan
+// karyawan itu sudah punya tanda tangan tersimpan, otomatis dipakai.
+window.cariGudangByNama = function(){
+    const nama = document.getElementById("bkb-petugas-gudang").value.trim();
+    if(nama === "") return; // dikosongkan -- jangan ganggu tanda tangan yang mungkin sudah digambar manual
+
+    const data = masterKaryawanByNama[nama];
+    if(data && data.ttd_url){
+        bkbSignatureGudang = data.ttd_url;
+        renderKotakTtd("gudang", data.ttd_url, true);
+    }
+    // Nama tidak cocok / karyawan belum punya ttd_url -- biarkan apa adanya,
+    // jangan hapus tanda tangan manual yang mungkin sudah digambar sebelumnya.
 }
 
 // -------- Scan Barcode Barang (per baris Detail Barang) --------
@@ -7181,6 +7353,7 @@ function resetFormBkb(){
     bkbRowCount = 0;
     bkbSignatureUser = null;
     bkbSignatureGudang = null;
+    document.getElementById("bkb-petugas-gudang").value = "";
     document.getElementById("bkb-ttd-user").innerHTML = `<button class="btn-ttd" type="button" onclick="bukaTtdModal('user')">✎ Tanda Tangan</button>`;
     document.getElementById("bkb-ttd-gudang").innerHTML = `<button class="btn-ttd" type="button" onclick="bukaTtdModal('gudang')">✎ Tanda Tangan</button>`;
     window.tambahBarisBkb();
@@ -7247,6 +7420,7 @@ async function simpanBkb(status){
             jam: jam,
             barcode_id_user: bkbScannedUser ? bkbScannedUser.barcode_id : "",
             nama_user: namaUser,
+            petugas_gudang: document.getElementById("bkb-petugas-gudang").value.trim(),
             divisi: divisi,
             untuk: untuk,
             items: items,
@@ -8040,6 +8214,26 @@ window.bersihkanTtdCanvas = function(){
     ttdCtx.fillRect(0, 0, rect.width, 200);
 }
 
+// Render kotak tanda tangan -- dipakai baik untuk hasil gambar manual (canvas)
+// maupun tanda tangan otomatis dari Master Karyawan (ttd_url).
+function renderKotakTtd(tipe, dataUrl, otomatis){
+    const wrap = document.getElementById(`bkb-ttd-${tipe}`);
+    if(!wrap) return;
+
+    if(!dataUrl){
+        wrap.innerHTML = `<button class="btn-ttd" type="button" onclick="bukaTtdModal('${tipe}')"><span class="btn-ttd-icon">✎</span><span>Klik untuk tanda tangan</span></button>`;
+        return;
+    }
+
+    wrap.innerHTML = `
+        <div class="ttd-thumb-wrap">
+            <img class="ttd-thumb" src="${dataUrl}" onclick="bukaTtdModal('${tipe}')">
+            <span class="ttd-thumb-edit" onclick="bukaTtdModal('${tipe}')">Ubah</span>
+        </div>
+        ${otomatis ? `<div style="font-size:11px; color:#2e7d32; margin-top:4px;">✓ Otomatis dari Master Karyawan</div>` : ""}
+    `;
+}
+
 window.simpanTtdCanvas = function(){
     if(!ttdModalTarget) return;
     const tipe = ttdModalTarget;
@@ -8052,15 +8246,7 @@ window.simpanTtdCanvas = function(){
         bkbSignatureGudang = dataUrl;
     }
 
-    const wrap = document.getElementById(`bkb-ttd-${tipe}`);
-    if(wrap){
-        wrap.innerHTML = `
-            <div class="ttd-thumb-wrap">
-                <img class="ttd-thumb" src="${dataUrl}" onclick="bukaTtdModal('${tipe}')">
-                <span class="ttd-thumb-edit" onclick="bukaTtdModal('${tipe}')">Ubah</span>
-            </div>
-        `;
-    }
+    renderKotakTtd(tipe, dataUrl, false);
 
     window.tutupTtdModal();
 }
