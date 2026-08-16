@@ -7004,6 +7004,27 @@ window.handleBarcodeUserKeydown = function(ev){
     cariUserByBarcode();
 }
 
+// Buka kunci field Scan ID Card supaya bisa di-scan ulang (mis. salah scan,
+// atau mau ganti orang). Ikut mengosongkan Nama User & tanda tangan yang sudah
+// terisi otomatis, supaya tidak ada data orang sebelumnya yang tertinggal.
+window.resetScanUser = function(){
+    const inputEl = document.getElementById("bkb-barcode-user");
+    const statusEl = document.getElementById("bkb-barcode-user-status");
+    const namaUserEl = document.getElementById("bkb-nama-user");
+
+    inputEl.value = "";
+    inputEl.readOnly = false;
+    inputEl.focus();
+    statusEl.textContent = "";
+    statusEl.className = "bkb-barcode-status";
+    namaUserEl.value = "";
+    namaUserEl.placeholder = "- (scan ID card dulu)";
+
+    bkbScannedUser = null;
+    bkbSignatureUser = null;
+    renderKotakTtd("user", null, false);
+}
+
 window.cariUserByBarcode = function cariUserByBarcode(){
 
     const inputEl = document.getElementById("bkb-barcode-user");
@@ -7039,7 +7060,16 @@ window.cariUserByBarcode = function cariUserByBarcode(){
     };
 
     namaUserEl.value = bkbScannedUser.nama;
-    statusEl.textContent = `✓ Terverifikasi: ${bkbScannedUser.nama}`;
+
+    // Sembunyikan kode ID Card dari layar setelah berhasil dicocokkan -- supaya
+    // tidak ada yang bisa membaca/mencatat kodenya dari layar dan menyalahgunakannya
+    // nanti dengan mengetik manual (tanpa kartu fisik). Field dikunci sampai
+    // "Scan Ulang" diklik, supaya kode yang sudah tersembunyi tidak sengaja
+    // ketimpa/terlihat lagi.
+    inputEl.value = "•".repeat(Math.min(Math.max(kode.length, 6), 10));
+    inputEl.readOnly = true;
+
+    statusEl.innerHTML = `✓ Terverifikasi: ${bkbScannedUser.nama} <a href="#" onclick="resetScanUser(); return false;" style="margin-left:8px; text-decoration:underline;">Scan Ulang</a>`;
     statusEl.className = "bkb-barcode-status ok";
 
     if(bkbScannedUser.divisi){
@@ -7334,6 +7364,7 @@ function resetFormBkb(){
     document.getElementById("bkb-untuk").value = "";
 
     document.getElementById("bkb-barcode-user").value = "";
+    document.getElementById("bkb-barcode-user").readOnly = false;
     document.getElementById("bkb-nama-user").value = "";
     document.getElementById("bkb-nama-user").placeholder = "- (scan ID card dulu)";
     document.getElementById("bkb-barcode-user-status").textContent = "";
