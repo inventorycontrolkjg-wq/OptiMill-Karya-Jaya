@@ -461,7 +461,7 @@ table.tbl tr.tbl-grp-first td{ border-top:2px solid #b8c9de; }
 #print-area{ display:none; }
 
 /* ---- Format cetak PO ala Excel (Purchase Order formal) — disesuaikan dengan contoh (kertas 1/2 F4 potret) ---- */
-.po-cetak-excel{ font-family:'Lexend', Arial, sans-serif; font-size:10px; color:#111; }
+.po-cetak-excel{ font-family:'Lexend', Arial, sans-serif; font-size:9px; color:#111; }
 
 table.po-cetak-header{
     width:100%;
@@ -474,25 +474,25 @@ table.po-cetak-header td{
     vertical-align:top;
 }
 table.po-cetak-header .po-judul{
-    font-size:13px;
+    font-size:12px;
     font-weight:700;
     text-align:center;
     vertical-align:middle;
     width:33%;
 }
-table.po-cetak-header .po-label{ width:38px; font-weight:600; white-space:nowrap; }
+table.po-cetak-header .po-label{ width:36px; font-weight:600; white-space:nowrap; }
 table.po-cetak-header .po-isi{ min-width:100px; }
 table.po-cetak-header .po-nopo-cell{
     background:#f6c6c6;
     text-align:center;
     font-weight:700;
-    font-size:11px;
+    font-size:10px;
     vertical-align:middle;
 }
-table.po-cetak-header .po-nopo-label{ font-size:8px; font-weight:600; display:block; margin-bottom:1px; }
+table.po-cetak-header .po-nopo-label{ font-size:7.5px; font-weight:600; display:block; margin-bottom:1px; }
 table.po-cetak-header .po-tanggal-cell{ text-align:center; vertical-align:middle; }
 
-.po-instruksi{ font-weight:600; font-size:9.5px; margin:6px 0 4px; }
+.po-instruksi{ font-weight:600; font-size:9px; margin:6px 0 4px; }
 
 table.po-cetak-items{
     width:100%;
@@ -505,7 +505,7 @@ table.po-cetak-items th{
     padding:0 4px;
     height:20px;
     box-sizing:border-box;
-    font-size:10px;
+    font-size:9px;
     text-align:center;
     vertical-align:middle;
 }
@@ -514,7 +514,7 @@ table.po-cetak-items td{
     padding:0 5px;
     height:20px;
     box-sizing:border-box;
-    font-size:10px;
+    font-size:9px;
     vertical-align:middle;
     line-height:1.1;
 }
@@ -549,7 +549,7 @@ table.po-cetak-ttd{
     font-size:9px;
 }
 table.po-cetak-ttd td{ border:1px solid #333; padding:3px; font-weight:600; }
-table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
+table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
 
 .po-cetak-excel .print-footer-note{ font-size:6.5px; margin-top:4px; }
 
@@ -569,7 +569,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
 
 @page po-half-f4{
     size:165mm 215mm; /* potret: lebar 16,5cm x tinggi 21,5cm (1/2 F4 berdiri) */
-    margin:6mm;
+    margin:9mm 8mm;
 }
 
 .print-doc{ width:100%; }
@@ -1991,7 +1991,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                         </div>
                     </div>
 
-                    <div class="opb-header-grid" style="grid-template-columns:1fr 2fr; margin-top:12px;">
+                    <div class="opb-header-grid" style="grid-template-columns:1fr 1fr; margin-top:12px;">
                         <div class="form-group">
                             <label>Metode Payment</label>
                             <select id="po-metode-payment" onchange="toggleTenorPO()">
@@ -2005,6 +2005,21 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                         </div>
                     </div>
 
+                    <div class="opb-header-grid" style="grid-template-columns:1fr 1fr 1fr; margin-top:12px;">
+                        <div class="form-group">
+                            <label>Keterangan Supplier</label>
+                            <input type="text" id="po-ket-supplier" placeholder="Opsional, berlaku untuk seluruh PO ini">
+                        </div>
+                        <div class="form-group">
+                            <label>Keterangan Internal</label>
+                            <input type="text" id="po-ket-internal" placeholder="Opsional, berlaku untuk seluruh PO ini">
+                        </div>
+                        <div class="form-group">
+                            <label>Dibeli Oleh</label>
+                            <input type="text" id="po-dibeli-oleh" placeholder="Nama purchasing yang membeli">
+                        </div>
+                    </div>
+
                     <p class="mb-hint">Format: <code>No Urut/No PR1,No PR2,.../Bulan(Romawi)/Tahun/AS</code> — otomatis tambah <code>/P</code> di akhir kalau ada PPN di salah satu baris.</p>
 
 
@@ -2014,7 +2029,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                     </div>
 
                     <div style="overflow-x:auto;">
-                    <table class="tbl opb-items-table" style="min-width:1480px;">
+                    <table class="tbl opb-items-table" style="min-width:1060px;">
                         <thead>
                             <tr>
                                 <th style="width:30px;">No</th>
@@ -2028,9 +2043,6 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                                 <th style="width:100px;">PPh 23 (Rp)</th>
                                 <th style="width:100px;">PPN (Rp)</th>
                                 <th style="width:120px;">Total Harga</th>
-                                <th style="width:140px;">Ket. Supplier</th>
-                                <th style="width:140px;">Ket. Internal</th>
-                                <th style="width:120px;">Dibeli Oleh</th>
                                 <th style="width:44px;">Aksi</th>
                             </tr>
                         </thead>
@@ -5225,6 +5237,9 @@ function resetFormPO(){
     document.getElementById("po-metode-payment").value = "CASH";
     document.getElementById("po-tenor").value = "";
     toggleTenorPO();
+    document.getElementById("po-ket-supplier").value = "";
+    document.getElementById("po-ket-internal").value = "";
+    document.getElementById("po-dibeli-oleh").value = "";
     document.getElementById("po-items-body").innerHTML = "";
     poRowCount = 0;
     window.tambahBarisPO();
@@ -5246,9 +5261,6 @@ function buatBarisPOHTML(id){
             <td><input type="number" id="po-pph23-${id}" min="0" value="0" oninput="hitungTotalBarisPO(${id})"></td>
             <td><input type="number" id="po-ppn-${id}" min="0" value="0" oninput="hitungTotalBarisPO(${id})"></td>
             <td class="num" id="po-total-${id}">Rp 0</td>
-            <td><input type="text" id="po-ket-supplier-${id}"></td>
-            <td><input type="text" id="po-ket-internal-${id}"></td>
-            <td><input type="text" id="po-dibeli-oleh-${id}"></td>
             <td><button class="btn-remove-filled" type="button" onclick="hapusBarisPO(${id})" title="Hapus baris">🗑️</button></td>
         </tr>
     `;
@@ -5472,6 +5484,12 @@ window.terbitkanPO = async function(){
     let grandTotal = 0;
     let adaYangDilewati = false;
 
+    // Satu PO sudah pasti satu keterangan supplier, satu keterangan internal,
+    // dan satu pembeli -- jadi cukup diisi sekali di level PO, bukan per baris.
+    const ketSupplierPO = document.getElementById("po-ket-supplier").value.trim();
+    const ketInternalPO = document.getElementById("po-ket-internal").value.trim();
+    const dibeliOlehPO = document.getElementById("po-dibeli-oleh").value.trim();
+
     rows.forEach(row => {
         const id = row.id.replace("po-row-", "");
         const noPRUrut = document.getElementById(`po-nopr-urut-${id}`).value.trim();
@@ -5500,9 +5518,9 @@ window.terbitkanPO = async function(){
                 harga_satuan: hargaSatuan,
                 diskon, pph23, ppn,
                 total_harga: totalHarga,
-                keterangan_supplier: document.getElementById(`po-ket-supplier-${id}`).value.trim(),
-                keterangan_internal: document.getElementById(`po-ket-internal-${id}`).value.trim(),
-                dibeli_oleh: document.getElementById(`po-dibeli-oleh-${id}`).value.trim()
+                keterangan_supplier: ketSupplierPO,
+                keterangan_internal: ketInternalPO,
+                dibeli_oleh: dibeliOlehPO
             });
             grandTotal += totalHarga;
         }
@@ -5761,7 +5779,6 @@ window.cetakPO = function(id){
     <td class="num">${it.jumlah ?? "-"}</td>
     <td class="po-rp-cell">${rp(it.harga_satuan)}</td>
     <td class="po-rp-cell">${rp(jumlahRp)}</td>
-    <td>${it.keterangan_supplier || "-"}</td>
 </tr>`;
     }).join("");
 
@@ -5775,9 +5792,10 @@ window.cetakPO = function(id){
     <td class="num">-</td>
     <td class="po-rp-cell">${rpKosong}</td>
     <td class="po-rp-cell">${rpKosong}</td>
-    <td>-</td>
 </tr>`;
     }
+
+    const ketSupplierPertama = items.find(it => it.keterangan_supplier)?.keterangan_supplier || "";
 
     const totalDiskon = items.reduce((a, b) => a + (b.diskon || 0), 0);
     const totalPPh23 = items.reduce((a, b) => a + (b.pph23 || 0), 0);
@@ -5822,12 +5840,11 @@ window.cetakPO = function(id){
         <thead>
             <tr>
                 <th style="width:18px;">No</th>
-                <th style="width:358px;">Nama Barang</th>
+                <th style="width:300px;">Nama Barang</th>
                 <th style="width:36px;">Satuan</th>
                 <th style="width:30px;">Qty</th>
-                <th style="width:64px;">Harga Satuan</th>
-                <th style="width:68px;">Jumlah</th>
-                <th style="width:60px;">Keterangan</th>
+                <th style="width:70px;">Harga Satuan</th>
+                <th style="width:76px;">Jumlah</th>
             </tr>
         </thead>
         <tbody>${baris}</tbody>
@@ -5846,6 +5863,7 @@ window.cetakPO = function(id){
         - No order pembelian harus di cantumkan pada nota<br>
         - Syarat-syarat pembayaran : ${syaratPembayaran}<br>
         - Tanggal kirim : SEGERA
+        ${ketSupplierPertama ? `<br>- Keterangan : ${ketSupplierPertama}` : ""}
     </div>
 
     <table class="po-cetak-ttd">
