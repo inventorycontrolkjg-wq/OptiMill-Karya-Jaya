@@ -1967,7 +1967,8 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                     <div class="opb-header-grid" style="grid-template-columns:1fr 2fr;">
                         <div class="form-group">
                             <label>Nama Supplier / Vendor</label>
-                            <input type="text" id="po-vendor" placeholder="Nama supplier/vendor" oninput="updatePreviewNoPO()">
+                            <input type="text" id="po-vendor" list="master-supplier-datalist" placeholder="Nama supplier/vendor" oninput="autoisiSupplier(); updatePreviewNoPO();">
+                            <div class="nama-status" id="po-vendor-status"></div>
                         </div>
                         <div class="form-group">
                             <label>No. PO (preview — nomor urut & final baru dikunci saat Terbitkan)</label>
@@ -2038,6 +2039,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                     </div>
 
                     <datalist id="po-nopr-urut-datalist"></datalist>
+                    <datalist id="master-supplier-datalist"></datalist>
 
                     <div class="opb-totals">
                         <span>GRAND TOTAL <strong id="po-grand-total">Rp 0</strong></span>
@@ -2081,6 +2083,68 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                     </table>
                     <div class="empty-state" id="po-list-empty" style="display:none;">Belum ada PO yang diterbitkan.</div>
                 </div>
+            </div>
+
+            <div class="page" id="page-purchasing-import-master-supplier">
+
+                <div class="page-header">
+                    <h2>📥 Import Master Supplier</h2>
+                    <p>Upload file Excel/CSV berisi daftar supplier untuk diimpor sekaligus ke Master Supplier</p>
+                </div>
+
+                <div class="panel">
+
+                    <div class="mb-counter">Total supplier di Master Supplier saat ini: <strong id="ms-total-count">-</strong></div>
+
+                    <div class="mb-upload-box">
+                        <input type="file" id="ms-file" accept=".csv,.xlsx,.xls">
+                        <p class="mb-hint">
+                            Baris pertama file harus jadi <b>header kolom</b>, minimal ada kolom <code>Nama Supplier</code>.
+                            Kolom <code>Alamat</code>, <code>Kota</code>, <code>Telepon1</code>, <code>Telepon2</code>, <code>Fax 1</code>, <code>Fax 2</code>,
+                            dan <code>Email</code> boleh ditambahkan (opsional). Nama kolom tidak case-sensitive.
+                            Kalau ada <b>dua kolom</b> berjudul sama persis "Nama Supplier", kolom pertama dibaca sebagai nama perusahaan
+                            dan kolom kedua sebagai nama contact person/PIC.
+                        </p>
+                    </div>
+
+                    <div class="form-group" style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+                        <input type="checkbox" id="ms-hapus-dulu" style="width:auto;">
+                        <label for="ms-hapus-dulu" style="margin:0; font-weight:500; font-size:12.5px; color:#555; cursor:pointer;">
+                            Hapus SEMUA data Master Supplier yang lama sebelum import (pakai ini kalau file baru dimaksudkan jadi pengganti penuh)
+                        </label>
+                    </div>
+
+                    <div class="mb-actions">
+                        <button class="btn-primary" type="button" onclick="prosesFileMasterSupplier()">Baca File</button>
+                        <button class="btn-primary" type="button" id="ms-import-btn" onclick="importMasterSupplierMassal()" disabled>Import ke Firestore</button>
+                    </div>
+
+                    <div class="form-msg" id="ms-parse-status"></div>
+                    <div class="form-msg" id="ms-import-status"></div>
+
+                    <div id="ms-preview-wrap" style="display:none; margin-top:18px; overflow-x:auto;">
+                        <p class="mb-hint" id="ms-preview-count"></p>
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th style="width:34px;">No</th>
+                                    <th>Nama Perusahaan</th>
+                                    <th>PIC</th>
+                                    <th>Alamat</th>
+                                    <th>Kota</th>
+                                    <th>Telepon1</th>
+                                    <th>Telepon2</th>
+                                    <th>Fax 1</th>
+                                    <th>Fax 2</th>
+                                    <th>Email</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ms-preview-body"></tbody>
+                        </table>
+                    </div>
+
+                </div>
+
             </div>
 
             <!-- ============================================= -->
@@ -2325,7 +2389,8 @@ const NAV_ITEMS = {
         { id:"purchasing-buat-sj", label:"🚚 Buat Surat Jalan" },
         { id:"purchasing-list-sj", label:"📃 List Surat Jalan" },
         { id:"purchasing-input-po", label:"🧾 Input PO" },
-        { id:"purchasing-list-po", label:"📑 List PO" }
+        { id:"purchasing-list-po", label:"📑 List PO" },
+        { id:"purchasing-import-master-supplier", label:"📥 Import Master Supplier" }
     ],
     pimpinan: [
         { id:"pimpinan-review", label:"✅ Review & Approval" }
@@ -2402,10 +2467,15 @@ window.showPage = function(id){
     }
     if(id === "purchasing-input-po"){
         pantauPurchasingInputPO();
+        pantauMasterSupplier();
         resetFormPO();
     }
     if(id === "purchasing-list-po"){
         pantauPurchasingListPO();
+    }
+    if(id === "purchasing-import-master-supplier"){
+        pantauMasterSupplier();
+        resetImportMasterSupplier();
     }
     if(id === "pimpinan-review"){
         pantauPimpinanReview();
@@ -2952,6 +3022,258 @@ window.importMasterBarangMassal = async function(){
     }
 
     statusEl.textContent = `Selesai. ${sukses} barang berhasil diimpor` + (gagal > 0 ? `, ${gagal} gagal.` : ".");
+    statusEl.className = "form-msg " + (sukses > 0 ? "ok" : "err");
+    statusEl.style.display = "block";
+
+    btn.disabled = false;
+    btn.textContent = "Import ke Firestore";
+
+}
+
+// =========================================================
+// MASTER SUPPLIER (Purchasing) -- mirip Master Barang, tapi domainnya
+// purchasing: dipakai untuk autocomplete & auto-isi Attn/Telp/Fax di Input PO.
+// =========================================================
+let unsubMasterSupplier = null;
+let masterSupplierMap = {}; // nama perusahaan -> { nama, pic, alamat, kota, telepon1, telepon2, fax1, fax2, email }
+let masterSupplierFileData = [];
+
+function slugSupplier(nama){
+    return nama.toLowerCase().trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-+|-+$)/g, "")
+        .slice(0, 140);
+}
+
+function pantauMasterSupplier(){
+    if(unsubMasterSupplier) return;
+    const q = query(collection(db, "master_supplier"), orderBy("nama"));
+    unsubMasterSupplier = onSnapshot(q, (snap) => {
+        masterSupplierMap = {};
+        let optionsHtml = "";
+        snap.forEach(docSnap => {
+            const d = docSnap.data();
+            masterSupplierMap[d.nama] = {
+                nama: d.nama,
+                pic: d.pic || "",
+                alamat: d.alamat || "",
+                kota: d.kota || "",
+                telepon1: d.telepon1 || "",
+                telepon2: d.telepon2 || "",
+                fax1: d.fax1 || "",
+                fax2: d.fax2 || "",
+                email: d.email || ""
+            };
+            optionsHtml += `<option value="${d.nama}"></option>`;
+        });
+        const dl = document.getElementById("master-supplier-datalist");
+        if(dl) dl.innerHTML = optionsHtml;
+        const countEl = document.getElementById("ms-total-count");
+        if(countEl) countEl.textContent = snap.size;
+    }, (err) => console.error("Gagal memuat master supplier:", err));
+}
+
+function resetImportMasterSupplier(){
+    masterSupplierFileData = [];
+    document.getElementById("ms-file").value = "";
+    document.getElementById("ms-parse-status").style.display = "none";
+    document.getElementById("ms-import-status").style.display = "none";
+    document.getElementById("ms-preview-wrap").style.display = "none";
+    document.getElementById("ms-import-btn").disabled = true;
+}
+
+window.prosesFileMasterSupplier = function(){
+
+    const fileInput = document.getElementById("ms-file");
+    const statusEl = document.getElementById("ms-parse-status");
+    const file = fileInput.files[0];
+
+    statusEl.style.display = "none";
+    statusEl.className = "form-msg";
+    document.getElementById("ms-import-status").style.display = "none";
+
+    if(!file){
+        statusEl.textContent = "Pilih file Excel/CSV dulu.";
+        statusEl.classList.add("err");
+        statusEl.style.display = "block";
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function(e){
+        try{
+            const data = new Uint8Array(e.target.result);
+            const wb = XLSX.read(data, { type: "array" });
+            const sheet = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+            // Header dinormalisasi (buang spasi, huruf kecil) supaya "Telepon1"/"Telepon 1"
+            // dan sejenisnya tetap kebaca sama.
+            const normHeader = (s) => (s || "").toString().trim().toLowerCase().replace(/\s+/g, "");
+
+            const bersih = [];
+            rows.forEach(r => {
+                const keys = Object.keys(r);
+                const cariKolom = (target) => {
+                    const key = keys.find(k => normHeader(k) === target);
+                    return key ? String(r[key]).trim() : "";
+                };
+
+                // Header "Nama Supplier" bisa muncul 2x di file ini: kolom pertama nama
+                // perusahaan, kolom kedua nama contact person/PIC.
+                const kolomNamaSupplierSemua = keys.filter(k => normHeader(k) === "namasupplier");
+                const nama = kolomNamaSupplierSemua[0] ? String(r[kolomNamaSupplierSemua[0]]).trim() : "";
+                const pic = kolomNamaSupplierSemua[1] ? String(r[kolomNamaSupplierSemua[1]]).trim() : "";
+
+                const alamat = cariKolom("alamat");
+                const kota = cariKolom("kota");
+                const telepon1 = cariKolom("telepon1");
+                const telepon2 = cariKolom("telepon2");
+                const fax1 = cariKolom("fax1");
+                const fax2 = cariKolom("fax2");
+                const email = cariKolom("email");
+
+                if(nama !== ""){
+                    bersih.push({ nama, pic, alamat, kota, telepon1, telepon2, fax1, fax2, email });
+                }
+            });
+
+            if(bersih.length === 0){
+                statusEl.textContent = "Tidak ada baris valid ditemukan. Pastikan ada kolom 'Nama Supplier'.";
+                statusEl.classList.add("err");
+                statusEl.style.display = "block";
+                document.getElementById("ms-preview-wrap").style.display = "none";
+                document.getElementById("ms-import-btn").disabled = true;
+                return;
+            }
+
+            masterSupplierFileData = bersih;
+
+            const previewBody = document.getElementById("ms-preview-body");
+            previewBody.innerHTML = bersih.slice(0, 10).map((it, i) => `
+                <tr>
+                    <td>${i + 1}</td>
+                    <td>${it.nama}</td>
+                    <td>${it.pic || "-"}</td>
+                    <td>${it.alamat || "-"}</td>
+                    <td>${it.kota || "-"}</td>
+                    <td>${it.telepon1 || "-"}</td>
+                    <td>${it.telepon2 || "-"}</td>
+                    <td>${it.fax1 || "-"}</td>
+                    <td>${it.fax2 || "-"}</td>
+                    <td>${it.email || "-"}</td>
+                </tr>
+            `).join("");
+
+            document.getElementById("ms-preview-count").textContent =
+                `${bersih.length} supplier terbaca dari file` + (bersih.length > 10 ? " (menampilkan 10 baris pertama sebagai contoh)." : ".");
+            document.getElementById("ms-preview-wrap").style.display = "block";
+            document.getElementById("ms-import-btn").disabled = false;
+
+        } catch(err){
+            statusEl.textContent = "Gagal membaca file: " + err.message;
+            statusEl.classList.add("err");
+            statusEl.style.display = "block";
+        }
+    };
+
+    reader.readAsArrayBuffer(file);
+
+}
+
+async function hapusSemuaMasterSupplier(statusEl){
+
+    statusEl.textContent = "Menghapus data lama...";
+    statusEl.className = "form-msg";
+    statusEl.style.display = "block";
+
+    const snap = await getDocs(collection(db, "master_supplier"));
+    const semuaDoc = snap.docs;
+    const ukuranBatch = 400;
+
+    for(let i = 0; i < semuaDoc.length; i += ukuranBatch){
+        const chunk = semuaDoc.slice(i, i + ukuranBatch);
+        const batch = writeBatch(db);
+        chunk.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+        statusEl.textContent = `Menghapus data lama... ${Math.min(i + ukuranBatch, semuaDoc.length)} / ${semuaDoc.length}`;
+    }
+
+}
+
+window.importMasterSupplierMassal = async function(){
+
+    const items = masterSupplierFileData;
+    const statusEl = document.getElementById("ms-import-status");
+    const btn = document.getElementById("ms-import-btn");
+    const hapusDulu = document.getElementById("ms-hapus-dulu").checked;
+
+    if(!items || items.length === 0) return;
+
+    btn.disabled = true;
+    btn.textContent = "Mengimpor...";
+    statusEl.className = "form-msg";
+    statusEl.style.display = "block";
+
+    if(hapusDulu){
+        try{
+            await hapusSemuaMasterSupplier(statusEl);
+        } catch(err){
+            statusEl.textContent = "Gagal menghapus data lama: " + err.message;
+            statusEl.className = "form-msg err";
+            btn.disabled = false;
+            btn.textContent = "Import ke Firestore";
+            return;
+        }
+    }
+
+    let sukses = 0;
+    let gagal = 0;
+    const ukuranBatch = 400;
+
+    for(let i = 0; i < items.length; i += ukuranBatch){
+
+        const chunk = items.slice(i, i + ukuranBatch);
+        const batch = writeBatch(db);
+        let jumlahDiBatchIni = 0;
+
+        chunk.forEach(it => {
+            const id = slugSupplier(it.nama);
+            if(!id){ gagal++; return; }
+            const ref = doc(db, "master_supplier", id);
+            const dataTulis = {
+                nama: it.nama,
+                updated_at: serverTimestamp()
+            };
+            // Sama seperti Master Barang: field cuma ditulis kalau memang ada isinya
+            // di file, supaya re-import file yang sebagian kolomnya kosong tidak
+            // menimpa data yang sudah benar dengan string kosong.
+            if(it.pic) dataTulis.pic = it.pic;
+            if(it.alamat) dataTulis.alamat = it.alamat;
+            if(it.kota) dataTulis.kota = it.kota;
+            if(it.telepon1) dataTulis.telepon1 = it.telepon1;
+            if(it.telepon2) dataTulis.telepon2 = it.telepon2;
+            if(it.fax1) dataTulis.fax1 = it.fax1;
+            if(it.fax2) dataTulis.fax2 = it.fax2;
+            if(it.email) dataTulis.email = it.email;
+            batch.set(ref, dataTulis, { merge: true });
+            jumlahDiBatchIni++;
+        });
+
+        try{
+            await batch.commit();
+            sukses += jumlahDiBatchIni;
+        } catch(err){
+            console.error("Gagal commit batch:", err);
+            gagal += jumlahDiBatchIni;
+        }
+
+        statusEl.textContent = `Mengimpor... ${Math.min(i + ukuranBatch, items.length)} / ${items.length}`;
+        statusEl.classList.remove("err", "ok");
+    }
+
+    statusEl.textContent = `Selesai. ${sukses} supplier berhasil diimpor` + (gagal > 0 ? `, ${gagal} gagal.` : ".");
     statusEl.className = "form-msg " + (sukses > 0 ? "ok" : "err");
     statusEl.style.display = "block";
 
@@ -4895,6 +5217,8 @@ function pantauPurchasingInputPO(){
 
 function resetFormPO(){
     document.getElementById("po-vendor").value = "";
+    const vendorStatusEl = document.getElementById("po-vendor-status");
+    if(vendorStatusEl){ vendorStatusEl.textContent = ""; vendorStatusEl.className = "nama-status"; }
     document.getElementById("po-attn").value = "";
     document.getElementById("po-telp").value = "";
     document.getElementById("po-fax").value = "";
@@ -5056,6 +5380,35 @@ function adaPPNDiBarisPO(){
         if((Number(document.getElementById(`po-ppn-${id}`).value) || 0) > 0) ada = true;
     });
     return ada;
+}
+
+// Isi otomatis Attn/Telp/Fax dari Master Supplier begitu Nama Supplier cocok.
+// Beda dengan Satuan di Nama Barang, field-field ini TIDAK dikunci -- purchasing
+// tetap bebas mengubahnya manual kalau memang beda dari data master (mis. PIC ganti).
+window.autoisiSupplier = function(){
+    const vendorEl = document.getElementById("po-vendor");
+    const statusEl = document.getElementById("po-vendor-status");
+    if(!vendorEl) return;
+
+    const nama = vendorEl.value.trim();
+    const data = masterSupplierMap[nama];
+
+    if(!data){
+        if(statusEl) statusEl.textContent = "";
+        return;
+    }
+
+    const attnEl = document.getElementById("po-attn");
+    const telpEl = document.getElementById("po-telp");
+    const faxEl = document.getElementById("po-fax");
+    if(attnEl) attnEl.value = data.pic || "";
+    if(telpEl) telpEl.value = data.telepon1 || "";
+    if(faxEl) faxEl.value = data.fax1 || "";
+
+    if(statusEl){
+        statusEl.className = "nama-status cocok";
+        statusEl.textContent = "✓ Data kontak terisi dari Master Supplier";
+    }
 }
 
 function updatePreviewNoPO(){
