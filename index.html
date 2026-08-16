@@ -764,7 +764,9 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
     white-space:nowrap;
 }
 .ic-badge-cukup{ background:#e6f4ea; color:#2e7d32; }
+.ic-badge-order{ background:#fdeaea; color:#c62828; }
 .ic-badge-followup{ background:#fff8e1; color:#b26a00; }
+.ic-badge-review{ background:#ede7f6; color:#5e35b1; }
 .ic-badge-muted{ color:#9a9a9a; }
 
 .pur-approvement-select{
@@ -1746,9 +1748,23 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                         <input type="text" id="ic-search" placeholder="Ketik nama barang..." oninput="renderInventoryControl()">
                     </div>
 
-                    <div class="mb-counter" style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="mb-counter" style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
                         <span>Menampilkan <strong id="ic-shown-count">0</strong> dari <strong id="ic-total-count">0</strong> barang</span>
-                        <button class="btn-secondary" type="button" onclick="cekDuplikatMasterBarang()">🔍 Cek Barang Duplikat</button>
+                        <div style="display:flex; gap:8px;">
+                            <button class="btn-secondary" type="button" onclick="cekKetersediaanStok()">📦 Cek Ketersediaan Stok</button>
+                            <button class="btn-secondary" type="button" onclick="cekDuplikatMasterBarang()">🔍 Cek Barang Duplikat</button>
+                        </div>
+                    </div>
+
+                    <div class="panel" id="ic-ketersediaan-panel" style="display:none; margin-bottom:18px; background:#fff5f5; border:1px solid #f3c9c9;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <h3 style="margin:0;">Barang yang Perlu Segera Di-Order</h3>
+                            <button class="btn-ic-cancel" type="button" onclick="document.getElementById('ic-ketersediaan-panel').style.display='none';">Tutup</button>
+                        </div>
+                        <p style="font-size:12px; color:#8d8d8d; margin:0 0 12px;">
+                            Daftar barang dengan status <b>SEGERA ORDER</b> — Stok Akhir sudah sama dengan atau di bawah Minimal Stok yang ditentukan.
+                        </p>
+                        <div id="ic-ketersediaan-body"></div>
                     </div>
 
                     <div class="panel" id="ic-duplikat-panel" style="display:none; margin-bottom:18px; background:#fffdf5; border:1px solid #f0e2b3;">
@@ -1776,8 +1792,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                                 <th style="width:90px;">Keluar</th>
                                 <th style="width:110px;">Stok Akhir</th>
                                 <th style="width:100px;">Minimal Stok</th>
-                                <th style="width:130px;">Keterangan</th>
-                                <th style="width:150px;">Aksi</th>
+                                <th style="width:150px;">Keterangan</th>
                             </tr>
                         </thead>
                         <tbody id="ic-list-body"></tbody>
@@ -1807,8 +1822,8 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                         <input type="file" id="mb-file" accept=".csv,.xlsx,.xls">
                         <p class="mb-hint">
                             Baris pertama file harus jadi <b>header kolom</b>, minimal ada kolom <code>nama</code> dan <code>satuan</code>.
-                            Kolom <code>kategori</code>, <code>barcode</code>, dan <code>stok</code> (stok awal, angka) boleh ditambahkan (opsional). Nama kolom tidak case-sensitive.
-                            Kolom <code>stok</code> hanya untuk stok awal — kalau barangnya sudah ada, re-import <b>tidak</b> akan menimpa stok yang sudah berjalan kecuali kamu isi ulang kolom itu.
+                            Kolom <code>kategori</code>, <code>barcode</code>, <code>stok</code> (stok awal, angka), dan <code>minimal stok</code> (angka) boleh ditambahkan (opsional). Nama kolom tidak case-sensitive.
+                            Kolom <code>stok</code> hanya untuk stok awal — kalau barangnya sudah ada, re-import <b>tidak</b> akan menimpa stok yang sudah berjalan kecuali kamu isi ulang kolom itu. Kolom <code>minimal stok</code> juga begitu, cuma ditimpa kalau memang ada isinya di file.
                         </p>
                     </div>
 
@@ -1831,7 +1846,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                         <p class="mb-hint" id="mb-preview-count"></p>
                         <table class="tbl">
                             <thead>
-                                <tr><th style="width:34px;">No</th><th>Nama</th><th>Satuan</th><th>Kategori</th><th>Barcode</th><th>Stok Awal</th></tr>
+                                <tr><th style="width:34px;">No</th><th>Nama</th><th>Satuan</th><th>Kategori</th><th>Barcode</th><th>Stok Awal</th><th>Minimal Stok</th></tr>
                             </thead>
                             <tbody id="mb-preview-body"></tbody>
                         </table>
@@ -2842,6 +2857,48 @@ window.hapusMasterBarangDuplikat = async function(id, nama){
     }
 }
 
+// Tentukan status Keterangan satu barang. Urutan pengecekan sengaja dari yang
+// paling spesifik ke paling umum, karena beberapa kondisi bisa tumpang tindih
+// kalau dicek dengan urutan sembarangan (mis. semua nol adalah kasus khusus
+// dari "stok akhir <= minimal stok").
+function tentukanKeteranganStok(it){
+    const adaStok = typeof it.stok === "number";
+    if(!adaStok) return null; // belum pernah diisi sama sekali -- di luar 4 kategori ini
+
+    const stokAkhir = it.stok;
+    const stokAwal = typeof it.stok_awal === "number" ? it.stok_awal : 0;
+    const masuk = typeof it.total_masuk === "number" ? it.total_masuk : 0;
+    const keluar = typeof it.total_keluar === "number" ? it.total_keluar : 0;
+    const minimalStok = typeof it.minimal_stock === "number" ? it.minimal_stock : 0;
+
+    // REVIEW ULANG: semua angka nol -- kemungkinan data belum pernah benar-benar diisi/dipakai.
+    if(stokAwal === 0 && minimalStok === 0 && masuk === 0 && keluar === 0 && stokAkhir === 0){
+        return { kode: "review", label: "REVIEW ULANG" };
+    }
+    // FOLLOWUP: stok akhir & minimal stok nol, tapi ada pergerakan (masuk/keluar) --
+    // barang aktif dipakai tapi belum ada batas minimal yang ditentukan.
+    if(stokAkhir === 0 && minimalStok === 0 && (masuk > 0 || keluar > 0)){
+        return { kode: "followup", label: "FOLLOWUP" };
+    }
+    // SEGERA ORDER: stok akhir sudah di titik atau di bawah minimal stok.
+    if(stokAkhir <= minimalStok){
+        return { kode: "order", label: "SEGERA ORDER" };
+    }
+    // CUKUP: stok akhir masih di atas minimal stok.
+    return { kode: "cukup", label: "CUKUP" };
+}
+
+function htmlBadgeKeterangan(ket){
+    if(!ket) return `<span class="ic-badge-muted">-</span>`;
+    const kelas = {
+        cukup: "ic-badge-cukup",
+        order: "ic-badge-order",
+        followup: "ic-badge-followup",
+        review: "ic-badge-review"
+    }[ket.kode];
+    return `<span class="ic-badge ${kelas}">${ket.label}</span>`;
+}
+
 window.renderInventoryControl = function(){
     const cari = (document.getElementById("ic-search")?.value || "").trim().toLowerCase();
     const data = cari
@@ -2864,7 +2921,6 @@ window.renderInventoryControl = function(){
 
     tbody.innerHTML = data.map((it, i) => {
         const adaStok = typeof it.stok === "number";
-        const stokAkhir = adaStok ? it.stok : 0;
         const stokAwal = typeof it.stok_awal === "number" ? it.stok_awal : "-";
         const masuk = typeof it.total_masuk === "number" ? it.total_masuk : 0;
         const keluar = typeof it.total_keluar === "number" ? it.total_keluar : 0;
@@ -2874,11 +2930,7 @@ window.renderInventoryControl = function(){
             ? `<span class="ic-stok-badge ${it.stok === 0 ? 'kosong' : ''}">${it.stok}</span>`
             : `<span class="ic-stok-badge kosong">Belum diisi</span>`;
 
-        const keteranganHtml = !adaStok
-            ? `<span class="ic-badge-muted">-</span>`
-            : (stokAkhir <= minimalStok
-                ? `<span class="ic-badge ic-badge-followup">PERLU FOLLOWUP</span>`
-                : `<span class="ic-badge ic-badge-cukup">CUKUP</span>`);
+        const keteranganHtml = htmlBadgeKeterangan(tentukanKeteranganStok(it));
 
         return `
 <tr id="ic-row-${it.id}" class="${i % 2 === 0 ? 'tbl-grp-a' : 'tbl-grp-b'}">
@@ -2886,82 +2938,57 @@ window.renderInventoryControl = function(){
     <td>${it.nama || "-"}</td>
     <td>${it.satuan_default || "-"}</td>
     <td style="word-break:break-all;">${it.barcode || "-"}</td>
-    <td class="ic-num" id="ic-awal-cell-${it.id}">${stokAwal}</td>
+    <td class="ic-num">${stokAwal}</td>
     <td class="ic-num">${masuk}</td>
     <td class="ic-num">${keluar}</td>
-    <td class="ic-num" id="ic-stok-cell-${it.id}">${stokAkhirHtml}</td>
-    <td class="ic-num" id="ic-min-cell-${it.id}">${minimalStok}</td>
-    <td id="ic-ket-cell-${it.id}">${keteranganHtml}</td>
-    <td id="ic-aksi-cell-${it.id}"><button class="btn-ic-edit" type="button" onclick="editRowInventory('${it.id}')">✏️ Edit</button></td>
+    <td class="ic-num">${stokAkhirHtml}</td>
+    <td class="ic-num">${minimalStok}</td>
+    <td>${keteranganHtml}</td>
 </tr>`;
     }).join("");
 }
 
-// Edit gabungan: Stok Akhir (koreksi stok opname) & Minimal Stok sekaligus.
-window.editRowInventory = function(id){
-    const item = inventoryControlData.find(it => it.id === id);
-    if(!item) return;
+// Daftar barang berstatus SEGERA ORDER -- yang benar-benar perlu ditindaklanjuti
+// dibeli ulang, dipisahkan dari FOLLOWUP/REVIEW ULANG yang sifatnya cuma perlu dicek data.
+window.cekKetersediaanStok = function(){
+    const panel = document.getElementById("ic-ketersediaan-panel");
+    const body = document.getElementById("ic-ketersediaan-body");
+    if(!panel || !body) return;
 
-    const stokCell = document.getElementById(`ic-stok-cell-${id}`);
-    const minCell = document.getElementById(`ic-min-cell-${id}`);
-    const aksiCell = document.getElementById(`ic-aksi-cell-${id}`);
-    if(!stokCell || !minCell || !aksiCell) return;
+    const daftarOrder = inventoryControlData
+        .map(it => ({ it, ket: tentukanKeteranganStok(it) }))
+        .filter(({ ket }) => ket && ket.kode === "order");
 
-    const stokSekarang = typeof item.stok === "number" ? item.stok : "";
-    const minSekarang = typeof item.minimal_stock === "number" ? item.minimal_stock : "";
+    panel.style.display = "block";
 
-    stokCell.innerHTML = `<input type="number" min="0" id="ic-input-stok-${id}" value="${stokSekarang}" placeholder="0">`;
-    minCell.innerHTML = `<input type="number" min="0" id="ic-input-min-${id}" value="${minSekarang}" placeholder="0">`;
-    aksiCell.innerHTML = `
-        <div class="ic-edit-row">
-            <button class="btn-ic-save" type="button" onclick="simpanRowInventory('${id}')">Simpan</button>
-            <button class="btn-ic-cancel" type="button" onclick="renderInventoryControl()">Batal</button>
-        </div>
+    if(daftarOrder.length === 0){
+        body.innerHTML = `<p style="color:#2e7d32; font-weight:600; margin:0;">✔ Tidak ada barang yang perlu segera di-order.</p>`;
+        return;
+    }
+
+    body.innerHTML = `
+        <p style="font-size:12px; margin:0 0 12px;">Ditemukan <b>${daftarOrder.length}</b> barang.</p>
+        <table class="tbl" style="margin:0;">
+            <thead>
+                <tr>
+                    <th>Nama Barang</th>
+                    <th style="width:80px;">Satuan</th>
+                    <th style="width:100px;">Stok Akhir</th>
+                    <th style="width:100px;">Minimal Stok</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${daftarOrder.map(({ it }) => `
+                    <tr>
+                        <td>${it.nama || "-"}</td>
+                        <td>${it.satuan_default || "-"}</td>
+                        <td class="ic-num">${typeof it.stok === "number" ? it.stok : "-"}</td>
+                        <td class="ic-num">${typeof it.minimal_stock === "number" ? it.minimal_stock : 0}</td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
     `;
-    document.getElementById(`ic-input-stok-${id}`).focus();
-}
-
-window.simpanRowInventory = async function(id){
-    const stokInput = document.getElementById(`ic-input-stok-${id}`);
-    const minInput = document.getElementById(`ic-input-min-${id}`);
-    if(!stokInput || !minInput) return;
-
-    const nilaiStok = stokInput.value;
-    const nilaiMin = minInput.value;
-
-    if(nilaiStok === "" || isNaN(Number(nilaiStok)) || Number(nilaiStok) < 0){
-        alert("Isi angka Stok Akhir yang valid (0 atau lebih).");
-        return;
-    }
-    if(nilaiMin !== "" && (isNaN(Number(nilaiMin)) || Number(nilaiMin) < 0)){
-        alert("Isi angka Minimal Stok yang valid (0 atau lebih), atau kosongkan.");
-        return;
-    }
-
-    const stokBaru = Number(nilaiStok);
-    const minBaru = nilaiMin === "" ? 0 : Number(nilaiMin);
-    const ref = doc(db, "master_barang", id);
-
-    try{
-        // Koreksi stok manual (mis. hasil opname) dicatat sebagai MASUK/KELUAR juga,
-        // supaya Stok Awal + Masuk - Keluar tetap sama dengan Stok Akhir yang tampil.
-        await runTransaction(db, async (tx) => {
-            const snap = await tx.get(ref);
-            const data = snap.exists() ? snap.data() : {};
-            const stokLama = typeof data.stok === "number" ? data.stok : 0;
-            const totalMasukLama = typeof data.total_masuk === "number" ? data.total_masuk : 0;
-            const totalKeluarLama = typeof data.total_keluar === "number" ? data.total_keluar : 0;
-            const selisih = stokBaru - stokLama;
-
-            const payload = { stok: stokBaru, minimal_stock: minBaru, updated_at: serverTimestamp() };
-            if(selisih > 0) payload.total_masuk = totalMasukLama + selisih;
-            else if(selisih < 0) payload.total_keluar = totalKeluarLama + Math.abs(selisih);
-
-            tx.set(ref, payload, { merge: true });
-        });
-    } catch(e){
-        alert("Gagal menyimpan: " + e.message);
-    }
 }
 
 function resetImportMasterBarang(){
@@ -3010,18 +3037,24 @@ window.prosesFileMasterBarang = function(){
                 const satuan = cari("satuan");
                 const kategori = cari("kategori");
                 // Terima berbagai nama kolom stok: "stok", "stock", "stock awal", "stok awal", dst.
+                // Sengaja DIKECUALIKAN kolom yang mengandung "minimal", supaya tidak salah
+                // tertukar dengan kolom Minimal Stok di bawah ini.
                 const kolomStok = Object.keys(r).find(k => {
                     const kl = k.trim().toLowerCase();
-                    return kl.includes("stok") || kl.includes("stock");
+                    return (kl.includes("stok") || kl.includes("stock")) && !kl.includes("minimal");
                 });
                 const stokMentah = kolomStok ? String(r[kolomStok]).trim() : "";
                 const stok = stokMentah !== "" && !isNaN(Number(stokMentah)) ? Number(stokMentah) : null;
+                // Kolom Minimal Stok: "minimal stok", "minimal stock", "stok minimal", dst.
+                const kolomMinimal = Object.keys(r).find(k => k.trim().toLowerCase().includes("minimal"));
+                const minimalMentah = kolomMinimal ? String(r[kolomMinimal]).trim() : "";
+                const minimalStok = minimalMentah !== "" && !isNaN(Number(minimalMentah)) ? Number(minimalMentah) : null;
                 // Terima berbagai nama kolom barcode: "barcode", "code barcode", "kode barcode", dst.
                 const kolomBarcode = Object.keys(r).find(k => k.trim().toLowerCase().includes("barcode"));
                 const barcode = kolomBarcode ? normalisasiKode(r[kolomBarcode]) : "";
 
                 if(nama !== ""){
-                    bersih.push({ nama, satuan_default: satuan, kategori, barcode, stok });
+                    bersih.push({ nama, satuan_default: satuan, kategori, barcode, stok, minimal_stok: minimalStok });
                 }
             });
 
@@ -3038,7 +3071,7 @@ window.prosesFileMasterBarang = function(){
 
             const previewBody = document.getElementById("mb-preview-body");
             previewBody.innerHTML = bersih.slice(0, 10).map((it, i) => `
-                <tr><td>${i + 1}</td><td>${it.nama}</td><td>${it.satuan_default || "-"}</td><td>${it.kategori || "-"}</td><td>${it.barcode || "-"}</td><td>${it.stok === null ? "-" : it.stok}</td></tr>
+                <tr><td>${i + 1}</td><td>${it.nama}</td><td>${it.satuan_default || "-"}</td><td>${it.kategori || "-"}</td><td>${it.barcode || "-"}</td><td>${it.stok === null ? "-" : it.stok}</td><td>${it.minimal_stok === null ? "-" : it.minimal_stok}</td></tr>
             `).join("");
 
             document.getElementById("mb-preview-count").textContent =
@@ -3146,6 +3179,11 @@ window.importMasterBarangMassal = async function(){
                 dataTulis.stok_awal = it.stok;
                 dataTulis.total_masuk = 0;
                 dataTulis.total_keluar = 0;
+            }
+            // Minimal Stok juga cuma ditulis kalau memang ada isinya di file --
+            // supaya re-import tidak menimpa angka yang sudah pernah diatur.
+            if(it.minimal_stok !== null && it.minimal_stok !== undefined){
+                dataTulis.minimal_stock = it.minimal_stok;
             }
             batch.set(ref, dataTulis, { merge: true });
             jumlahDiBatchIni++;
