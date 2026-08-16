@@ -1881,8 +1881,10 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                                 <th>Tanggal</th>
                                 <th>No. PR</th>
                                 <th>Divisi</th>
-                                <th>Detail Barang</th>
                                 <th>Vendor</th>
+                                <th style="width:100px;">No PR Urut</th>
+                                <th>Nama Barang</th>
+                                <th>Qty</th>
                                 <th>Status &amp; Surat Jalan</th>
                                 <th>Faktur</th>
                             </tr>
@@ -3962,6 +3964,25 @@ function renderNamaBarangHtml(d){
     return `<div class="detail-barang-list">${baris}</div>`;
 }
 
+// Nama barang saja, tanpa qty/satuan dibuntuti -- dipakai saat qty sudah jadi kolom sendiri.
+function renderNamaBarangSajaHtml(d){
+    const items = d.items || [];
+    if(items.length === 0) return `<span style="color:#9a9a9a;">-</span>`;
+    const baris = items.map(it => `<div class="item-line">${it.nama_barang || "-"}</div>`).join("");
+    return `<div class="detail-barang-list">${baris}</div>`;
+}
+
+// Qty + satuan sebagai kolom sendiri, baris-nya sejajar dengan No PR Urut & Nama Barang.
+function renderQtyHtml(d){
+    const items = d.items || [];
+    if(items.length === 0) return `<span style="color:#9a9a9a;">-</span>`;
+    const baris = items.map(it => {
+        const jumlah = it.jumlah_diminta ?? it.jumlah ?? 0;
+        return `<div class="item-line">${jumlah} <span class="jml-satuan">${it.satuan || ""}</span></div>`;
+    }).join("");
+    return `<div class="detail-barang-list detail-barang-list-kode">${baris}</div>`;
+}
+
 // =========================================================
 // RINGKASAN PROGRES PER ITEM
 // Satu sumber kebenaran untuk pertanyaan "item ini sudah sampai mana?".
@@ -4112,8 +4133,10 @@ function pantauPurchasingListApprove(){
     <td>${tgl}</td>
     <td>${d.no_pr || "-"}</td>
     <td>${d.divisi || "-"}</td>
-    <td>${renderDetailBarangHtml(d)}</td>
     <td>${(d.penawaran_list && d.penawaran_list[0]) ? d.penawaran_list[0].vendor : "-"}</td>
+    <td>${renderNoPrUrutHtml(d)}</td>
+    <td>${renderNamaBarangSajaHtml(d)}</td>
+    <td>${renderQtyHtml(d)}</td>
     <td><span class="status-pill ${classStatusBarang}">${labelStatusBarang}</span><br>${daftarSJHtml}</td>
     <td>${d.faktur ? (d.faktur.no_faktur || "✔ Sudah") : "-"}<br>${btnFaktur}</td>
 </tr>`;
