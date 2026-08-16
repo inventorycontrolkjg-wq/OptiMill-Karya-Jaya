@@ -5232,12 +5232,44 @@ window.tandaiSJDiterima = async function(id, noSJ){
     }
 }
 
-window.cetakSuratJalanUlang = function(id, noSJ){
-    const d = purApproveMap[id];
-    if(!d) return;
-    const sj = (d.surat_jalan || []).find(x => x.no_sj === noSJ);
-    if(!sj) return;
-    cetakSuratJalan(d, sj);
+window.cetakSuratJalanUlang = async function(id, noSJ){
+    try{
+        // Satu SJ bisa tersebar di lebih dari satu dokumen PR (hasil "gabung beberapa
+        // PR jadi 1 SJ" saat Buat Surat Jalan). Sebelumnya fungsi ini cuma ambil dari
+        // SATU dokumen PR (bahkan dari cache purApproveMap yang bisa kosong/basi kalau
+        // dibuka dari halaman List Surat Jalan) -- makanya cetak ulang cuma menampilkan
+        // sebagian barang. Sekarang query langsung ke Firestore dan gabungkan semuanya.
+        const snap = await getDocs(query(collection(db, "permintaan_barang"), where("status", "==", "approve")));
+
+        let sjGabungan = null;
+        const semuaNoPR = [];
+        const semuaDivisi = [];
+
+        snap.forEach(docSnap => {
+            const d = docSnap.data();
+            const sj = (d.surat_jalan || []).find(x => x.no_sj === noSJ);
+            if(!sj) return;
+
+            if(!sjGabungan){
+                sjGabungan = { no_sj: sj.no_sj, tanggal: sj.tanggal, tanggal_display: sj.tanggal_display, items: [] };
+            }
+            sjGabungan.items = sjGabungan.items.concat(sj.items || []);
+
+            if(sj.no_pr && !semuaNoPR.includes(sj.no_pr)) semuaNoPR.push(sj.no_pr);
+            if(d.divisi && !semuaDivisi.includes(d.divisi)) semuaDivisi.push(d.divisi);
+        });
+
+        if(!sjGabungan){
+            alert(`Surat Jalan "${noSJ}" tidak ditemukan.`);
+            return;
+        }
+
+        sjGabungan.no_pr = semuaNoPR.join(", ");
+        cetakSuratJalan({ divisi: semuaDivisi.join(", ") }, sjGabungan);
+
+    } catch(e){
+        alert("Gagal memuat data untuk cetak: " + e.message);
+    }
 }
 
 function cetakSuratJalan(d, sj){
