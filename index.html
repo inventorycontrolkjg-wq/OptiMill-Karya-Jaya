@@ -4883,7 +4883,7 @@ function pantauPurchasingInputPO(){
                     noPR: noPR,
                     namaBarang: it.nama_barang,
                     satuan: it.satuan || "",
-                    jumlahDiminta: it.jumlah
+                    jumlahDiminta: it.jumlah_diminta ?? it.jumlah
                 };
             });
         });
