@@ -1348,6 +1348,53 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
             <!-- ============================================= -->
             <!-- GUDANG: LIST PERMINTAAN -->
             <!-- ============================================= -->
+            <div class="page page-wide" id="page-list-permintaan-global">
+
+                <div class="page-header">
+                    <h2>📋 List Permintaan Barang (Global)</h2>
+                    <p>Referensi lengkap semua permintaan yang pernah diajukan, tanpa info status approval/pengiriman</p>
+                </div>
+
+                <div class="form-group" style="max-width:260px; margin-bottom:12px;">
+                    <label>Tampilkan</label>
+                    <select id="pb-global-rentang" onchange="gantiRentangPermintaanGlobal(this.value)">
+                        <option value="30">30 Hari Terakhir</option>
+                        <option value="90" selected>90 Hari Terakhir</option>
+                        <option value="180">6 Bulan Terakhir</option>
+                        <option value="365">1 Tahun Terakhir</option>
+                        <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
+                    </select>
+                </div>
+
+                <div class="form-msg err" id="pb-global-limit-warning" style="display:none; margin-bottom:12px;">
+                    ⚠ Menampilkan 500 data terbaru di rentang ini. Persempit rentang tanggal kalau butuh data yang lebih spesifik.
+                </div>
+
+                <div class="panel">
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>No. OPB</th>
+                                <th>No PR Urut</th>
+                                <th>Kategori 1</th>
+                                <th>Kategori 2</th>
+                                <th>Kategori 3</th>
+                                <th>Divisi</th>
+                                <th>Nama Barang</th>
+                                <th>Jml Diminta</th>
+                                <th>Satuan</th>
+                                <th>Permintaan</th>
+                                <th>Keterangan</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pb-list-body-global"></tbody>
+                    </table>
+                    <div class="empty-state" id="pb-empty-global" style="display:none;">Belum ada permintaan yang diajukan.</div>
+                </div>
+
+            </div>
+
             <div class="page page-wide" id="page-list-permintaan-proses">
 
                 <div class="page-header">
@@ -1374,9 +1421,6 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                                 <th>No. OPB</th>
                                 <th>No PR Urut</th>
                                 <th>Tanggal Input</th>
-                                <th>Kategori 1</th>
-                                <th>Kategori 2</th>
-                                <th>Kategori 3</th>
                                 <th>Divisi</th>
                                 <th>Nama Barang</th>
                                 <th>Jml Diminta</th>
@@ -1385,7 +1429,6 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                                 <th>Keterangan</th>
                                 <th>Status Approvement</th>
                                 <th>Status Pengiriman</th>
-                                <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="pb-list-body-proses"></tbody>
@@ -1424,9 +1467,6 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                                 <th>No. OPB</th>
                                 <th>No PR Urut</th>
                                 <th>Tanggal Input</th>
-                                <th>Kategori 1</th>
-                                <th>Kategori 2</th>
-                                <th>Kategori 3</th>
                                 <th>Divisi</th>
                                 <th>Nama Barang</th>
                                 <th>Jml Diminta</th>
@@ -1435,7 +1475,6 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                                 <th>Keterangan</th>
                                 <th>Status Approvement</th>
                                 <th>Status Pengiriman</th>
-                                <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="pb-list-body-selesai"></tbody>
@@ -2530,6 +2569,7 @@ const NAV_ITEMS = {
         { id:"input-permintaan", label:"📝 Input Permintaan" },
         { id:"input-pemakaian", label:"📤 Pengambilan Barang (BKB)" },
         { id:"input-penerimaan", label:"📥 Input Penerimaan" },
+        { id:"list-permintaan-global", label:"📋 List Permintaan (Global)" },
         { id:"list-permintaan-proses", label:"📋 List Permintaan (Proses)" },
         { id:"list-permintaan-selesai", label:"✅ List Permintaan (Selesai)" },
         { id:"list-pengeluaran", label:"📃 List Pengeluaran" },
@@ -2578,6 +2618,9 @@ window.showPage = function(id){
     if(id === "input-permintaan"){
         siapkanDropdownOpb();
         resetFormOpb();
+    }
+    if(id === "list-permintaan-global"){
+        pantauPermintaanGlobal();
     }
     if(id === "list-permintaan-proses"){
         pantauPermintaanProses();
@@ -4139,6 +4182,29 @@ function hitungStatusKirimPerItem(d){
     });
 }
 
+// Status pengiriman PER ITEM, versi "Belum Dikirim / Menunggu Diterima / Close"
+// (bukan per PR) -- satu PR bisa punya sebagian item sudah Close, sebagian lagi
+// masih Menunggu Diterima, jadi kolomnya perlu dipecah per baris item, tidak
+// digabung (rowspan) seperti Status Approvement.
+function hitungStatusPengirimanPerItem(d){
+    const items = d.items || [];
+    const noPR = d.no_pr || "-";
+    const suratJalanList = d.surat_jalan || [];
+    const sudahApprove = (d.status || "menunggu") === "approve";
+
+    return items.map((it, idx) => {
+        if(!sudahApprove) return { label: "-", kelas: "menunggu" };
+
+        const sjTerkait = suratJalanList.filter(sj => cocokBarisSJ(sj, it, idx, noPR));
+        if(sjTerkait.length === 0) return { label: "Belum Dikirim", kelas: "menunggu" };
+
+        const semuaSudahDiterima = sjTerkait.every(sj => sj.status === "diterima");
+        return semuaSudahDiterima
+            ? { label: "Close", kelas: "diterima" }
+            : { label: "Menunggu Diterima", kelas: "hold" };
+    });
+}
+
 // -------- List Permintaan (semua permintaan, dipecah 2 tabel: Proses & Selesai) --------
 // Bangun baris HTML untuk satu dokumen PR (dipakai baik oleh query Proses maupun Selesai)
 function bangunBarisPermintaan(docSnap, grpClass){
@@ -4150,7 +4216,9 @@ function bangunBarisPermintaan(docSnap, grpClass){
     const status = d.status || "menunggu";
 
     // Status Approvement -- murni keputusan pimpinan/purchasing, tidak terpengaruh
-    // sama sekali oleh progres pengiriman/penerimaan barangnya.
+    // sama sekali oleh progres pengiriman/penerimaan barangnya. Nilainya sama untuk
+    // seluruh item dalam satu PR, tapi SENGAJA tidak digabung (rowspan) -- supaya
+    // sejajar & konsisten tampilannya dengan Status Pengiriman yang memang beda per item.
     let labelApprove = "Menunggu";
     let classApprove = "menunggu";
     if(status === "ditolak"){
@@ -4164,26 +4232,9 @@ function bangunBarisPermintaan(docSnap, grpClass){
         classApprove = "approve";
     }
 
-    // Status Pengiriman -- cuma relevan kalau sudah Approve (kalau belum, barang
-    // memang belum bisa dikirim sama sekali, jadi ditampilkan "-").
-    let labelKirim = "-";
-    let classKirim = "menunggu";
-    if(status === "approve"){
-        const suratJalanList = d.surat_jalan || [];
-        if(suratJalanList.length === 0){
-            labelKirim = "Belum Dikirim";
-            classKirim = "menunggu";
-        } else {
-            const totalSisaDiterima = hitungSisaDiterimaSJ(d).reduce((a, b) => a + b.sisa, 0);
-            if(totalSisaDiterima <= 0){
-                labelKirim = "Close";
-                classKirim = "diterima";
-            } else {
-                labelKirim = "Menunggu Diterima";
-                classKirim = "hold";
-            }
-        }
-    }
+    // Status Pengiriman -- dihitung PER ITEM (bukan per PR), karena satu PR bisa
+    // saja sebagian itemnya sudah Close sementara sebagian lagi masih Menunggu Diterima.
+    const statusKirimPerItem = hitungStatusPengirimanPerItem(d);
 
     const items = d.items || [];
     const noPR = d.no_pr || "-";
@@ -4196,9 +4247,6 @@ function bangunBarisPermintaan(docSnap, grpClass){
     <td>${noPR}</td>
     <td>-</td>
     <td>${tgl}</td>
-    <td>${d.kategori1 || "-"}</td>
-    <td>${d.kategori2 || "-"}</td>
-    <td>${d.kategori3 || "-"}</td>
     <td>${d.divisi || "-"}</td>
     <td>-</td>
     <td>-</td>
@@ -4206,8 +4254,7 @@ function bangunBarisPermintaan(docSnap, grpClass){
     <td>${diajukanOleh}</td>
     <td style="white-space:normal;">${d.keterangan || "-"}</td>
     <td><span class="status-pill ${classApprove}">${labelApprove}</span></td>
-    <td><span class="status-pill ${classKirim}">${labelKirim}</span></td>
-    <td><button class="btn-icon-print" type="button" onclick="cetakPermintaan('${docSnap.id}')">🖨️ Cetak</button></td>
+    <td><span class="status-pill menunggu">-</span></td>
 </tr>
 `;
     }
@@ -4215,24 +4262,22 @@ function bangunBarisPermintaan(docSnap, grpClass){
     let potongan = "";
     items.forEach((it, i) => {
         const jumlah = it.jumlah_diminta ?? it.jumlah ?? "-";
+        const kirim = statusKirimPerItem[i] || { label: "-", kelas: "menunggu" };
+
         if(i === 0){
             potongan += `
 <tr class="${grpClass} tbl-grp-first">
     <td rowspan="${jumlahBaris}">${noPR}</td>
     <td>${noUrutItem(noPR, i)}</td>
     <td rowspan="${jumlahBaris}">${tgl}</td>
-    <td rowspan="${jumlahBaris}">${d.kategori1 || "-"}</td>
-    <td rowspan="${jumlahBaris}">${d.kategori2 || "-"}</td>
-    <td rowspan="${jumlahBaris}">${d.kategori3 || "-"}</td>
     <td rowspan="${jumlahBaris}">${d.divisi || "-"}</td>
     <td style="white-space:normal;">${it.nama_barang || "-"}</td>
     <td>${jumlah}</td>
     <td>${it.satuan || "-"}</td>
     <td rowspan="${jumlahBaris}">${diajukanOleh}</td>
     <td rowspan="${jumlahBaris}" style="white-space:normal;">${d.keterangan || "-"}</td>
-    <td rowspan="${jumlahBaris}"><span class="status-pill ${classApprove}">${labelApprove}</span></td>
-    <td rowspan="${jumlahBaris}"><span class="status-pill ${classKirim}">${labelKirim}</span></td>
-    <td rowspan="${jumlahBaris}"><button class="btn-icon-print" type="button" onclick="cetakPermintaan('${docSnap.id}')">🖨️ Cetak</button></td>
+    <td><span class="status-pill ${classApprove}">${labelApprove}</span></td>
+    <td><span class="status-pill ${kirim.kelas}">${kirim.label}</span></td>
 </tr>
 `;
         } else {
@@ -4242,6 +4287,8 @@ function bangunBarisPermintaan(docSnap, grpClass){
     <td style="white-space:normal;">${it.nama_barang || "-"}</td>
     <td>${jumlah}</td>
     <td>${it.satuan || "-"}</td>
+    <td><span class="status-pill ${classApprove}">${labelApprove}</span></td>
+    <td><span class="status-pill ${kirim.kelas}">${kirim.label}</span></td>
 </tr>
 `;
         }
@@ -4349,6 +4396,119 @@ function pantauPermintaanSelesai(){
 window.gantiRentangPermintaanSelesai = function(val){
     permintaanSelesaiRentangHari = val;
     pantauPermintaanSelesai();
+}
+
+// -------- List Permintaan (Global) -- referensi semua PR tanpa status approval/pengiriman --------
+let unsubPermintaanGlobal = null;
+let permintaanGlobalRentangHari = "90";
+
+function bangunBarisPermintaanGlobal(docSnap, grpClass){
+
+    const d = docSnap.data();
+    semuaPermintaanMap[docSnap.id] = d;
+    const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
+    const items = d.items || [];
+    const noPR = d.no_pr || "-";
+    const diajukanOleh = namaDenganRole(d.pembuat, d.dibuat_oleh_role) || d.dibuat_oleh_email || "-";
+    const jumlahBaris = items.length || 1;
+
+    if(items.length === 0){
+        return `
+<tr class="${grpClass} tbl-grp-first">
+    <td>${noPR}</td>
+    <td>-</td>
+    <td>${d.kategori1 || "-"}</td>
+    <td>${d.kategori2 || "-"}</td>
+    <td>${d.kategori3 || "-"}</td>
+    <td>${d.divisi || "-"}</td>
+    <td>-</td>
+    <td>-</td>
+    <td>-</td>
+    <td>${diajukanOleh}</td>
+    <td style="white-space:normal;">${d.keterangan || "-"}</td>
+    <td><button class="btn-icon-print" type="button" onclick="cetakPermintaan('${docSnap.id}')">🖨️ Cetak</button></td>
+</tr>
+`;
+    }
+
+    let potongan = "";
+    items.forEach((it, i) => {
+        const jumlah = it.jumlah_diminta ?? it.jumlah ?? "-";
+        if(i === 0){
+            potongan += `
+<tr class="${grpClass} tbl-grp-first">
+    <td rowspan="${jumlahBaris}">${noPR}</td>
+    <td>${noUrutItem(noPR, i)}</td>
+    <td rowspan="${jumlahBaris}">${d.kategori1 || "-"}</td>
+    <td rowspan="${jumlahBaris}">${d.kategori2 || "-"}</td>
+    <td rowspan="${jumlahBaris}">${d.kategori3 || "-"}</td>
+    <td rowspan="${jumlahBaris}">${d.divisi || "-"}</td>
+    <td style="white-space:normal;">${it.nama_barang || "-"}</td>
+    <td>${jumlah}</td>
+    <td>${it.satuan || "-"}</td>
+    <td rowspan="${jumlahBaris}">${diajukanOleh}</td>
+    <td rowspan="${jumlahBaris}" style="white-space:normal;">${d.keterangan || "-"}</td>
+    <td rowspan="${jumlahBaris}"><button class="btn-icon-print" type="button" onclick="cetakPermintaan('${docSnap.id}')">🖨️ Cetak</button></td>
+</tr>
+`;
+        } else {
+            potongan += `
+<tr class="${grpClass}">
+    <td>${noUrutItem(noPR, i)}</td>
+    <td style="white-space:normal;">${it.nama_barang || "-"}</td>
+    <td>${jumlah}</td>
+    <td>${it.satuan || "-"}</td>
+</tr>
+`;
+        }
+    });
+
+    return potongan;
+}
+
+function pantauPermintaanGlobal(){
+
+    if(unsubPermintaanGlobal) unsubPermintaanGlobal();
+
+    const tbody = document.getElementById("pb-list-body-global");
+    const emptyEl = document.getElementById("pb-empty-global");
+    const warnEl = document.getElementById("pb-global-limit-warning");
+    const BATAS_AMAN = 500;
+
+    const constraints = [collection(db, "permintaan_barang")];
+    if(permintaanGlobalRentangHari !== "all"){
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - Number(permintaanGlobalRentangHari));
+        constraints.push(where("created_at", ">=", cutoff));
+    }
+    constraints.push(orderBy("created_at", "desc"));
+    constraints.push(limit(BATAS_AMAN));
+
+    const q = query(...constraints);
+
+    unsubPermintaanGlobal = onSnapshot(q, (snapshot) => {
+
+        let html = "";
+        let grp = 0;
+        snapshot.forEach(docSnap => {
+            grp++;
+            html += bangunBarisPermintaanGlobal(docSnap, grp % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a");
+        });
+
+        if(tbody){
+            tbody.innerHTML = html;
+            if(emptyEl) emptyEl.style.display = html ? "none" : "block";
+        }
+        if(warnEl) warnEl.style.display = snapshot.size >= BATAS_AMAN ? "block" : "none";
+
+    }, (err) => {
+        console.error("Gagal memuat permintaan global (cek apakah index Firestore sudah dibuat):", err);
+    });
+}
+
+window.gantiRentangPermintaanGlobal = function(val){
+    permintaanGlobalRentangHari = val;
+    pantauPermintaanGlobal();
 }
 
 // -------- Cetak dokumen permintaan (mirip PO/invoice) --------
