@@ -1956,7 +1956,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                 </div>
             </div>
 
-            <div class="page" id="page-purchasing-input-po">
+            <div class="page page-wide" id="page-purchasing-input-po">
                 <div class="page-header">
                     <h2>🧾 Input PO</h2>
                     <p>Terbitkan Purchase Order — bisa gabung beberapa No. PR sekaligus dalam 1 PO</p>
@@ -2013,12 +2013,13 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                     </div>
 
                     <div style="overflow-x:auto;">
-                    <table class="tbl opb-items-table" style="min-width:1400px;">
+                    <table class="tbl opb-items-table" style="min-width:1480px;">
                         <thead>
                             <tr>
                                 <th style="width:30px;">No</th>
                                 <th style="width:110px;">No PR Urut</th>
                                 <th style="width:160px;">Nama Barang</th>
+                                <th style="width:100px;">Jml Diminta</th>
                                 <th style="width:70px;">Jumlah</th>
                                 <th style="width:70px;">Satuan</th>
                                 <th style="width:110px;">Harga Satuan</th>
@@ -4913,6 +4914,7 @@ function buatBarisPOHTML(id){
             <td class="po-row-no">-</td>
             <td><input type="text" id="po-nopr-urut-${id}" list="po-nopr-urut-datalist" placeholder="2608001-1" oninput="isiOtomatisPO(${id})"></td>
             <td id="po-nama-${id}"><span style="color:#9a9a9a;">-</span></td>
+            <td id="po-diminta-${id}" class="num" style="color:#666;">-</td>
             <td><input type="number" id="po-jumlah-${id}" min="1" oninput="hitungTotalBarisPO(${id})"></td>
             <td id="po-satuan-${id}" class="num">-</td>
             <td><input type="number" id="po-harga-satuan-${id}" min="0" oninput="hitungTotalBarisPO(${id})"></td>
@@ -4955,6 +4957,7 @@ window.isiOtomatisPO = function(id){
         const namaCell = document.getElementById(`po-nama-${id}`);
         const satuanCell = document.getElementById(`po-satuan-${id}`);
         const jumlahEl = document.getElementById(`po-jumlah-${id}`);
+        const dimintaCell = document.getElementById(`po-diminta-${id}`);
         if(!noUrutEl || !namaCell || !satuanCell || !jumlahEl) return;
 
         const kode = noUrutEl.value.trim();
@@ -4962,6 +4965,7 @@ window.isiOtomatisPO = function(id){
         if(poUsedNoPRUrutSet.has(kode)){
             namaCell.innerHTML = `<span style="color:#c62828;">⚠ Sudah pernah di-PO</span>`;
             satuanCell.textContent = "-";
+            if(dimintaCell) dimintaCell.textContent = "-";
             noUrutEl.style.borderColor = "#c62828";
             updatePreviewNoPO();
             return;
@@ -4973,12 +4977,14 @@ window.isiOtomatisPO = function(id){
         if(!data){
             namaCell.innerHTML = `<span style="color:#9a9a9a;">-</span>`;
             satuanCell.textContent = "-";
+            if(dimintaCell) dimintaCell.textContent = "-";
             updatePreviewNoPO();
             return;
         }
 
         namaCell.textContent = data.namaBarang;
         satuanCell.textContent = data.satuan || "-";
+        if(dimintaCell) dimintaCell.textContent = `${data.jumlahDiminta ?? "-"}`;
         if(!jumlahEl.value) jumlahEl.value = data.jumlahDiminta;
 
         hitungTotalBarisPO(id);
