@@ -1383,7 +1383,8 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                                 <th>Satuan</th>
                                 <th>Permintaan</th>
                                 <th>Keterangan</th>
-                                <th>Status</th>
+                                <th>Status Approvement</th>
+                                <th>Status Pengiriman</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -1432,7 +1433,8 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                                 <th>Satuan</th>
                                 <th>Permintaan</th>
                                 <th>Keterangan</th>
-                                <th>Status</th>
+                                <th>Status Approvement</th>
+                                <th>Status Pengiriman</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -4147,28 +4149,38 @@ function bangunBarisPermintaan(docSnap, grpClass){
     const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
     const status = d.status || "menunggu";
 
-    let labelStatus = "Menunggu";
-    let statusClass = "menunggu";
-
+    // Status Approvement -- murni keputusan pimpinan/purchasing, tidak terpengaruh
+    // sama sekali oleh progres pengiriman/penerimaan barangnya.
+    let labelApprove = "Menunggu";
+    let classApprove = "menunggu";
     if(status === "ditolak"){
-        labelStatus = "Ditolak";
-        statusClass = "ditolak";
+        labelApprove = "Cancel";
+        classApprove = "ditolak";
     } else if(status === "hold"){
-        labelStatus = "Hold";
-        statusClass = "hold";
+        labelApprove = "Hold";
+        classApprove = "hold";
     } else if(status === "approve"){
+        labelApprove = "Approve";
+        classApprove = "approve";
+    }
+
+    // Status Pengiriman -- cuma relevan kalau sudah Approve (kalau belum, barang
+    // memang belum bisa dikirim sama sekali, jadi ditampilkan "-").
+    let labelKirim = "-";
+    let classKirim = "menunggu";
+    if(status === "approve"){
         const suratJalanList = d.surat_jalan || [];
         if(suratJalanList.length === 0){
-            labelStatus = "Approve";
-            statusClass = "approve";
+            labelKirim = "Belum Dikirim";
+            classKirim = "menunggu";
         } else {
             const totalSisaDiterima = hitungSisaDiterimaSJ(d).reduce((a, b) => a + b.sisa, 0);
             if(totalSisaDiterima <= 0){
-                labelStatus = "Close";
-                statusClass = "diterima";
+                labelKirim = "Close";
+                classKirim = "diterima";
             } else {
-                labelStatus = "Sebagian Diterima";
-                statusClass = "hold";
+                labelKirim = "Menunggu Diterima";
+                classKirim = "hold";
             }
         }
     }
@@ -4193,7 +4205,8 @@ function bangunBarisPermintaan(docSnap, grpClass){
     <td>-</td>
     <td>${diajukanOleh}</td>
     <td style="white-space:normal;">${d.keterangan || "-"}</td>
-    <td><span class="status-pill ${statusClass}">${labelStatus}</span></td>
+    <td><span class="status-pill ${classApprove}">${labelApprove}</span></td>
+    <td><span class="status-pill ${classKirim}">${labelKirim}</span></td>
     <td><button class="btn-icon-print" type="button" onclick="cetakPermintaan('${docSnap.id}')">🖨️ Cetak</button></td>
 </tr>
 `;
@@ -4217,7 +4230,8 @@ function bangunBarisPermintaan(docSnap, grpClass){
     <td>${it.satuan || "-"}</td>
     <td rowspan="${jumlahBaris}">${diajukanOleh}</td>
     <td rowspan="${jumlahBaris}" style="white-space:normal;">${d.keterangan || "-"}</td>
-    <td rowspan="${jumlahBaris}"><span class="status-pill ${statusClass}">${labelStatus}</span></td>
+    <td rowspan="${jumlahBaris}"><span class="status-pill ${classApprove}">${labelApprove}</span></td>
+    <td rowspan="${jumlahBaris}"><span class="status-pill ${classKirim}">${labelKirim}</span></td>
     <td rowspan="${jumlahBaris}"><button class="btn-icon-print" type="button" onclick="cetakPermintaan('${docSnap.id}')">🖨️ Cetak</button></td>
 </tr>
 `;
