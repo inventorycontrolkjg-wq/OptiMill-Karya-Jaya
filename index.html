@@ -1885,7 +1885,8 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                                 <th style="width:100px;">No PR Urut</th>
                                 <th>Nama Barang</th>
                                 <th>Qty</th>
-                                <th>Status &amp; Surat Jalan</th>
+                                <th>Status</th>
+                                <th>Surat Jalan</th>
                                 <th>Faktur</th>
                             </tr>
                         </thead>
@@ -1928,6 +1929,30 @@ table.po-cetak-ttd .po-ttd-space td{ height:26px; border-top:none; }
                     <datalist id="sj-no-urut-datalist"></datalist>
 
                     <button class="btn-primary" type="button" id="sj-submit-btn" style="width:auto; padding:12px 26px; margin-top:16px;" onclick="submitBuatSuratJalanGabungan()">🚚 Buat Surat Jalan</button>
+                </div>
+            </div>
+
+            <div class="page page-wide" id="page-purchasing-list-sj">
+                <div class="page-header">
+                    <h2>📃 List Surat Jalan</h2>
+                    <p>Semua Surat Jalan yang sudah pernah dibuat</p>
+                </div>
+                <div class="panel">
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>Tanggal SJ</th>
+                                <th>No. SJ</th>
+                                <th>No. PR</th>
+                                <th>Divisi</th>
+                                <th>Barang yang Dikirim</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sj-list-body"></tbody>
+                    </table>
+                    <div class="empty-state" id="sj-list-empty" style="display:none;">Belum ada Surat Jalan yang dibuat.</div>
                 </div>
             </div>
 
@@ -2297,6 +2322,7 @@ const NAV_ITEMS = {
         { id:"purchasing-list-permintaan", label:"📋 List Permintaan" },
         { id:"purchasing-list-approve", label:"✅ List Permintaan Approve" },
         { id:"purchasing-buat-sj", label:"🚚 Buat Surat Jalan" },
+        { id:"purchasing-list-sj", label:"📃 List Surat Jalan" },
         { id:"purchasing-input-po", label:"🧾 Input PO" },
         { id:"purchasing-list-po", label:"📑 List PO" }
     ],
@@ -2369,6 +2395,9 @@ window.showPage = function(id){
     if(id === "purchasing-buat-sj"){
         pantauPurchasingBuatSJ();
         resetFormSJ();
+    }
+    if(id === "purchasing-list-sj"){
+        pantauPurchasingListSJ();
     }
     if(id === "purchasing-input-po"){
         pantauPurchasingInputPO();
@@ -3438,6 +3467,40 @@ function hitungSisaDiterimaSJ(d){
     });
 }
 
+// Status pengiriman PER ITEM (bukan per dokumen PR) -- satu PR bisa punya sebagian
+// item sudah dikirim dan sebagian belum, jadi status/SJ-nya perlu dipecah per baris.
+function hitungStatusKirimPerItem(d){
+    const items = d.items || [];
+    const noPR = d.no_pr || "-";
+    const suratJalanList = d.surat_jalan || [];
+
+    return items.map((it, idx) => {
+        const diminta = it.jumlah_diminta ?? it.jumlah ?? 0;
+        const pengiriman = [];
+        let totalDikirim = 0;
+
+        suratJalanList.forEach(sj => {
+            const match = cocokBarisSJ(sj, it, idx, noPR);
+            if(match){
+                const jml = Number(match.jumlah) || 0;
+                totalDikirim += jml;
+                pengiriman.push({
+                    noSJ: sj.no_sj,
+                    jumlah: jml,
+                    status: sj.status,
+                    tanggal: sj.tanggal_display || sj.tanggal
+                });
+            }
+        });
+
+        let status = "belum";
+        if(totalDikirim > 0 && totalDikirim < diminta) status = "sebagian";
+        else if(diminta > 0 && totalDikirim >= diminta) status = "penuh";
+
+        return { nama_barang: it.nama_barang, diminta, totalDikirim, pengiriman, status };
+    });
+}
+
 // -------- List Permintaan (semua permintaan, dipecah 2 tabel: Proses & Selesai) --------
 function pantauSemuaPermintaan(){
 
@@ -3983,6 +4046,41 @@ function renderQtyHtml(d){
     return `<div class="detail-barang-list detail-barang-list-kode">${baris}</div>`;
 }
 
+// Status kirim per item -- badge kecil per baris, sejajar dengan No PR Urut/Nama Barang/Qty.
+function renderStatusItemHtml(d){
+    const detail = hitungStatusKirimPerItem(d);
+    if(detail.length === 0) return `<span style="color:#9a9a9a;">-</span>`;
+    const label = { belum: "Belum Dikirim", sebagian: "Sebagian", penuh: "Terkirim" };
+    const kelas = { belum: "menunggu", sebagian: "hold", penuh: "diterima" };
+    const baris = detail.map(x =>
+        `<div class="item-line"><span class="status-pill ${kelas[x.status]}" style="font-size:10px; padding:2px 8px;">${label[x.status]}</span></div>`
+    ).join("");
+    return `<div class="detail-barang-list detail-barang-list-kode">${baris}</div>`;
+}
+
+// Daftar No SJ per item (bisa lebih dari satu kalau item itu dikirim bertahap).
+function renderSuratJalanItemHtml(d, docId){
+    const detail = hitungStatusKirimPerItem(d);
+    if(detail.length === 0) return `<span style="color:#9a9a9a;">-</span>`;
+    const baris = detail.map(x => {
+        if(x.pengiriman.length === 0){
+            return `<div class="item-line"><span style="color:#9a9a9a; font-size:11px;">-</span></div>`;
+        }
+        const daftar = x.pengiriman.map(p => `
+            <div style="margin-bottom:2px;">
+                <b>${p.noSJ}</b> (${p.jumlah})
+                ${p.status === "diterima"
+                    ? `<span style="color:#2e7d32; font-weight:600;">✔ Diterima</span>`
+                    : `<span style="color:#ef6c00; font-weight:600;">Dikirim</span>`}
+                <button class="btn-ic-edit" style="padding:1px 6px; font-size:10px;" type="button" onclick="cetakSuratJalanUlang('${docId}', '${p.noSJ}')">🖨️</button>
+                ${p.status !== "diterima" ? `<button class="btn-ic-save" style="padding:1px 6px; font-size:10px;" type="button" onclick="tandaiSJDiterima('${docId}', '${p.noSJ}')">✔</button>` : ""}
+            </div>
+        `).join("");
+        return `<div class="item-line" style="font-size:11px;">${daftar}</div>`;
+    }).join("");
+    return `<div class="detail-barang-list">${baris}</div>`;
+}
+
 // =========================================================
 // RINGKASAN PROGRES PER ITEM
 // Satu sumber kebenaran untuk pertanyaan "item ini sudah sampai mana?".
@@ -4103,24 +4201,8 @@ function pantauPurchasingListApprove(){
 
             const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
 
-            const sisaList = hitungSisaItemSJ(d);
-            const totalSisa = sisaList.reduce((a,b) => a + b.sisa, 0);
             const suratJalanList = d.surat_jalan || [];
-
-            const labelStatusBarang = suratJalanList.length === 0 ? "Belum Dikirim" : (totalSisa > 0 ? "Sebagian Dikirim" : "Semua Dikirim");
-            const classStatusBarang = suratJalanList.length === 0 ? "belum_diterima" : (totalSisa > 0 ? "hold" : "diterima");
             const adaSJDiterima = suratJalanList.some(sj => sj.status === "diterima");
-
-            const daftarSJHtml = suratJalanList.length === 0
-                ? `<span style="color:#9a9a9a; font-size:11.5px;">Belum ada surat jalan</span>`
-                : suratJalanList.map(sj => `
-                    <div style="margin-bottom:4px; font-size:11.5px;">
-                        <b>${sj.no_sj}</b> (${sj.tanggal_display || sj.tanggal})
-                        ${sj.status === "diterima" ? `<span style="color:#2e7d32; font-weight:600;">✔ Diterima</span>` : `<span style="color:#ef6c00; font-weight:600;">Dikirim</span>`}
-                        <button class="btn-ic-edit" style="padding:2px 7px; font-size:10.5px;" type="button" onclick="cetakSuratJalanUlang('${docSnap.id}', '${sj.no_sj}')">🖨️</button>
-                        ${sj.status !== "diterima" ? `<button class="btn-ic-save" style="padding:2px 7px; font-size:10.5px;" type="button" onclick="tandaiSJDiterima('${docSnap.id}', '${sj.no_sj}')">✔</button>` : ""}
-                    </div>
-                `).join("");
 
             const btnFaktur = d.faktur
                 ? `<button class="btn-ic-edit" type="button" onclick="bukaFormFaktur('${docSnap.id}')">✏️ Edit Faktur</button>`
@@ -4137,7 +4219,8 @@ function pantauPurchasingListApprove(){
     <td>${renderNoPrUrutHtml(d)}</td>
     <td>${renderNamaBarangSajaHtml(d)}</td>
     <td>${renderQtyHtml(d)}</td>
-    <td><span class="status-pill ${classStatusBarang}">${labelStatusBarang}</span><br>${daftarSJHtml}</td>
+    <td>${renderStatusItemHtml(d)}</td>
+    <td>${renderSuratJalanItemHtml(d, docSnap.id)}</td>
     <td>${d.faktur ? (d.faktur.no_faktur || "✔ Sudah") : "-"}<br>${btnFaktur}</td>
 </tr>`;
         });
@@ -4465,6 +4548,26 @@ window.isiOtomatisSJ = function(id, jagaNilaiKirim){
         const noUrut = nourutEl.value.trim();
         const row = sjRowsMap[noUrut];
 
+        // Cek dobel dengan baris LAIN di form yang sedang diisi (bukan riwayat SJ lama)
+        const dobelDiBarisLain = noUrut && Array.from(document.querySelectorAll("#sj-items-body tr")).some(tr => {
+            const idLain = tr.id.replace("sj-row-", "");
+            if(idLain === String(id)) return false;
+            const elLain = document.getElementById(`sj-nourut-${idLain}`);
+            return elLain && elLain.value.trim() === noUrut;
+        });
+
+        if(dobelDiBarisLain){
+            namaEl.innerHTML = `<span style="color:#c62828;">⚠ ${noUrut} sudah dipakai di baris lain</span>`;
+            dimintaEl.textContent = "-";
+            sudahEl.textContent = "-";
+            sisaEl.textContent = "-";
+            satuanEl.textContent = "-";
+            kirimEl.value = "";
+            kirimEl.disabled = true;
+            kirimEl.max = "";
+            return;
+        }
+
         if(!noUrut || !row){
             namaEl.innerHTML = noUrut ? `<span style="color:#c62828;">Tidak ditemukan / sudah selesai dikirim</span>` : `<span style="color:#9a9a9a;">-</span>`;
             dimintaEl.textContent = "-";
@@ -4502,6 +4605,7 @@ window.submitBuatSuratJalanGabungan = async function(){
     // Kumpulkan baris yang sudah diisi No. PR Urut-nya, dikelompokkan per dokumen PR sumbernya
     const dipilihPerDoc = {}; // docId -> [{ nama_barang, jumlah, satuan }]
     const untukCetak = []; // { no_urut, nama_barang, diminta, sudah_kirim, sisa, satuan, kirim_sekarang }
+    const noUrutSudahDipakai = new Set(); // deteksi No PR Urut yang diketik dobel di SJ yang sama
 
     const rowEls = document.querySelectorAll("#sj-items-body tr");
 
@@ -4509,6 +4613,14 @@ window.submitBuatSuratJalanGabungan = async function(){
         const id = rowEl.id.replace("sj-row-", "");
         const noUrut = document.getElementById(`sj-nourut-${id}`).value.trim();
         if(noUrut === "") continue; // baris kosong, lewati
+
+        if(noUrutSudahDipakai.has(noUrut)){
+            msgEl.textContent = `No. PR Urut "${noUrut}" muncul lebih dari satu kali di Surat Jalan ini. Satu barang cukup satu baris — hapus baris yang dobel.`;
+            msgEl.classList.add("err");
+            msgEl.style.display = "block";
+            return;
+        }
+        noUrutSudahDipakai.add(noUrut);
 
         const row = sjRowsMap[noUrut];
         if(!row){
@@ -5116,6 +5228,66 @@ window.terbitkanPO = async function(){
         btn.textContent = "🧾 Terbitkan PO";
     }
 
+}
+
+// -------- List Surat Jalan (semua SJ dari semua PR, diratakan jadi satu list) --------
+let unsubListSJ = null;
+
+function pantauPurchasingListSJ(){
+
+    if(unsubListSJ) unsubListSJ();
+
+    // Surat Jalan cuma ada di PR yang statusnya approve, jadi query dipersempit di sini.
+    const q = query(collection(db, "permintaan_barang"), where("status", "==", "approve"), orderBy("created_at", "desc"));
+
+    unsubListSJ = onSnapshot(q, (snapshot) => {
+
+        const tbody = document.getElementById("sj-list-body");
+        const emptyEl = document.getElementById("sj-list-empty");
+        if(!tbody) return;
+
+        // Ratakan: satu dokumen PR bisa punya banyak Surat Jalan, masing-masing jadi satu baris.
+        const baris = [];
+        snapshot.forEach(docSnap => {
+            const d = docSnap.data();
+            (d.surat_jalan || []).forEach(sj => {
+                baris.push({ docId: docSnap.id, d, sj });
+            });
+        });
+
+        // Surat Jalan terbaru di atas
+        baris.sort((a, b) => (b.sj.tanggal || "").localeCompare(a.sj.tanggal || ""));
+
+        if(baris.length === 0){
+            tbody.innerHTML = "";
+            emptyEl.style.display = "block";
+            return;
+        }
+        emptyEl.style.display = "none";
+
+        tbody.innerHTML = baris.map(({ docId, d, sj }) => {
+            const items = sj.items || [];
+            const ringkasBarang = items.length
+                ? items.map(it => `${it.nama_barang || "-"} (${it.jumlah ?? "-"})`).join(", ")
+                : "-";
+            const sudahDiterima = sj.status === "diterima";
+
+            return `
+<tr>
+    <td>${sj.tanggal_display || sj.tanggal || "-"}</td>
+    <td><b>${sj.no_sj || "-"}</b></td>
+    <td>${d.no_pr || "-"}</td>
+    <td>${d.divisi || "-"}</td>
+    <td style="white-space:normal;">${ringkasBarang}</td>
+    <td><span class="status-pill ${sudahDiterima ? "diterima" : "hold"}">${sudahDiterima ? "Diterima" : "Dikirim"}</span></td>
+    <td>
+        <button class="btn-ic-edit" type="button" onclick="cetakSuratJalanUlang('${docId}', '${sj.no_sj}')">🖨️ Cetak</button>
+        ${!sudahDiterima ? `<button class="btn-ic-save" type="button" onclick="tandaiSJDiterima('${docId}', '${sj.no_sj}')">✔ Tandai Diterima</button>` : ""}
+    </td>
+</tr>`;
+        }).join("");
+
+    }, err => console.error("Gagal memuat List Surat Jalan:", err));
 }
 
 // -------- List PO --------
