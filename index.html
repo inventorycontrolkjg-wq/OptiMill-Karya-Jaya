@@ -2874,7 +2874,7 @@ window.renderInventoryControl = function(){
                 : `<span class="ic-badge ic-badge-cukup">CUKUP</span>`);
 
         return `
-<tr id="ic-row-${it.id}">
+<tr id="ic-row-${it.id}" class="${i % 2 === 0 ? 'tbl-grp-a' : 'tbl-grp-b'}">
     <td>${i + 1}</td>
     <td>${it.nama || "-"}</td>
     <td>${it.satuan_default || "-"}</td>
@@ -4328,6 +4328,7 @@ function pantauPurchasingListPermintaan(){
 
         let html = "";
         let jumlahTampil = 0;
+        let grp = 0;
 
         snapshot.forEach(docSnap => {
             const d = docSnap.data();
@@ -4335,6 +4336,8 @@ function pantauPurchasingListPermintaan(){
 
             purListMap[docSnap.id] = d;
             jumlahTampil++;
+            grp++;
+            const grpClass = grp % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a";
 
             const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
 
@@ -4363,7 +4366,7 @@ function pantauPurchasingListPermintaan(){
                 : "";
 
             html += `
-<tr>
+<tr class="${grpClass}">
     <td>${tgl}</td>
     <td>${d.no_pr || "-"}</td>
     <td>${d.kategori1 || "-"}</td>
@@ -4788,10 +4791,13 @@ function pantauPurchasingListApprove(){
         emptyEl.style.display = "none";
 
         let html = "";
+        let grp = 0;
 
         snapshot.forEach(docSnap => {
             const d = docSnap.data();
             purApproveMap[docSnap.id] = d;
+            grp++;
+            const grpClass = grp % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a";
 
             const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
 
@@ -4805,7 +4811,7 @@ function pantauPurchasingListApprove(){
                     : `<span style="color:#9a9a9a;font-size:12px;">- (tunggu ada SJ diterima)</span>`);
 
             html += `
-<tr>
+<tr class="${grpClass}">
     <td>${tgl}</td>
     <td>${d.no_pr || "-"}</td>
     <td>${d.divisi || "-"}</td>
@@ -5930,7 +5936,8 @@ function pantauPurchasingListSJ(){
         }
         emptyEl.style.display = "none";
 
-        tbody.innerHTML = baris.map(({ docId, d, sj }) => {
+        tbody.innerHTML = baris.map(({ docId, d, sj }, i) => {
+            const grpClass = i % 2 === 0 ? "tbl-grp-a" : "tbl-grp-b";
             const items = sj.items || [];
             const ringkasBarang = items.length
                 ? items.map(it => `${it.nama_barang || "-"} (${it.jumlah ?? "-"})`).join(", ")
@@ -5938,7 +5945,7 @@ function pantauPurchasingListSJ(){
             const sudahDiterima = sj.status === "diterima";
 
             return `
-<tr>
+<tr class="${grpClass}">
     <td>${sj.tanggal_display || sj.tanggal || "-"}</td>
     <td><b>${sj.no_sj || "-"}</b></td>
     <td>${d.no_pr || "-"}</td>
@@ -6199,7 +6206,10 @@ function pantauPimpinanReview(){
 
     if(unsubPimList) unsubPimList();
 
-    const q = query(collection(db, "permintaan_barang"), orderBy("created_at", "desc"));
+    // Sama seperti halaman List lain -- dikunci batasnya supaya tidak pernah
+    // menarik seluruh riwayat PR tanpa batas begitu datanya sudah banyak.
+    const BATAS_AMAN_REVIEW = 500;
+    const q = query(collection(db, "permintaan_barang"), orderBy("created_at", "desc"), limit(BATAS_AMAN_REVIEW));
 
     unsubPimList = onSnapshot(q, (snapshot) => {
 
@@ -6225,7 +6235,8 @@ function pantauPimpinanReview(){
         }
         emptyEl.style.display = "none";
 
-        tbody.innerHTML = rows.map(({ id, d }) => {
+        tbody.innerHTML = rows.map(({ id, d }, i) => {
+            const grpClass = i % 2 === 0 ? "tbl-grp-a" : "tbl-grp-b";
             const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
             const items = d.items || [];
             let ringkas = items.length ? items[0].nama_barang : "-";
@@ -6246,7 +6257,7 @@ function pantauPimpinanReview(){
             const catatan = d.catatan_purchasing ? `<div style="margin-top:6px; font-size:12px; color:#666;"><b>Catatan Purchasing:</b> ${d.catatan_purchasing}</div>` : "";
 
             return `
-<tr>
+<tr class="${grpClass}">
     <td>${tgl}</td>
     <td>${d.no_pr || "-"}</td>
     <td>${renderDetailBarangHtml(d)}</td>
