@@ -2967,7 +2967,10 @@ window.cekKetersediaanStok = function(){
     }
 
     body.innerHTML = `
-        <p style="font-size:12px; margin:0 0 12px;">Ditemukan <b>${daftarOrder.length}</b> barang.</p>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <p style="font-size:12px; margin:0;">Ditemukan <b>${daftarOrder.length}</b> barang.</p>
+            <button class="btn-ic-save" type="button" onclick="exportSegeraOrderExcel()">📊 Export ke Excel</button>
+        </div>
         <table class="tbl" style="margin:0;">
             <thead>
                 <tr>
@@ -2989,6 +2992,49 @@ window.cekKetersediaanStok = function(){
             </tbody>
         </table>
     `;
+}
+
+// Export daftar SEGERA ORDER ke file Excel -- dipakai purchasing sebagai acuan
+// daftar barang yang perlu dibeli, tanpa harus ketik ulang manual dari layar.
+window.exportSegeraOrderExcel = function(){
+    const daftarOrder = inventoryControlData
+        .map(it => ({ it, ket: tentukanKeteranganStok(it) }))
+        .filter(({ ket }) => ket && ket.kode === "order")
+        .map(({ it }) => ({
+            "Nama Barang": it.nama || "-",
+            "Satuan": it.satuan_default || "-",
+            "Barcode": it.barcode || "-",
+            "Stok Awal": typeof it.stok_awal === "number" ? it.stok_awal : "-",
+            "Masuk": typeof it.total_masuk === "number" ? it.total_masuk : 0,
+            "Keluar": typeof it.total_keluar === "number" ? it.total_keluar : 0,
+            "Stok Akhir": typeof it.stok === "number" ? it.stok : "-",
+            "Minimal Stok": typeof it.minimal_stock === "number" ? it.minimal_stock : 0,
+            "Keterangan": "SEGERA ORDER"
+        }));
+
+    if(daftarOrder.length === 0){
+        alert("Tidak ada barang berstatus Segera Order untuk diekspor.");
+        return;
+    }
+
+    const ws = XLSX.utils.json_to_sheet(daftarOrder);
+    ws["!cols"] = [
+        { wch: 40 }, // Nama Barang
+        { wch: 10 }, // Satuan
+        { wch: 20 }, // Barcode
+        { wch: 12 }, // Stok Awal
+        { wch: 10 }, // Masuk
+        { wch: 10 }, // Keluar
+        { wch: 12 }, // Stok Akhir
+        { wch: 14 }, // Minimal Stok
+        { wch: 16 }  // Keterangan
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Segera Order");
+
+    const tanggalFile = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `Barang_Segera_Order_${tanggalFile}.xlsx`);
 }
 
 function resetImportMasterBarang(){
