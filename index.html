@@ -183,10 +183,28 @@ button.btn-login:disabled{ background:#9db8d8; cursor:not-allowed; }
     color:#555;
     cursor:pointer;
     margin-bottom:2px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
 }
 
 .nav-item:hover{ background:#f2f6fb; }
 .nav-item.active{ background:#e3f2fd; color:#1565c0; font-weight:700; }
+
+.nav-badge{
+    background:#e53935;
+    color:#fff;
+    font-size:11px;
+    font-weight:700;
+    min-width:20px;
+    height:20px;
+    padding:0 6px;
+    border-radius:10px;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+}
 
 .main-col{
     flex:1;
@@ -2642,7 +2660,10 @@ function buildSidebar(role){
     const nav = document.getElementById("sidebar-nav");
     const items = NAV_ITEMS[role] || [];
     nav.innerHTML = items.map(it =>
-        `<div class="nav-item" data-page="${it.id}" onclick="showPage('${it.id}')">${it.label}</div>`
+        `<div class="nav-item" data-page="${it.id}" onclick="showPage('${it.id}')">
+            <span>${it.label}</span>
+            ${it.id === "purchasing-list-permintaan" ? `<span class="nav-badge" id="nav-badge-pur-list" style="display:none;"></span>` : ""}
+        </div>`
     ).join("");
     if(items.length) showPage(items[0].id);
 }
@@ -4832,6 +4853,17 @@ function pantauPurchasingListPermintaan(){
 
         tbody.innerHTML = html;
         emptyEl.style.display = jumlahTampil === 0 ? "block" : "none";
+
+        // Badge di sidebar -- jumlah PR (bukan item) yang masih perlu diproses purchasing.
+        const badgeEl = document.getElementById("nav-badge-pur-list");
+        if(badgeEl){
+            if(snapshot.size > 0){
+                badgeEl.textContent = snapshot.size > 99 ? "99+" : snapshot.size;
+                badgeEl.style.display = "inline-flex";
+            } else {
+                badgeEl.style.display = "none";
+            }
+        }
 
     }, err => console.error("Gagal memuat List Permintaan (Purchasing):", err));
 }
