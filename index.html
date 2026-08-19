@@ -6373,6 +6373,15 @@ window.terbitkanPO = async function(){
         return;
     }
 
+    // Vendor wajib persis sama dengan salah satu Master Supplier -- supaya tidak ada
+    // typo atau vendor baru yang nyelip tanpa lewat Import Master Supplier dulu.
+    if(!masterSupplierMap[vendor]){
+        msgEl.textContent = `Nama Supplier "${vendor}" tidak ditemukan di Master Supplier. Pilih persis dari saran yang muncul saat mengetik, atau tambahkan dulu lewat menu Import Master Supplier.`;
+        msgEl.classList.add("err");
+        msgEl.style.display = "block";
+        return;
+    }
+
     const attn = document.getElementById("po-attn").value.trim();
     const telp = document.getElementById("po-telp").value.trim();
     const fax = document.getElementById("po-fax").value.trim();
@@ -6390,6 +6399,7 @@ window.terbitkanPO = async function(){
     const items = [];
     let grandTotal = 0;
     let adaYangDilewati = false;
+    const barisKurangLengkap = [];
 
     // Satu PO sudah pasti satu keterangan supplier, satu keterangan internal,
     // dan satu pembeli -- jadi cukup diisi sekali di level PO, bukan per baris.
@@ -6397,46 +6407,77 @@ window.terbitkanPO = async function(){
     const ketInternalPO = document.getElementById("po-ket-internal").value.trim();
     const dibeliOlehPO = document.getElementById("po-dibeli-oleh").value.trim();
 
+    // Keterangan Internal & Dibeli Oleh wajib diisi -- kalau kosong, seluruh
+    // penerbitan PO ditahan (hold) sampai keduanya diisi.
+    const fieldWajibKosong = [];
+    if(ketInternalPO === "") fieldWajibKosong.push("Keterangan Internal");
+    if(dibeliOlehPO === "") fieldWajibKosong.push("Dibeli Oleh");
+    if(fieldWajibKosong.length > 0){
+        msgEl.textContent = `Wajib diisi dulu: ${fieldWajibKosong.join(" dan ")}.`;
+        msgEl.classList.add("err");
+        msgEl.style.display = "block";
+        return;
+    }
+
     rows.forEach(row => {
         const id = row.id.replace("po-row-", "");
         const noPRUrut = document.getElementById(`po-nopr-urut-${id}`).value.trim();
 
-        if(noPRUrut !== "" && poUsedNoPRUrutSet.has(noPRUrut)){
+        if(noPRUrut === "") return; // baris kosong, dilewati begitu saja
+
+        if(poUsedNoPRUrutSet.has(noPRUrut)){
             adaYangDilewati = true;
             return; // sudah pernah di-PO, jangan diikutkan
         }
 
         const data = poItemMap[noPRUrut];
         const namaBarang = data ? data.namaBarang : "";
-        const jumlah = Number(document.getElementById(`po-jumlah-${id}`).value) || 0;
-        const satuan = data ? (data.satuan || "") : "";
-        const hargaSatuan = Number(document.getElementById(`po-harga-satuan-${id}`).value) || 0;
+        if(namaBarang === "") return; // No PR Urut tidak valid/tidak ketemu
+
+        const jumlahEl = document.getElementById(`po-jumlah-${id}`);
+        const hargaEl = document.getElementById(`po-harga-satuan-${id}`);
+        const jumlah = Number(jumlahEl.value) || 0;
+        const hargaSatuan = Number(hargaEl.value) || 0;
+
+        // Jumlah & Harga Satuan wajib diisi per baris -- kalau kosong/0, seluruh
+        // penerbitan PO ditahan (hold), bukan cuma baris itu yang dilewati diam-diam.
+        if(jumlahEl.value.trim() === "" || jumlah <= 0 || hargaEl.value.trim() === "" || hargaSatuan <= 0){
+            barisKurangLengkap.push(noPRUrut);
+            return;
+        }
+
+        const satuan = data.satuan || "";
         const diskon = Number(document.getElementById(`po-diskon-${id}`).value) || 0;
         const pph23 = Number(document.getElementById(`po-pph23-${id}`).value) || 0;
         const ppn = Number(document.getElementById(`po-ppn-${id}`).value) || 0;
         const totalHarga = (jumlah * hargaSatuan) - diskon - pph23 + ppn;
 
-        if(namaBarang !== "" && jumlah > 0){
-            items.push({
-                no_pr_urut: noPRUrut,
-                no_pr: data ? data.noPR : "",
-                nama_barang: namaBarang,
-                jumlah, satuan,
-                harga_satuan: hargaSatuan,
-                diskon, pph23, ppn,
-                total_harga: totalHarga,
-                keterangan_supplier: ketSupplierPO,
-                keterangan_internal: ketInternalPO,
-                dibeli_oleh: dibeliOlehPO
-            });
-            grandTotal += totalHarga;
-        }
+        items.push({
+            no_pr_urut: noPRUrut,
+            no_pr: data.noPR,
+            nama_barang: namaBarang,
+            jumlah, satuan,
+            harga_satuan: hargaSatuan,
+            diskon, pph23, ppn,
+            total_harga: totalHarga,
+            keterangan_supplier: ketSupplierPO,
+            keterangan_internal: ketInternalPO,
+            dibeli_oleh: dibeliOlehPO
+        });
+        grandTotal += totalHarga;
     });
+
+    if(barisKurangLengkap.length > 0){
+        msgEl.textContent = `Jumlah dan Harga Satuan wajib diisi untuk No PR Urut: ${barisKurangLengkap.join(", ")}.`;
+        msgEl.classList.add("err");
+        msgEl.style.display = "block";
+        return;
+    }
 
     if(items.length === 0){
         msgEl.textContent = adaYangDilewati
             ? "Semua baris yang diisi ternyata No PR Urut-nya sudah pernah di-PO. Cek kembali."
-            : "Isi minimal satu baris barang dengan No PR Urut yang valid dan jumlah > 0.";
+            : "Isi minimal satu baris barang dengan No PR Urut yang valid.";
         msgEl.classList.add("err");
         msgEl.style.display = "block";
         return;
