@@ -2176,8 +2176,9 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
 
                     <div class="opb-header-grid" style="grid-template-columns:1fr 1fr; margin-top:12px;">
                         <div class="form-group">
-                            <label>Metode Payment</label>
+                            <label>Metode Payment *</label>
                             <select id="po-metode-payment" onchange="toggleTenorPO()">
+                                <option value="">-- Pilih Metode Payment --</option>
                                 <option value="CASH">CASH</option>
                                 <option value="KREDIT">KREDIT</option>
                             </select>
@@ -6141,7 +6142,7 @@ function resetFormPO(){
     document.getElementById("po-attn").value = "";
     document.getElementById("po-telp").value = "";
     document.getElementById("po-fax").value = "";
-    document.getElementById("po-metode-payment").value = "CASH";
+    document.getElementById("po-metode-payment").value = "";
     document.getElementById("po-tenor").value = "";
     toggleTenorPO();
     document.getElementById("po-ket-supplier").value = "";
@@ -6387,6 +6388,13 @@ window.terbitkanPO = async function(){
     const fax = document.getElementById("po-fax").value.trim();
 
     const metodePayment = document.getElementById("po-metode-payment").value;
+    if(metodePayment === ""){
+        msgEl.textContent = "Metode Payment wajib dipilih (CASH atau KREDIT).";
+        msgEl.classList.add("err");
+        msgEl.style.display = "block";
+        return;
+    }
+
     const tenor = document.getElementById("po-tenor").value.trim();
     if(metodePayment === "KREDIT" && tenor === ""){
         msgEl.textContent = "Tenor wajib diisi kalau Metode Payment KREDIT.";
