@@ -2044,7 +2044,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
             <div class="page page-wide" id="page-purchasing-list-approve">
                 <div class="page-header">
                     <h2>✅ List Permintaan Approve</h2>
-                    <p>Permintaan yang sudah disetujui Pimpinan — buat Surat Jalan per pengiriman & input faktur</p>
+                    <p>Permintaan yang sudah disetujui Pimpinan — buat Surat Jalan per pengiriman, PO, dan BMB/Faktur</p>
                 </div>
                 <div class="panel">
                     <table class="tbl">
@@ -2057,8 +2057,10 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                                 <th style="width:100px;">No PR Urut</th>
                                 <th>Nama Barang</th>
                                 <th>Qty</th>
-                                <th>Status</th>
-                                <th>Surat Jalan</th>
+                                <th style="width:60px;">PO</th>
+                                <th style="width:60px;">BMB</th>
+                                <th style="width:60px;">SJ</th>
+                                <th>No. SJ</th>
                             </tr>
                         </thead>
                         <tbody id="pur-approve-body"></tbody>
@@ -5259,15 +5261,42 @@ function renderQtyHtml(d){
     return `<div class="detail-barang-list detail-barang-list-kode">${baris}</div>`;
 }
 
-// Status kirim per item -- badge kecil per baris, sejajar dengan No PR Urut/Nama Barang/Qty.
-function renderStatusItemHtml(d){
+// Status PO per item -- ✔ kalau item ini sudah pernah masuk PO, ✗ kalau belum.
+function renderStatusPOHtml(d){
+    const items = d.items || [];
+    if(items.length === 0) return `<span style="color:#9a9a9a;">-</span>`;
+    const noPR = d.no_pr || "-";
+    const progress = d.item_progress || {};
+    const baris = items.map((it, i) => {
+        const noUrut = noUrutItem(noPR, i);
+        const sudah = !!(progress[noUrut] && progress[noUrut].po);
+        return `<div class="item-line">${sudah ? '<span style="color:#2e7d32; font-weight:700;">✔</span>' : '<span style="color:#c62828; font-weight:700;">✗</span>'}</div>`;
+    }).join("");
+    return `<div class="detail-barang-list detail-barang-list-kode">${baris}</div>`;
+}
+
+// Status BMB per item -- ✔ kalau item ini sudah pernah masuk BMB/Faktur, ✗ kalau belum.
+function renderStatusBMBHtml(d){
+    const items = d.items || [];
+    if(items.length === 0) return `<span style="color:#9a9a9a;">-</span>`;
+    const noPR = d.no_pr || "-";
+    const progress = d.item_progress || {};
+    const baris = items.map((it, i) => {
+        const noUrut = noUrutItem(noPR, i);
+        const sudah = !!(progress[noUrut] && progress[noUrut].bmb);
+        return `<div class="item-line">${sudah ? '<span style="color:#2e7d32; font-weight:700;">✔</span>' : '<span style="color:#c62828; font-weight:700;">✗</span>'}</div>`;
+    }).join("");
+    return `<div class="detail-barang-list detail-barang-list-kode">${baris}</div>`;
+}
+
+// Status SJ per item -- ✔ kalau item ini sudah pernah masuk Surat Jalan manapun.
+function renderStatusSJHtml(d){
     const detail = hitungStatusKirimPerItem(d);
     if(detail.length === 0) return `<span style="color:#9a9a9a;">-</span>`;
-    const label = { belum: "Belum Dikirim", sebagian: "Sebagian", penuh: "Terkirim" };
-    const kelas = { belum: "menunggu", sebagian: "hold", penuh: "diterima" };
-    const baris = detail.map(x =>
-        `<div class="item-line"><span class="status-pill ${kelas[x.status]}" style="font-size:10px; padding:2px 8px;">${label[x.status]}</span></div>`
-    ).join("");
+    const baris = detail.map(x => {
+        const sudah = x.pengiriman.length > 0;
+        return `<div class="item-line">${sudah ? '<span style="color:#2e7d32; font-weight:700;">✔</span>' : '<span style="color:#c62828; font-weight:700;">✗</span>'}</div>`;
+    }).join("");
     return `<div class="detail-barang-list detail-barang-list-kode">${baris}</div>`;
 }
 
@@ -5430,7 +5459,9 @@ function pantauPurchasingListApprove(){
     <td>${renderNoPrUrutHtml(d)}</td>
     <td>${renderNamaBarangSajaHtml(d)}</td>
     <td>${renderQtyHtml(d)}</td>
-    <td>${renderStatusItemHtml(d)}</td>
+    <td>${renderStatusPOHtml(d)}</td>
+    <td>${renderStatusBMBHtml(d)}</td>
+    <td>${renderStatusSJHtml(d)}</td>
     <td>${renderSuratJalanItemHtml(d, docSnap.id)}</td>
 </tr>`;
         });
@@ -6879,14 +6910,14 @@ window.pilihPOuntukBMB = async function(){
 
     const d = entry.data;
     const daftarPR = d.daftar_no_pr || [];
-    const dataPRPerNo = {}; // no_pr -> { item_progress, divisi }
+    const dataPRPerNo = {}; // no_pr -> { docId, item_progress, divisi }
 
     try{
         for(const noPR of daftarPR){
             const snapPR = await getDocs(query(collection(db, "permintaan_barang"), where("no_pr", "==", noPR), limit(1)));
             if(!snapPR.empty){
                 const dPR = snapPR.docs[0].data();
-                dataPRPerNo[noPR] = { item_progress: dPR.item_progress || {}, divisi: dPR.divisi || "" };
+                dataPRPerNo[noPR] = { docId: snapPR.docs[0].id, item_progress: dPR.item_progress || {}, divisi: dPR.divisi || "" };
             }
         }
     } catch(e){
@@ -7019,7 +7050,9 @@ window.submitBMB = async function(){
         const noBMB = await generateNoBMB();
         const tanggalISO = new Date().toISOString().slice(0, 10);
 
-        await addDoc(collection(db, "bmb_faktur"), {
+        const batch = writeBatch(db);
+
+        batch.set(doc(collection(db, "bmb_faktur")), {
             no_bmb: noBMB,
             no_po: d.no_po,
             po_doc_id: bmbSelectedPO.id,
@@ -7036,6 +7069,19 @@ window.submitBMB = async function(){
             dibuat_oleh_email: auth.currentUser.email,
             created_at: serverTimestamp()
         });
+
+        // Tandai jejak "sudah masuk BMB" di item_progress tiap PR terkait -- dipakai
+        // kolom Status BMB (✔/✗) di List Permintaan Approve. Satu BMB bisa mencakup
+        // item dari lebih dari satu PR (karena PO-nya juga bisa gabungan beberapa PR).
+        items.forEach(it => {
+            const prInfo = bmbSelectedPO.dataPRPerNo[it.no_pr];
+            if(!prInfo || !prInfo.docId || !it.no_pr_urut) return;
+            batch.update(doc(db, "permintaan_barang", prInfo.docId), {
+                [`item_progress.${it.no_pr_urut}.bmb`]: { no_bmb: noBMB, tanggal: tanggalISO }
+            });
+        });
+
+        await batch.commit();
 
         msgEl.textContent = `BMB ${noBMB} berhasil disimpan.`;
         msgEl.className = "form-msg ok";
