@@ -6900,22 +6900,39 @@ let bmbSelectedPO = null; // { id, data, noPRUrutToDocId, itemProgressPerNoPR }
 let unsubListBMB = null;
 let bmbListMap = {};
 let listBMBRentangHari = "90";
+let bmbPONoPOSudahBMB = new Set(); // no_po yang sudah pernah dibuatkan BMB -- buat pesan error yang jelas
 
-// Ambil daftar No. PO untuk datalist pemilih di form Input BMB.
-function pantauPurchasingListPOuntukBMB(){
-    getDocs(query(collection(db, "po_barang"), orderBy("created_at", "desc"), limit(500)))
-        .then(snap => {
-            bmbPOMap = {};
-            let optionsHtml = "";
-            snap.forEach(docSnap => {
-                const d = docSnap.data();
-                bmbPOMap[d.no_po] = { id: docSnap.id, data: d };
-                optionsHtml += `<option value="${d.no_po}"></option>`;
-            });
-            const dl = document.getElementById("bmb-po-datalist");
-            if(dl) dl.innerHTML = optionsHtml;
-        })
-        .catch(e => console.error("Gagal memuat daftar PO untuk BMB:", e));
+// Ambil daftar No. PO untuk datalist pemilih di form Input BMB -- HANYA yang
+// belum pernah dibuatkan BMB, supaya tidak ada yang tidak sengaja dobel.
+async function pantauPurchasingListPOuntukBMB(){
+    try{
+        const snapBMB = await getDocs(query(collection(db, "bmb_faktur"), limit(1000)));
+        const poDocIdSudahBMB = new Set();
+        snapBMB.forEach(docSnap => {
+            const dBMB = docSnap.data();
+            if(dBMB.po_doc_id) poDocIdSudahBMB.add(dBMB.po_doc_id);
+        });
+
+        const snapPO = await getDocs(query(collection(db, "po_barang"), orderBy("created_at", "desc"), limit(500)));
+        bmbPOMap = {};
+        bmbPONoPOSudahBMB = new Set();
+        let optionsHtml = "";
+
+        snapPO.forEach(docSnap => {
+            const d = docSnap.data();
+            if(poDocIdSudahBMB.has(docSnap.id)){
+                bmbPONoPOSudahBMB.add(d.no_po);
+                return; // sudah ada BMB-nya, jangan ditawarkan lagi
+            }
+            bmbPOMap[d.no_po] = { id: docSnap.id, data: d };
+            optionsHtml += `<option value="${d.no_po}"></option>`;
+        });
+
+        const dl = document.getElementById("bmb-po-datalist");
+        if(dl) dl.innerHTML = optionsHtml;
+    } catch(e){
+        console.error("Gagal memuat daftar PO untuk BMB:", e);
+    }
 }
 
 async function previewNoBMB(){
@@ -6949,7 +6966,9 @@ window.pilihPOuntukBMB = async function(){
 
     const entry = bmbPOMap[noPO];
     if(!entry){
-        msgEl.textContent = `No. PO "${noPO}" tidak ditemukan. Pilih dari daftar yang muncul.`;
+        msgEl.textContent = bmbPONoPOSudahBMB.has(noPO)
+            ? `No. PO "${noPO}" sudah pernah dibuatkan BMB/Faktur sebelumnya. Satu PO cuma bisa dibuatkan satu BMB.`
+            : `No. PO "${noPO}" tidak ditemukan. Pilih dari daftar yang muncul.`;
         msgEl.className = "form-msg err";
         msgEl.style.display = "block";
         document.getElementById("bmb-form-detail").style.display = "none";
@@ -7106,6 +7125,18 @@ window.submitBMB = async function(){
     if(btn){ btn.disabled = true; btn.textContent = "Menyimpan..."; }
 
     try{
+        // Cek ulang sesaat sebelum simpan -- jaga-jaga kalau ada dua purchasing yang
+        // kebetulan buka PO yang sama bersamaan sebelum salah satunya sempat submit.
+        const cekUlang = await getDocs(query(collection(db, "bmb_faktur"), where("po_doc_id", "==", bmbSelectedPO.id), limit(1)));
+        if(!cekUlang.empty){
+            msgEl.textContent = "PO ini baru saja dibuatkan BMB oleh proses lain. Silakan pilih PO lain.";
+            msgEl.className = "form-msg err";
+            msgEl.style.display = "block";
+            if(btn){ btn.disabled = false; btn.textContent = "🧾 Simpan BMB / Faktur"; }
+            pantauPurchasingListPOuntukBMB();
+            return;
+        }
+
         const noBMB = await generateNoBMB();
         const tanggalISO = new Date().toISOString().slice(0, 10);
 
