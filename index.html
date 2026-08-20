@@ -4647,7 +4647,7 @@ function pantauPermintaanProses(){
 
         let html = "";
         let grp = 0;
-        snapshot.forEach(docSnap => {
+        [...snapshot.docs].reverse().forEach(docSnap => {
             grp++;
             html += bangunBarisPermintaan(docSnap, grp % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a");
         });
@@ -4694,7 +4694,7 @@ function pantauPermintaanSelesai(){
 
         let html = "";
         let grp = 0;
-        snapshot.forEach(docSnap => {
+        [...snapshot.docs].reverse().forEach(docSnap => {
             grp++;
             html += bangunBarisPermintaan(docSnap, grp % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a");
         });
@@ -4807,7 +4807,7 @@ function pantauPermintaanGlobal(){
 
         let html = "";
         let grp = 0;
-        snapshot.forEach(docSnap => {
+        [...snapshot.docs].reverse().forEach(docSnap => {
             grp++;
             html += bangunBarisPermintaanGlobal(docSnap, grp % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a");
         });
@@ -4942,7 +4942,7 @@ function pantauPurchasingListPermintaan(){
         let jumlahTampil = 0;
         let grp = 0;
 
-        snapshot.forEach(docSnap => {
+        [...snapshot.docs].reverse().forEach(docSnap => {
             const d = docSnap.data();
             const status = d.status || "menunggu";
 
@@ -5443,7 +5443,7 @@ function pantauPurchasingListApprove(){
         let html = "";
         let grp = 0;
 
-        snapshot.forEach(docSnap => {
+        [...snapshot.docs].reverse().forEach(docSnap => {
             const d = docSnap.data();
             purApproveMap[docSnap.id] = d;
             grp++;
@@ -6610,7 +6610,7 @@ function pantauPurchasingListSJ(){
 
         // Ratakan: satu dokumen PR bisa punya banyak Surat Jalan, masing-masing jadi satu baris.
         const baris = [];
-        snapshot.forEach(docSnap => {
+        [...snapshot.docs].reverse().forEach(docSnap => {
             const d = docSnap.data();
             (d.surat_jalan || []).forEach(sj => {
                 baris.push({ docId: docSnap.id, d, sj });
@@ -6705,7 +6705,7 @@ function pantauPurchasingListPO(){
         let html = "";
         let grp = 0;
 
-        snapshot.forEach(docSnap => {
+        [...snapshot.docs].reverse().forEach(docSnap => {
             const d = docSnap.data();
             poListMap[docSnap.id] = d;
 
@@ -7220,7 +7220,7 @@ function pantauPurchasingListBMB(){
         let html = "";
         let grp = 0;
 
-        snapshot.forEach(docSnap => {
+        [...snapshot.docs].reverse().forEach(docSnap => {
             const d = docSnap.data();
             bmbListMap[docSnap.id] = d;
             const items = d.items && d.items.length ? d.items : [{}];
@@ -7397,7 +7397,7 @@ function pantauPimpinanReview(){
 
         const rows = [];
 
-        snapshot.forEach(docSnap => {
+        [...snapshot.docs].reverse().forEach(docSnap => {
             const d = docSnap.data();
             const daftar = d.penawaran_list || [];
             if(daftar.length === 0) return; // belum ada penawaran dari Purchasing, belum siap direview
@@ -7507,7 +7507,7 @@ function pantauSemuaPengeluaran(){
         let grp = 0;
         semuaPengeluaranMap = {};
 
-        snapshot.forEach((docSnap) => {
+        [...snapshot.docs].reverse().forEach(docSnap => {
 
             const d = docSnap.data();
             semuaPengeluaranMap[docSnap.id] = d;
@@ -8696,7 +8696,7 @@ function pantauSemuaPenerimaan(){
         let grp = 0;
         semuaPenerimaanMap = {};
 
-        snapshot.forEach((docSnap) => {
+        [...snapshot.docs].reverse().forEach(docSnap => {
 
             const d = docSnap.data();
             semuaPenerimaanMap[docSnap.id] = d;
