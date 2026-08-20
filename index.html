@@ -1287,6 +1287,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                         <div class="form-group">
                             <label>Jenis Permintaan *</label>
                             <select id="opb-jenis" onchange="window.refreshPreviewNoPR()">
+                                <option value="">-- Pilih Jenis Permintaan --</option>
                                 <option value="OPB">OPB (Barang)</option>
                                 <option value="TTKK">TTKK (Jasa/Perbaikan)</option>
                             </select>
@@ -4218,6 +4219,7 @@ window.hitungTotalOpb = function(){
 // TIDAK direset per bulan/tahun. TTKK (jasa/perbaikan) tetap pakai format lama
 // tahun/bulan/urut (mis. 2608001), direset tiap bulan seperti sebelumnya.
 async function previewNoPR(tanggalISO, jenis){
+    if(jenis === "") return "-";
     try{
         if(jenis === "OPB"){
             const counterRef = doc(db, "counters", "pr_opb_global");
@@ -4276,7 +4278,7 @@ function resetFormOpb(){
     document.getElementById("opb-tanggal").value = todayISO;
     document.getElementById("opb-tanggal-display").value = formatTanggalIndo(todayISO);
     document.getElementById("opb-pembuat").value = "";
-    document.getElementById("opb-jenis").value = "OPB";
+    document.getElementById("opb-jenis").value = "";
     document.getElementById("opb-divisi").value = "";
     document.getElementById("opb-untuk").value = "";
     document.getElementById("opb-kategori1").value = "";
