@@ -2046,6 +2046,26 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     <h2>✅ List Permintaan Approve</h2>
                     <p>Permintaan yang sudah disetujui Pimpinan — buat Surat Jalan per pengiriman, PO, dan BMB/Faktur</p>
                 </div>
+
+                <details style="margin-bottom:14px; font-size:12px; color:#8d8d8d;">
+                    <summary style="cursor:pointer;">⚙️ Alat perawatan data (jalankan hanya kalau diminta developer)</summary>
+                    <div style="margin-top:8px;">
+                        <p class="mb-hint" style="margin-bottom:10px;">
+                            Kalau PO/BMB dihapus langsung dari Firebase Console (bukan dari aplikasi), tanda ✔ di kolom PO/BMB
+                            bisa tetap tertinggal untuk No PR Urut yang bersangkutan -- karena tandanya tersimpan terpisah di
+                            dokumen PR, bukan ikut sekalian terhapus. Pakai alat ini untuk membersihkan tandanya secara manual.
+                        </p>
+                        <div class="opb-header-grid" style="grid-template-columns:1fr auto auto; max-width:600px;">
+                            <div class="form-group" style="margin-bottom:0;">
+                                <input type="text" id="jejak-nopr-urut" placeholder="No PR Urut, cth: 2608006-1">
+                            </div>
+                            <button class="btn-secondary" type="button" onclick="hapusJejakPOatauBMB('po')">Hapus Jejak PO</button>
+                            <button class="btn-secondary" type="button" onclick="hapusJejakPOatauBMB('bmb')">Hapus Jejak BMB</button>
+                        </div>
+                        <div class="form-msg" id="jejak-status" style="display:none; margin-top:8px;"></div>
+                    </div>
+                </details>
+
                 <div class="panel">
                     <table class="tbl">
                         <thead>
@@ -2150,7 +2170,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     <div class="opb-header-grid" style="grid-template-columns:1fr 2fr;">
                         <div class="form-group">
                             <label>Nama Supplier / Vendor</label>
-                            <input type="text" id="po-vendor" list="master-supplier-datalist" placeholder="Nama supplier/vendor" oninput="autoisiSupplier(); updatePreviewNoPO();">
+                            <input type="text" id="po-vendor" list="master-supplier-datalist" autocomplete="off" placeholder="Nama supplier/vendor" oninput="autoisiSupplier(); updatePreviewNoPO();">
                             <div class="nama-status" id="po-vendor-status"></div>
                         </div>
                         <div class="form-group">
@@ -2610,6 +2630,7 @@ import {
     getFirestore,
     doc,
     setDoc,
+    updateDoc,
     getDoc,
     getDocs,
     deleteDoc,
@@ -2619,6 +2640,7 @@ import {
     where,
     orderBy,
     limit,
+    deleteField,
     onSnapshot,
     serverTimestamp,
     runTransaction,
@@ -5322,6 +5344,56 @@ function renderSuratJalanItemHtml(d, docId){
         return `<div class="item-line" style="font-size:11px;">${daftar}</div>`;
     }).join("");
     return `<div class="detail-barang-list">${baris}</div>`;
+}
+
+// Alat perawatan: bersihkan jejak "sudah masuk PO"/"sudah masuk BMB" yang
+// tertinggal di item_progress kalau dokumen PO/BMB aslinya dihapus langsung
+// dari Firebase Console (bukan lewat aplikasi) -- karena jejaknya tersimpan
+// terpisah, hapus dokumen asalnya TIDAK otomatis ikut membersihkan jejak ini.
+window.hapusJejakPOatauBMB = async function(tipe){
+    const inputEl = document.getElementById("jejak-nopr-urut");
+    const statusEl = document.getElementById("jejak-status");
+    const noPRUrut = inputEl.value.trim();
+
+    statusEl.style.display = "block";
+    statusEl.className = "form-msg";
+
+    if(noPRUrut === "" || !noPRUrut.includes("-")){
+        statusEl.textContent = "Isi No PR Urut yang valid, contoh: 2608006-1";
+        statusEl.classList.add("err");
+        return;
+    }
+
+    // No PR Urut formatnya "{no_pr}-{index}" -- ambil bagian No PR-nya
+    // (sebelum tanda strip TERAKHIR, jaga-jaga kalau no_pr sendiri ada strip-nya).
+    const noPR = noPRUrut.slice(0, noPRUrut.lastIndexOf("-"));
+    if(noPR === ""){
+        statusEl.textContent = "Format No PR Urut tidak dikenali.";
+        statusEl.classList.add("err");
+        return;
+    }
+
+    try{
+        const snap = await getDocs(query(collection(db, "permintaan_barang"), where("no_pr", "==", noPR), limit(1)));
+        if(snap.empty){
+            statusEl.textContent = `PR "${noPR}" tidak ditemukan.`;
+            statusEl.classList.add("err");
+            return;
+        }
+
+        const docId = snap.docs[0].id;
+        await updateDoc(doc(db, "permintaan_barang", docId), {
+            [`item_progress.${noPRUrut}.${tipe}`]: deleteField()
+        });
+
+        statusEl.textContent = `Jejak ${tipe.toUpperCase()} untuk ${noPRUrut} berhasil dihapus.`;
+        statusEl.classList.add("ok");
+        inputEl.value = "";
+
+    } catch(e){
+        statusEl.textContent = "Gagal menghapus jejak: " + e.message;
+        statusEl.classList.add("err");
+    }
 }
 
 // =========================================================
