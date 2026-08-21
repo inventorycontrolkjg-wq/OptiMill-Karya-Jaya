@@ -192,6 +192,28 @@ button.btn-login:disabled{ background:#9db8d8; cursor:not-allowed; }
 .nav-item:hover{ background:#f2f6fb; }
 .nav-item.active{ background:#e3f2fd; color:#1565c0; font-weight:700; }
 
+.nav-group{ margin-bottom:6px; }
+
+.nav-group-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:8px 12px;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.5px;
+    text-transform:uppercase;
+    color:#9aa4b2;
+    cursor:pointer;
+    user-select:none;
+}
+
+.nav-group-header:hover{ color:#5c6773; }
+
+.nav-group-arrow{ font-size:10px; transition:transform .15s; }
+
+.nav-group-body{ padding-left:4px; }
+
 .nav-badge{
     background:#e53935;
     color:#fff;
@@ -2798,18 +2820,28 @@ window.toggleSidebar = function(){
 // =========================================================
 const NAV_ITEMS = {
     gudang: [
-        { id:"input-permintaan", label:"📝 Input Permintaan" },
-        { id:"input-pemakaian", label:"📤 Pengambilan Barang (BKB)" },
-        { id:"input-penerimaan", label:"📥 Input Penerimaan" },
-        { id:"list-permintaan-global", label:"📋 List Permintaan (Global)" },
-        { id:"list-permintaan-proses", label:"📋 List Permintaan (Proses)" },
-        { id:"list-permintaan-selesai", label:"✅ List Permintaan (Selesai)" },
-        { id:"list-pengeluaran", label:"📃 List Pengeluaran" },
-        { id:"list-penerimaan", label:"📃 List Penerimaan" },
-        { id:"history", label:"🕒 History Keluar/Masuk" },
-        { id:"inventory-control", label:"📦 Inventory Control" },
-        { id:"import-master-barang", label:"📥 Import Master Barang" },
-        { id:"import-master-karyawan", label:"📥 Import Master Karyawan" }
+        { group:"OPB", items:[
+            { id:"input-permintaan", label:"📝 Input Permintaan" },
+            { id:"list-permintaan-global", label:"📋 List Permintaan (Global)" },
+            { id:"list-permintaan-proses", label:"📋 List Permintaan (Proses)" },
+            { id:"list-permintaan-selesai", label:"✅ List Permintaan (Selesai)" }
+        ]},
+        { group:"TTB", items:[
+            { id:"input-penerimaan", label:"📥 Input Penerimaan" },
+            { id:"list-penerimaan", label:"📃 List Penerimaan" }
+        ]},
+        { group:"BKB", items:[
+            { id:"input-pemakaian", label:"📤 Pengambilan Barang (BKB)" },
+            { id:"list-pengeluaran", label:"📃 List Pengeluaran" }
+        ]},
+        { group:"Daily", items:[
+            { id:"history", label:"🕒 History Keluar/Masuk" },
+            { id:"inventory-control", label:"📦 Inventory Control" }
+        ]},
+        { group:"Setting", items:[
+            { id:"import-master-barang", label:"📥 Import Master Barang" },
+            { id:"import-master-karyawan", label:"📥 Import Master Karyawan" }
+        ]}
     ],
     purchasing: [
         { id:"purchasing-list-permintaan", label:"📋 List Permintaan" },
@@ -2830,16 +2862,48 @@ const NAV_ITEMS = {
     ]
 };
 
+function bangunNavItemHtml(it){
+    return `<div class="nav-item" data-page="${it.id}" onclick="showPage('${it.id}')">
+        <span>${it.label}</span>
+        ${it.id === "purchasing-list-permintaan" ? `<span class="nav-badge" id="nav-badge-pur-list" style="display:none;"></span>` : ""}
+    </div>`;
+}
+
 function buildSidebar(role){
     const nav = document.getElementById("sidebar-nav");
     const items = NAV_ITEMS[role] || [];
-    nav.innerHTML = items.map(it =>
-        `<div class="nav-item" data-page="${it.id}" onclick="showPage('${it.id}')">
-            <span>${it.label}</span>
-            ${it.id === "purchasing-list-permintaan" ? `<span class="nav-badge" id="nav-badge-pur-list" style="display:none;"></span>` : ""}
-        </div>`
-    ).join("");
-    if(items.length) showPage(items[0].id);
+
+    const berkelompok = items.length > 0 && items[0].group !== undefined;
+
+    if(berkelompok){
+        nav.innerHTML = items.map((grp, gi) => `
+            <div class="nav-group">
+                <div class="nav-group-header" onclick="toggleNavGroup(${gi})">
+                    <span>${grp.group}</span>
+                    <span class="nav-group-arrow" id="nav-group-arrow-${gi}">▾</span>
+                </div>
+                <div class="nav-group-body" id="nav-group-body-${gi}">
+                    ${grp.items.map(bangunNavItemHtml).join("")}
+                </div>
+            </div>
+        `).join("");
+
+        // Semua grup terbuka secara default -- tinggal klik judul grup buat menutupnya.
+        if(items[0] && items[0].items.length) showPage(items[0].items[0].id);
+
+    } else {
+        nav.innerHTML = items.map(bangunNavItemHtml).join("");
+        if(items.length) showPage(items[0].id);
+    }
+}
+
+window.toggleNavGroup = function(gi){
+    const body = document.getElementById(`nav-group-body-${gi}`);
+    const arrow = document.getElementById(`nav-group-arrow-${gi}`);
+    if(!body) return;
+    const sedangTerbuka = body.style.display !== "none";
+    body.style.display = sedangTerbuka ? "none" : "block";
+    if(arrow) arrow.textContent = sedangTerbuka ? "▸" : "▾";
 }
 
 window.showPage = function(id){
