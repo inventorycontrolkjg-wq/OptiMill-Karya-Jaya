@@ -2151,6 +2151,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                                 <th>Divisi</th>
                                 <th>Barang yang Dikirim</th>
                                 <th>Status</th>
+                                <th>No. Penerimaan</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -6667,9 +6668,22 @@ let unsubListSJ = null;
 
 let listSJRentangHari = "90";
 
-function pantauPurchasingListSJ(){
+async function pantauPurchasingListSJ(){
 
     if(unsubListSJ) unsubListSJ();
+
+    // Kumpulkan No. Penerimaan per No. SJ -- sekali ambil saja (bukan live listener),
+    // cukup buat referensi tampilan di kolom baru.
+    let penerimaanPerNoSJ = {};
+    try{
+        const snapPnm = await getDocs(query(collection(db, "penerimaan_barang"), orderBy("created_at", "desc"), limit(1000)));
+        snapPnm.forEach(docSnap => {
+            const dPnm = docSnap.data();
+            if(dPnm.no_sj) penerimaanPerNoSJ[dPnm.no_sj] = dPnm.no_penerimaan;
+        });
+    } catch(e){
+        console.error("Gagal memuat data Penerimaan untuk List Surat Jalan:", e);
+    }
 
     // Ini murni log riwayat -- aman dibatasi rentang tanggal + jumlah.
     const BATAS_AMAN_SJ = 300;
@@ -6698,8 +6712,8 @@ function pantauPurchasingListSJ(){
             });
         });
 
-        // Surat Jalan terbaru di atas
-        baris.sort((a, b) => (b.sj.tanggal || "").localeCompare(a.sj.tanggal || ""));
+        // Surat Jalan terlama di atas, terbaru di bawah -- konsisten dengan halaman List lain.
+        baris.sort((a, b) => (a.sj.tanggal || "").localeCompare(b.sj.tanggal || ""));
 
         if(baris.length === 0){
             tbody.innerHTML = "";
@@ -6715,6 +6729,7 @@ function pantauPurchasingListSJ(){
                 ? items.map(it => `${it.nama_barang || "-"} (${it.jumlah ?? "-"})`).join(", ")
                 : "-";
             const sudahDiterima = sj.status === "diterima";
+            const noPenerimaan = penerimaanPerNoSJ[sj.no_sj] || "-";
 
             return `
 <tr class="${grpClass}">
@@ -6724,6 +6739,7 @@ function pantauPurchasingListSJ(){
     <td>${d.divisi || "-"}</td>
     <td style="white-space:normal;">${ringkasBarang}</td>
     <td><span class="status-pill ${sudahDiterima ? "diterima" : "hold"}">${sudahDiterima ? "Diterima" : "Dikirim"}</span></td>
+    <td>${noPenerimaan}</td>
     <td>
         <button class="btn-ic-edit" type="button" onclick="cetakSuratJalanUlang('${docId}', '${sj.no_sj}')">🖨️ Cetak</button>
         ${!sudahDiterima ? `<button class="btn-ic-save" type="button" onclick="tandaiSJDiterima('${docId}', '${sj.no_sj}')">✔ Tandai Diterima</button>` : ""}
