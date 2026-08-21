@@ -199,18 +199,18 @@ button.btn-login:disabled{ background:#9db8d8; cursor:not-allowed; }
     align-items:center;
     justify-content:space-between;
     padding:8px 12px;
-    font-size:11px;
+    font-size:13.5px;
     font-weight:700;
     letter-spacing:.5px;
     text-transform:uppercase;
-    color:#9aa4b2;
+    color:#1a1a1a;
     cursor:pointer;
     user-select:none;
 }
 
-.nav-group-header:hover{ color:#5c6773; }
+.nav-group-header:hover{ color:#000; background:#f2f6fb; border-radius:9px; }
 
-.nav-group-arrow{ font-size:10px; transition:transform .15s; }
+.nav-group-arrow{ font-size:15px; color:#1a1a1a; transition:transform .15s; }
 
 .nav-group-body{ padding-left:4px; }
 
@@ -2880,9 +2880,9 @@ function buildSidebar(role){
             <div class="nav-group">
                 <div class="nav-group-header" onclick="toggleNavGroup(${gi})">
                     <span>${grp.group}</span>
-                    <span class="nav-group-arrow" id="nav-group-arrow-${gi}">▾</span>
+                    <span class="nav-group-arrow" id="nav-group-arrow-${gi}">▸</span>
                 </div>
-                <div class="nav-group-body" id="nav-group-body-${gi}">
+                <div class="nav-group-body" id="nav-group-body-${gi}" style="display:none;">
                     ${grp.items.map(bangunNavItemHtml).join("")}
                 </div>
             </div>
