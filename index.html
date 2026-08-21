@@ -2324,17 +2324,21 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                 <div class="panel">
 
                     <div class="form-group" style="max-width:420px; margin-bottom:16px;">
-                        <label>Pilih No. PO *</label>
-                        <input type="text" id="bmb-pilih-po" list="bmb-po-datalist" placeholder="Ketik/pilih No. PO..." onchange="pilihPOuntukBMB()">
-                        <datalist id="bmb-po-datalist"></datalist>
+                        <label>Pilih No. Penerimaan *</label>
+                        <input type="text" id="bmb-pilih-penerimaan" list="bmb-penerimaan-datalist" autocomplete="off" placeholder="Ketik/pilih No. Penerimaan..." onchange="pilihPenerimaanUntukBMB()">
+                        <datalist id="bmb-penerimaan-datalist"></datalist>
                     </div>
 
                     <div id="bmb-form-detail" style="display:none;">
 
-                        <div class="opb-header-grid" style="grid-template-columns:repeat(4, minmax(0,1fr));">
+                        <div class="opb-header-grid" style="grid-template-columns:repeat(5, minmax(0,1fr));">
                             <div class="form-group">
                                 <label>No. BMB (preview)</label>
                                 <input type="text" id="bmb-no-preview" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>No. Penerimaan</label>
+                                <input type="text" id="bmb-no-penerimaan" disabled>
                             </div>
                             <div class="form-group">
                                 <label>No. PO</label>
@@ -2362,7 +2366,8 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                         </div>
 
                         <p class="mb-hint" style="margin-top:12px;">
-                            Jumlah Diterima otomatis diambil dari data Input Penerimaan gudang — silakan cek/koreksi kalau memang ada perbedaan.
+                            Jumlah Diterima persis sesuai data Input Penerimaan gudang yang kamu pilih. Harga Satuan otomatis diambil
+                            dari PO terkait masing-masing barang — silakan cek/koreksi kalau memang ada perbedaan.
                             Baris dengan Jumlah Diterima 0 tidak akan ikut disimpan.
                         </p>
 
@@ -2433,6 +2438,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                         <thead>
                             <tr>
                                 <th>No. BMB</th>
+                                <th>No. Penerimaan</th>
                                 <th>No. PO</th>
                                 <th>Tanggal</th>
                                 <th>Supplier</th>
@@ -2906,7 +2912,7 @@ window.showPage = function(id){
         pantauPurchasingListPO();
     }
     if(id === "purchasing-input-bmb"){
-        pantauPurchasingListPOuntukBMB();
+        pantauPurchasingListPenerimaanUntukBMB();
         resetFormBMB();
     }
     if(id === "purchasing-list-bmb"){
@@ -6970,43 +6976,44 @@ window.cetakPO = function(id){
 // reset tiap bulan.
 // =========================================================
 
-let bmbPOMap = {}; // no_po -> { id, data }
-let bmbSelectedPO = null; // { id, data, noPRUrutToDocId, itemProgressPerNoPR }
+let bmbPenerimaanMap = {}; // no_penerimaan -> { id, data }
+let bmbSelectedPenerimaan = null; // { id, data, noPRUrutToDocId }
 let unsubListBMB = null;
 let bmbListMap = {};
 let listBMBRentangHari = "90";
-let bmbPONoPOSudahBMB = new Set(); // no_po yang sudah pernah dibuatkan BMB -- buat pesan error yang jelas
+let bmbNoPenerimaanSudahBMB = new Set(); // no_penerimaan yang sudah pernah dibuatkan BMB
 
-// Ambil daftar No. PO untuk datalist pemilih di form Input BMB -- HANYA yang
-// belum pernah dibuatkan BMB, supaya tidak ada yang tidak sengaja dobel.
-async function pantauPurchasingListPOuntukBMB(){
+// Ambil daftar No. Penerimaan untuk datalist pemilih di form Input BMB -- HANYA
+// yang belum pernah dibuatkan BMB, supaya tidak ada yang tidak sengaja dobel.
+async function pantauPurchasingListPenerimaanUntukBMB(){
     try{
         const snapBMB = await getDocs(query(collection(db, "bmb_faktur"), limit(1000)));
-        const poDocIdSudahBMB = new Set();
+        const penerimaanDocIdSudahBMB = new Set();
         snapBMB.forEach(docSnap => {
             const dBMB = docSnap.data();
-            if(dBMB.po_doc_id) poDocIdSudahBMB.add(dBMB.po_doc_id);
+            if(dBMB.penerimaan_doc_id) penerimaanDocIdSudahBMB.add(dBMB.penerimaan_doc_id);
         });
 
-        const snapPO = await getDocs(query(collection(db, "po_barang"), orderBy("created_at", "desc"), limit(500)));
-        bmbPOMap = {};
-        bmbPONoPOSudahBMB = new Set();
+        const snapPnm = await getDocs(query(collection(db, "penerimaan_barang"), orderBy("created_at", "desc"), limit(500)));
+        bmbPenerimaanMap = {};
+        bmbNoPenerimaanSudahBMB = new Set();
         let optionsHtml = "";
 
-        snapPO.forEach(docSnap => {
+        snapPnm.forEach(docSnap => {
             const d = docSnap.data();
-            if(poDocIdSudahBMB.has(docSnap.id)){
-                bmbPONoPOSudahBMB.add(d.no_po);
+            if(d.status === "draft") return; // draft belum final, jangan ditawarkan
+            if(penerimaanDocIdSudahBMB.has(docSnap.id)){
+                bmbNoPenerimaanSudahBMB.add(d.no_penerimaan);
                 return; // sudah ada BMB-nya, jangan ditawarkan lagi
             }
-            bmbPOMap[d.no_po] = { id: docSnap.id, data: d };
-            optionsHtml += `<option value="${d.no_po}"></option>`;
+            bmbPenerimaanMap[d.no_penerimaan] = { id: docSnap.id, data: d };
+            optionsHtml += `<option value="${d.no_penerimaan}"></option>`;
         });
 
-        const dl = document.getElementById("bmb-po-datalist");
+        const dl = document.getElementById("bmb-penerimaan-datalist");
         if(dl) dl.innerHTML = optionsHtml;
     } catch(e){
-        console.error("Gagal memuat daftar PO untuk BMB:", e);
+        console.error("Gagal memuat daftar Penerimaan untuk BMB:", e);
     }
 }
 
@@ -7033,80 +7040,96 @@ async function generateNoBMB(){
     return `${yy}${mm}${String(nomorBerikutnya).padStart(3, "0")}`;
 }
 
-window.pilihPOuntukBMB = async function(){
+window.pilihPenerimaanUntukBMB = async function(){
 
-    const noPO = document.getElementById("bmb-pilih-po").value.trim();
+    const noPnm = document.getElementById("bmb-pilih-penerimaan").value.trim();
     const msgEl = document.getElementById("bmb-msg");
     msgEl.style.display = "none";
 
-    const entry = bmbPOMap[noPO];
+    const entry = bmbPenerimaanMap[noPnm];
     if(!entry){
-        msgEl.textContent = bmbPONoPOSudahBMB.has(noPO)
-            ? `No. PO "${noPO}" sudah pernah dibuatkan BMB/Faktur sebelumnya. Satu PO cuma bisa dibuatkan satu BMB.`
-            : `No. PO "${noPO}" tidak ditemukan. Pilih dari daftar yang muncul.`;
+        msgEl.textContent = bmbNoPenerimaanSudahBMB.has(noPnm)
+            ? `No. Penerimaan "${noPnm}" sudah pernah dibuatkan BMB/Faktur sebelumnya. Satu Penerimaan cuma bisa dibuatkan satu BMB.`
+            : `No. Penerimaan "${noPnm}" tidak ditemukan. Pilih dari daftar yang muncul.`;
         msgEl.className = "form-msg err";
         msgEl.style.display = "block";
         document.getElementById("bmb-form-detail").style.display = "none";
-        bmbSelectedPO = null;
+        bmbSelectedPenerimaan = null;
         return;
     }
 
     const d = entry.data;
-    const daftarPR = d.daftar_no_pr || [];
-    // Lookup LANGSUNG per No. PR Urut -> docId PR, persis pola poItemMap yang sudah
-    // terbukti jalan di fitur PO. Sebelumnya di sini nyari lewat No. PR dulu baru
-    // No. PR Urut -- ternyata itu titik rawannya, jadi disederhanakan.
-    const noPRUrutToDocId = {}; // no_pr_urut -> docId PR
-    const itemProgressPerNoPR = {}; // no_pr -> item_progress (buat auto-isi Jumlah Diterima)
-    const divisiPerNoPR = {};
+    const itemsAsli = d.items || [];
+
+    // Setiap item Penerimaan sudah bawa doc_id_asal (dokumen PR asalnya) --
+    // dari situ kita baca jejak item_progress.<no_urut>.po yang sudah tersimpan
+    // waktu PO diterbitkan, buat ambil Harga Satuan, Vendor, dan No. PO-nya.
+    // TIDAK perlu cari-cari lagi ke koleksi po_barang.
+    const prDocIdUnik = Array.from(new Set(itemsAsli.map(it => it.doc_id_asal).filter(Boolean)));
+    const itemProgressPerPRDoc = {};
+    const noPRUrutToDocId = {}; // dipakai lagi nanti buat nulis balik jejak BMB
 
     try{
-        for(const noPR of daftarPR){
-            const snapPR = await getDocs(query(collection(db, "permintaan_barang"), where("no_pr", "==", noPR), limit(1)));
-            if(!snapPR.empty){
-                const docSnapPR = snapPR.docs[0];
-                const dPR = docSnapPR.data();
-                itemProgressPerNoPR[noPR] = dPR.item_progress || {};
-                divisiPerNoPR[noPR] = dPR.divisi || "";
-                (dPR.items || []).forEach((itPR, idx) => {
-                    noPRUrutToDocId[noUrutItem(noPR, idx)] = docSnapPR.id;
-                });
+        for(const prDocId of prDocIdUnik){
+            const snapPR = await getDoc(doc(db, "permintaan_barang", prDocId));
+            if(snapPR.exists()){
+                itemProgressPerPRDoc[prDocId] = snapPR.data().item_progress || {};
             }
         }
     } catch(e){
-        msgEl.textContent = "Gagal mengambil data penerimaan dari gudang: " + e.message;
+        msgEl.textContent = "Gagal mengambil data PO terkait: " + e.message;
         msgEl.className = "form-msg err";
         msgEl.style.display = "block";
         return;
     }
 
-    bmbSelectedPO = { id: entry.id, data: d, noPRUrutToDocId, itemProgressPerNoPR };
+    itemsAsli.forEach(it => {
+        if(it.doc_id_asal && it.no_urut) noPRUrutToDocId[it.no_urut] = it.doc_id_asal;
+    });
 
-    const semuaDivisi = Array.from(new Set(daftarPR.map(np => divisiPerNoPR[np]).filter(Boolean)));
+    bmbSelectedPenerimaan = { id: entry.id, data: d, noPRUrutToDocId };
 
-    document.getElementById("bmb-no-po").value = d.no_po;
-    document.getElementById("bmb-supplier").value = d.vendor || "-";
-    const tanggalHariIni = new Date().toISOString().slice(0, 10);
-    document.getElementById("bmb-tanggal-display").value = formatTanggalIndo(tanggalHariIni);
-    document.getElementById("bmb-pembeli").value = currentUserNama || "-";
-    document.getElementById("bmb-untuk").value = semuaDivisi.join(", ") || "-";
+    // Kumpulkan Vendor & No. PO dari jejak tiap item -- biasanya semua item dalam
+    // satu Penerimaan berasal dari PO yang sama, tapi kalau ternyata beda (mis.
+    // SJ gabungan lintas PO), semua No. PO-nya digabung tampil sekaligus.
+    const semuaNoPO = [];
+    const semuaVendor = [];
 
-    const tbody = document.getElementById("bmb-items-body");
-    tbody.innerHTML = (d.items || []).map((it, i) => {
-        const progress = itemProgressPerNoPR[it.no_pr] || {};
-        const diterima = Number((progress[it.no_pr_urut] || {}).diterima) || 0;
+    const barisHtml = itemsAsli.map((it, i) => {
+        const progress = itemProgressPerPRDoc[it.doc_id_asal] || {};
+        const infoPO = (progress[it.no_urut] || {}).po || null;
+
+        if(infoPO){
+            if(infoPO.no_po && !semuaNoPO.includes(infoPO.no_po)) semuaNoPO.push(infoPO.no_po);
+            if(infoPO.vendor && !semuaVendor.includes(infoPO.vendor)) semuaVendor.push(infoPO.vendor);
+        }
+
+        const hargaSatuan = infoPO ? (infoPO.harga_satuan || 0) : 0;
+
         return `
 <tr>
     <td>${i + 1}</td>
-    <td style="white-space:normal;">${it.nama_barang || "-"}</td>
+    <td style="white-space:normal;">
+        ${it.nama_barang || "-"}
+        ${!infoPO ? `<div style="color:#c62828; font-size:11px;">⚠ PO tidak ditemukan untuk barang ini -- isi harga manual</div>` : ""}
+    </td>
     <td>${it.satuan || "-"}</td>
     <td class="num">${it.jumlah ?? "-"}</td>
-    <td><input type="number" min="0" class="bmb-input-diterima" oninput="hitungTotalBMB()" value="${diterima}"></td>
-    <td><input type="number" min="0" class="bmb-input-harga" oninput="hitungTotalBMB()" value="${it.harga_satuan || 0}"></td>
+    <td><input type="number" min="0" class="bmb-input-diterima" data-no-urut="${it.no_urut || ""}" oninput="hitungTotalBMB()" value="${it.jumlah ?? 0}"></td>
+    <td><input type="number" min="0" class="bmb-input-harga" oninput="hitungTotalBMB()" value="${hargaSatuan}"></td>
     <td class="num" id="bmb-total-${i}">Rp 0</td>
 </tr>`;
     }).join("");
 
+    document.getElementById("bmb-no-penerimaan").value = d.no_penerimaan;
+    document.getElementById("bmb-no-po").value = semuaNoPO.join(", ") || "-";
+    document.getElementById("bmb-supplier").value = semuaVendor.join(", ") || "-";
+    const tanggalHariIni = new Date().toISOString().slice(0, 10);
+    document.getElementById("bmb-tanggal-display").value = formatTanggalIndo(tanggalHariIni);
+    document.getElementById("bmb-pembeli").value = currentUserNama || "-";
+    document.getElementById("bmb-untuk").value = d.divisi || "-";
+
+    document.getElementById("bmb-items-body").innerHTML = barisHtml;
     document.getElementById("bmb-form-detail").style.display = "block";
 
     document.getElementById("bmb-no-preview").value = await previewNoBMB();
@@ -7135,7 +7158,7 @@ window.hitungTotalBMB = function(){
 }
 
 function resetFormBMB(){
-    document.getElementById("bmb-pilih-po").value = "";
+    document.getElementById("bmb-pilih-penerimaan").value = "";
     document.getElementById("bmb-form-detail").style.display = "none";
     document.getElementById("bmb-items-body").innerHTML = "";
     document.getElementById("bmb-diskon").value = "0";
@@ -7143,7 +7166,7 @@ function resetFormBMB(){
     document.getElementById("bmb-ppn").value = "0";
     document.getElementById("bmb-keterangan").value = "";
     document.getElementById("bmb-msg").style.display = "none";
-    bmbSelectedPO = null;
+    bmbSelectedPenerimaan = null;
 }
 
 window.submitBMB = async function(){
@@ -7151,14 +7174,14 @@ window.submitBMB = async function(){
     const msgEl = document.getElementById("bmb-msg");
     msgEl.style.display = "none";
 
-    if(!bmbSelectedPO){
-        msgEl.textContent = "Pilih No. PO dulu.";
+    if(!bmbSelectedPenerimaan){
+        msgEl.textContent = "Pilih No. Penerimaan dulu.";
         msgEl.className = "form-msg err";
         msgEl.style.display = "block";
         return;
     }
 
-    const d = bmbSelectedPO.data;
+    const d = bmbSelectedPenerimaan.data; // dokumen Penerimaan
     const rows = document.querySelectorAll("#bmb-items-body tr");
     const items = [];
     let subtotal = 0;
@@ -7173,11 +7196,9 @@ window.submitBMB = async function(){
         subtotal += totalHarga;
 
         items.push({
-            no_pr_urut: itemAsli.no_pr_urut || "",
-            no_pr: itemAsli.no_pr || "",
+            no_pr_urut: itemAsli.no_urut || "",
             nama_barang: itemAsli.nama_barang || "",
             satuan: itemAsli.satuan || "",
-            jumlah_po: itemAsli.jumlah || 0,
             jumlah_diterima: diterima,
             harga_satuan: harga,
             total_harga: totalHarga
@@ -7201,14 +7222,14 @@ window.submitBMB = async function(){
 
     try{
         // Cek ulang sesaat sebelum simpan -- jaga-jaga kalau ada dua purchasing yang
-        // kebetulan buka PO yang sama bersamaan sebelum salah satunya sempat submit.
-        const cekUlang = await getDocs(query(collection(db, "bmb_faktur"), where("po_doc_id", "==", bmbSelectedPO.id), limit(1)));
+        // kebetulan buka Penerimaan yang sama bersamaan sebelum salah satunya submit.
+        const cekUlang = await getDocs(query(collection(db, "bmb_faktur"), where("penerimaan_doc_id", "==", bmbSelectedPenerimaan.id), limit(1)));
         if(!cekUlang.empty){
-            msgEl.textContent = "PO ini baru saja dibuatkan BMB oleh proses lain. Silakan pilih PO lain.";
+            msgEl.textContent = "Penerimaan ini baru saja dibuatkan BMB oleh proses lain. Silakan pilih Penerimaan lain.";
             msgEl.className = "form-msg err";
             msgEl.style.display = "block";
             if(btn){ btn.disabled = false; btn.textContent = "🧾 Simpan BMB / Faktur"; }
-            pantauPurchasingListPOuntukBMB();
+            pantauPurchasingListPenerimaanUntukBMB();
             return;
         }
 
@@ -7219,9 +7240,10 @@ window.submitBMB = async function(){
 
         batch.set(doc(collection(db, "bmb_faktur")), {
             no_bmb: noBMB,
-            no_po: d.no_po,
-            po_doc_id: bmbSelectedPO.id,
-            supplier: d.vendor || "",
+            no_penerimaan: d.no_penerimaan,
+            penerimaan_doc_id: bmbSelectedPenerimaan.id,
+            no_po: document.getElementById("bmb-no-po").value,
+            supplier: document.getElementById("bmb-supplier").value,
             tanggal: tanggalISO,
             tanggal_display: formatTanggalIndo(tanggalISO),
             untuk: document.getElementById("bmb-untuk").value,
@@ -7239,7 +7261,7 @@ window.submitBMB = async function(){
         // kolom Status BMB (✔/✗) di List Permintaan Approve. Lookup langsung per
         // No. PR Urut (bukan lewat No. PR dulu), sama seperti pola PO yang sudah jalan.
         items.forEach(it => {
-            const docId = bmbSelectedPO.noPRUrutToDocId[it.no_pr_urut];
+            const docId = bmbSelectedPenerimaan.noPRUrutToDocId[it.no_pr_urut];
             if(!docId) return;
             batch.update(doc(db, "permintaan_barang", docId), {
                 [`item_progress.${it.no_pr_urut}.bmb`]: { no_bmb: noBMB, tanggal: tanggalISO }
@@ -7253,7 +7275,7 @@ window.submitBMB = async function(){
         msgEl.style.display = "block";
 
         resetFormBMB();
-        pantauPurchasingListPOuntukBMB();
+        pantauPurchasingListPenerimaanUntukBMB();
 
     } catch(e){
         msgEl.textContent = "Gagal menyimpan BMB: " + e.message;
@@ -7306,6 +7328,7 @@ function pantauPurchasingListBMB(){
                 html += `
 <tr class="${grpClass}${i === 0 ? ' tbl-grp-first' : ''}">
     <td>${i === 0 ? teksAtauKosong(d.no_bmb) : ""}</td>
+    <td>${i === 0 ? teksAtauKosong(d.no_penerimaan) : ""}</td>
     <td>${i === 0 ? teksAtauKosong(d.no_po) : ""}</td>
     <td>${i === 0 ? teksAtauKosong(d.tanggal_display || d.tanggal) : ""}</td>
     <td>${i === 0 ? teksAtauKosong(d.supplier) : ""}</td>
@@ -7371,7 +7394,7 @@ window.cetakBMB = function(id){
 
     <table class="po-cetak-header">
         <tr>
-            <td class="po-judul" rowspan="4">BMB</td>
+            <td class="po-judul" rowspan="5">BMB</td>
             <td class="po-label">Supplier:</td>
             <td class="po-isi">${d.supplier || "-"}</td>
             <td class="po-nopo-cell" rowspan="2" style="width:34%;">
@@ -7386,7 +7409,7 @@ window.cetakBMB = function(id){
         <tr>
             <td class="po-label">Untuk:</td>
             <td class="po-isi">${d.untuk || "-"}</td>
-            <td class="po-nopo-cell" rowspan="2">
+            <td class="po-nopo-cell" rowspan="3">
                 <span class="po-nopo-label">No PO:</span>
                 ${d.no_po || "-"}
             </td>
@@ -7394,6 +7417,10 @@ window.cetakBMB = function(id){
         <tr>
             <td class="po-label">Pembeli:</td>
             <td class="po-isi">${d.pembeli || "-"}</td>
+        </tr>
+        <tr>
+            <td class="po-label">No. Pnm:</td>
+            <td class="po-isi">${d.no_penerimaan || "-"}</td>
         </tr>
     </table>
 
