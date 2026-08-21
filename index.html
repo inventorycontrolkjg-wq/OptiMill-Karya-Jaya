@@ -5062,6 +5062,7 @@ window.bukaFormCatatan = function(id){
 let pwModalTargetId = null;
 let pwRowCount = 0;
 let pwFilesBaru = {}; // { rowId: File }
+const PW_MAKS_PENAWARAN = 10;
 
 window.bukaFormPenawaran = function(id){
     const d = purListMap[id];
@@ -5090,8 +5091,8 @@ window.tutupModalPenawaran = function(){
 
 window.tambahBarisPenawaran = function(existing){
     const rows = document.querySelectorAll("#pw-rows .pw-row");
-    if(rows.length >= 3){
-        alert("Maksimal 3 penawaran.");
+    if(rows.length >= PW_MAKS_PENAWARAN){
+        alert(`Maksimal ${PW_MAKS_PENAWARAN} penawaran.`);
         return;
     }
     pwRowCount++;
@@ -5129,7 +5130,7 @@ window.tambahBarisPenawaran = function(existing){
     `;
 
     document.getElementById("pw-rows").insertAdjacentHTML("beforeend", html);
-    document.getElementById("pw-add-btn").style.display = document.querySelectorAll("#pw-rows .pw-row").length >= 3 ? "none" : "block";
+    document.getElementById("pw-add-btn").style.display = document.querySelectorAll("#pw-rows .pw-row").length >= PW_MAKS_PENAWARAN ? "none" : "block";
 }
 
 window.hapusBarisPenawaran = function(id){
