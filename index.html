@@ -6875,13 +6875,14 @@ function pantauPurchasingListPO(){
             const grpClass = grp % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a";
 
             items.forEach((it, i) => {
-                html += `
-<tr class="${grpClass}${i === 0 ? ' tbl-grp-first' : ''}">
-    <td>${i === 0 ? teksAtauKosong(d.no_po) : ""}</td>
-    <td>${i === 0 ? teksAtauKosong(d.tanggal_display || d.tanggal) : ""}</td>
-    <td>${i === 0 ? teksAtauKosong(d.vendor) : ""}</td>
-    <td>${i === 0 ? teksAtauKosong(d.metode_payment) : ""}</td>
-    <td>${i === 0 ? teksAtauKosong(d.metode_payment === "KREDIT" ? d.tenor : "") : ""}</td>
+                if(i === 0){
+                    html += `
+<tr class="${grpClass} tbl-grp-first">
+    <td rowspan="${items.length}">${teksAtauKosong(d.no_po)}</td>
+    <td rowspan="${items.length}">${teksAtauKosong(d.tanggal_display || d.tanggal)}</td>
+    <td rowspan="${items.length}">${teksAtauKosong(d.vendor)}</td>
+    <td rowspan="${items.length}">${teksAtauKosong(d.metode_payment)}</td>
+    <td rowspan="${items.length}">${teksAtauKosong(d.metode_payment === "KREDIT" ? d.tenor : "")}</td>
     <td>${teksAtauKosong(it.no_pr_urut)}</td>
     <td>${teksAtauKosong(it.nama_barang)}</td>
     <td class="num">${it.jumlah ?? ""}</td>
@@ -6894,8 +6895,25 @@ function pantauPurchasingListPO(){
     <td>${teksAtauKosong(it.keterangan_supplier)}</td>
     <td>${teksAtauKosong(it.keterangan_internal)}</td>
     <td>${teksAtauKosong(it.dibeli_oleh)}</td>
-    <td>${i === 0 ? `<button class="btn-ic-edit" type="button" onclick="cetakPO('${docSnap.id}')">🖨️ Cetak</button>` : ""}</td>
+    <td rowspan="${items.length}"><button class="btn-ic-edit" type="button" onclick="cetakPO('${docSnap.id}')">🖨️ Cetak</button></td>
 </tr>`;
+                } else {
+                    html += `
+<tr class="${grpClass}">
+    <td>${teksAtauKosong(it.no_pr_urut)}</td>
+    <td>${teksAtauKosong(it.nama_barang)}</td>
+    <td class="num">${it.jumlah ?? ""}</td>
+    <td>${teksAtauKosong(it.satuan)}</td>
+    <td class="num">${rpAtauKosong(it.harga_satuan)}</td>
+    <td class="num">${rpAtauKosong(it.diskon)}</td>
+    <td class="num">${rpAtauKosong(it.pph23)}</td>
+    <td class="num">${rpAtauKosong(it.ppn)}</td>
+    <td class="num">${rpAtauKosong(it.total_harga)}</td>
+    <td>${teksAtauKosong(it.keterangan_supplier)}</td>
+    <td>${teksAtauKosong(it.keterangan_internal)}</td>
+    <td>${teksAtauKosong(it.dibeli_oleh)}</td>
+</tr>`;
+                }
             });
         });
 
@@ -7405,22 +7423,33 @@ function pantauPurchasingListBMB(){
             const grpClass = grp % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a";
 
             items.forEach((it, i) => {
-                html += `
-<tr class="${grpClass}${i === 0 ? ' tbl-grp-first' : ''}">
-    <td>${i === 0 ? teksAtauKosong(d.no_bmb) : ""}</td>
-    <td>${i === 0 ? teksAtauKosong(d.no_penerimaan) : ""}</td>
-    <td>${i === 0 ? teksAtauKosong(d.no_po) : ""}</td>
-    <td>${i === 0 ? teksAtauKosong(d.tanggal_display || d.tanggal) : ""}</td>
-    <td>${i === 0 ? teksAtauKosong(d.supplier) : ""}</td>
+                if(i === 0){
+                    html += `
+<tr class="${grpClass} tbl-grp-first">
+    <td rowspan="${items.length}">${teksAtauKosong(d.no_bmb)}</td>
+    <td rowspan="${items.length}">${teksAtauKosong(d.no_penerimaan)}</td>
+    <td rowspan="${items.length}">${teksAtauKosong(d.no_po)}</td>
+    <td rowspan="${items.length}">${teksAtauKosong(d.tanggal_display || d.tanggal)}</td>
+    <td rowspan="${items.length}">${teksAtauKosong(d.supplier)}</td>
     <td style="white-space:normal;">${teksAtauKosong(it.nama_barang)}</td>
     <td class="num">${it.jumlah_diterima ?? ""}</td>
     <td>${teksAtauKosong(it.satuan)}</td>
     <td class="num">${rpAtauKosong(it.harga_satuan)}</td>
     <td class="num">${rpAtauKosong(it.total_harga)}</td>
-    <td>${i === 0 ? teksAtauKosong(d.keterangan) : ""}</td>
-    <td>${i === 0 ? teksAtauKosong(d.pembeli) : ""}</td>
-    <td>${i === 0 ? `<button class="btn-ic-edit" type="button" onclick="cetakBMB('${docSnap.id}')">🖨️ Cetak</button>` : ""}</td>
+    <td rowspan="${items.length}">${teksAtauKosong(d.keterangan)}</td>
+    <td rowspan="${items.length}">${teksAtauKosong(d.pembeli)}</td>
+    <td rowspan="${items.length}"><button class="btn-ic-edit" type="button" onclick="cetakBMB('${docSnap.id}')">🖨️ Cetak</button></td>
 </tr>`;
+                } else {
+                    html += `
+<tr class="${grpClass}">
+    <td style="white-space:normal;">${teksAtauKosong(it.nama_barang)}</td>
+    <td class="num">${it.jumlah_diterima ?? ""}</td>
+    <td>${teksAtauKosong(it.satuan)}</td>
+    <td class="num">${rpAtauKosong(it.harga_satuan)}</td>
+    <td class="num">${rpAtauKosong(it.total_harga)}</td>
+</tr>`;
+                }
             });
         });
 
