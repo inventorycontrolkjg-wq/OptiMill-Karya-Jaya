@@ -2844,15 +2844,25 @@ const NAV_ITEMS = {
         ]}
     ],
     purchasing: [
-        { id:"purchasing-list-permintaan", label:"📋 List Permintaan" },
-        { id:"purchasing-list-approve", label:"✅ List Permintaan Approve" },
-        { id:"purchasing-buat-sj", label:"🚚 Buat Surat Jalan" },
-        { id:"purchasing-list-sj", label:"📃 List Surat Jalan" },
-        { id:"purchasing-input-po", label:"🧾 Input PO" },
-        { id:"purchasing-list-po", label:"📑 List PO" },
-        { id:"purchasing-input-bmb", label:"🧾 Input BMB / Faktur" },
-        { id:"purchasing-list-bmb", label:"📑 List BMB / Faktur" },
-        { id:"purchasing-import-master-supplier", label:"📥 Import Master Supplier" }
+        { group:"Permintaan", items:[
+            { id:"purchasing-list-permintaan", label:"📋 List Permintaan" },
+            { id:"purchasing-list-approve", label:"✅ List Permintaan Approve" }
+        ]},
+        { group:"PO", items:[
+            { id:"purchasing-input-po", label:"🧾 Input PO" },
+            { id:"purchasing-list-po", label:"📑 List PO" }
+        ]},
+        { group:"BMB", items:[
+            { id:"purchasing-input-bmb", label:"🧾 Input BMB / Faktur" },
+            { id:"purchasing-list-bmb", label:"📑 List BMB / Faktur" }
+        ]},
+        { group:"Surat Jalan", items:[
+            { id:"purchasing-buat-sj", label:"🚚 Buat Surat Jalan" },
+            { id:"purchasing-list-sj", label:"📃 List Surat Jalan" }
+        ]},
+        { group:"Setting", items:[
+            { id:"purchasing-import-master-supplier", label:"📥 Import Master Supplier" }
+        ]}
     ],
     pimpinan: [
         { id:"pimpinan-review", label:"✅ Review & Approval" }
