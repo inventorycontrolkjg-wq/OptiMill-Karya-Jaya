@@ -1397,15 +1397,18 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     <p>Referensi lengkap semua permintaan yang pernah diajukan, tanpa info status approval/pengiriman</p>
                 </div>
 
-                <div class="form-group" style="max-width:260px; margin-bottom:12px;">
-                    <label>Tampilkan</label>
-                    <select id="pb-global-rentang" onchange="gantiRentangPermintaanGlobal(this.value)">
-                        <option value="30">30 Hari Terakhir</option>
-                        <option value="90" selected>90 Hari Terakhir</option>
-                        <option value="180">6 Bulan Terakhir</option>
-                        <option value="365">1 Tahun Terakhir</option>
-                        <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
-                    </select>
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+                    <div class="form-group" style="max-width:260px; margin-bottom:0;">
+                        <label>Tampilkan</label>
+                        <select id="pb-global-rentang" onchange="gantiRentangPermintaanGlobal(this.value)">
+                            <option value="30">30 Hari Terakhir</option>
+                            <option value="90" selected>90 Hari Terakhir</option>
+                            <option value="180">6 Bulan Terakhir</option>
+                            <option value="365">1 Tahun Terakhir</option>
+                            <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
+                        </select>
+                    </div>
+                    <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-list-permintaan-global table', 'List_Permintaan_Global')">📊 Export ke Excel</button>
                 </div>
 
                 <div class="form-msg err" id="pb-global-limit-warning" style="display:none; margin-bottom:12px;">
@@ -1456,6 +1459,10 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     ⚠ Menampilkan 500 PR proses terbaru. Kalau ada PR lama yang masih tersangkut, gunakan pencarian manual atau hubungi developer.
                 </div>
 
+                <div style="text-align:right; margin-bottom:12px;">
+                    <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-list-permintaan-proses table', 'List_Permintaan_Proses')">📊 Export ke Excel</button>
+                </div>
+
                 <div class="panel">
                     <table class="tbl">
                         <thead>
@@ -1487,15 +1494,18 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     <p>Permintaan yang barangnya sudah diterima lengkap oleh gudang</p>
                 </div>
 
-                <div class="form-group" style="max-width:260px; margin-bottom:12px;">
-                    <label>Tampilkan</label>
-                    <select id="pb-selesai-rentang" onchange="gantiRentangPermintaanSelesai(this.value)">
-                        <option value="30">30 Hari Terakhir</option>
-                        <option value="90" selected>90 Hari Terakhir</option>
-                        <option value="180">6 Bulan Terakhir</option>
-                        <option value="365">1 Tahun Terakhir</option>
-                        <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
-                    </select>
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+                    <div class="form-group" style="max-width:260px; margin-bottom:0;">
+                        <label>Tampilkan</label>
+                        <select id="pb-selesai-rentang" onchange="gantiRentangPermintaanSelesai(this.value)">
+                            <option value="30">30 Hari Terakhir</option>
+                            <option value="90" selected>90 Hari Terakhir</option>
+                            <option value="180">6 Bulan Terakhir</option>
+                            <option value="365">1 Tahun Terakhir</option>
+                            <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
+                        </select>
+                    </div>
+                    <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-list-permintaan-selesai table', 'List_Permintaan_Selesai')">📊 Export ke Excel</button>
                 </div>
 
                 <div class="form-msg err" id="pb-selesai-limit-warning" style="display:none; margin-bottom:12px;">
@@ -1739,15 +1749,18 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     <p>Riwayat barang keluar dari gudang (BKB)</p>
                 </div>
 
-                <div class="form-group" style="max-width:260px; margin-bottom:12px;">
-                    <label>Tampilkan</label>
-                    <select id="bkb-list-rentang" onchange="gantiRentangListPengeluaran(this.value)">
-                        <option value="30">30 Hari Terakhir</option>
-                        <option value="90" selected>90 Hari Terakhir</option>
-                        <option value="180">6 Bulan Terakhir</option>
-                        <option value="365">1 Tahun Terakhir</option>
-                        <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
-                    </select>
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+                    <div class="form-group" style="max-width:260px; margin-bottom:0;">
+                        <label>Tampilkan</label>
+                        <select id="bkb-list-rentang" onchange="gantiRentangListPengeluaran(this.value)">
+                            <option value="30">30 Hari Terakhir</option>
+                            <option value="90" selected>90 Hari Terakhir</option>
+                            <option value="180">6 Bulan Terakhir</option>
+                            <option value="365">1 Tahun Terakhir</option>
+                            <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
+                        </select>
+                    </div>
+                    <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-list-pengeluaran table', 'List_Pengeluaran')">📊 Export ke Excel</button>
                 </div>
 
                 <div class="panel">
@@ -1781,15 +1794,18 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     <p>Riwayat barang masuk ke gudang</p>
                 </div>
 
-                <div class="form-group" style="max-width:260px; margin-bottom:12px;">
-                    <label>Tampilkan</label>
-                    <select id="pnm-list-rentang" onchange="gantiRentangListPenerimaan(this.value)">
-                        <option value="30">30 Hari Terakhir</option>
-                        <option value="90" selected>90 Hari Terakhir</option>
-                        <option value="180">6 Bulan Terakhir</option>
-                        <option value="365">1 Tahun Terakhir</option>
-                        <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
-                    </select>
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+                    <div class="form-group" style="max-width:260px; margin-bottom:0;">
+                        <label>Tampilkan</label>
+                        <select id="pnm-list-rentang" onchange="gantiRentangListPenerimaan(this.value)">
+                            <option value="30">30 Hari Terakhir</option>
+                            <option value="90" selected>90 Hari Terakhir</option>
+                            <option value="180">6 Bulan Terakhir</option>
+                            <option value="365">1 Tahun Terakhir</option>
+                            <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
+                        </select>
+                    </div>
+                    <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-list-penerimaan table', 'List_Penerimaan')">📊 Export ke Excel</button>
                 </div>
 
                 <div class="panel">
@@ -1840,6 +1856,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                         <div style="display:flex; gap:8px;">
                             <button class="btn-secondary" type="button" onclick="cekKetersediaanStok()">📦 Cek Ketersediaan Stok</button>
                             <button class="btn-secondary" type="button" onclick="cekDuplikatMasterBarang()">🔍 Cek Barang Duplikat</button>
+                            <button class="btn-secondary" type="button" onclick="exportTableExcel('#ic-main-table', 'Inventory_Control')">📊 Export ke Excel</button>
                         </div>
                     </div>
 
@@ -1867,7 +1884,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                         <div id="ic-duplikat-body"></div>
                     </div>
 
-                    <table class="tbl" style="table-layout:fixed;">
+                    <table class="tbl" id="ic-main-table" style="table-layout:fixed;">
                         <thead>
                             <tr>
                                 <th style="width:34px;">No</th>
@@ -2039,6 +2056,9 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     <h2>📋 List Permintaan</h2>
                     <p>Input penawaran vendor untuk setiap permintaan yang masuk dari gudang</p>
                 </div>
+                <div style="text-align:right; margin-bottom:12px;">
+                    <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-purchasing-list-permintaan table', 'List_Permintaan')">📊 Export ke Excel</button>
+                </div>
                 <div class="panel">
                     <table class="tbl">
                         <thead>
@@ -2088,6 +2108,10 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                         <div class="form-msg" id="jejak-status" style="display:none; margin-top:8px;"></div>
                     </div>
                 </details>
+
+                <div style="text-align:right; margin-bottom:12px;">
+                    <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-purchasing-list-approve table.tbl', 'List_Permintaan_Approve')">📊 Export ke Excel</button>
+                </div>
 
                 <div class="panel">
                     <table class="tbl">
@@ -2153,15 +2177,18 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     <h2>📃 List Surat Jalan</h2>
                     <p>Semua Surat Jalan yang sudah pernah dibuat</p>
                 </div>
-                <div class="form-group" style="max-width:260px; margin-bottom:12px;">
-                    <label>Tampilkan (berdasar tanggal PR asal)</label>
-                    <select id="sj-list-rentang" onchange="gantiRentangListSJ(this.value)">
-                        <option value="30">30 Hari Terakhir</option>
-                        <option value="90" selected>90 Hari Terakhir</option>
-                        <option value="180">6 Bulan Terakhir</option>
-                        <option value="365">1 Tahun Terakhir</option>
-                        <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
-                    </select>
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+                    <div class="form-group" style="max-width:260px; margin-bottom:0;">
+                        <label>Tampilkan (berdasar tanggal PR asal)</label>
+                        <select id="sj-list-rentang" onchange="gantiRentangListSJ(this.value)">
+                            <option value="30">30 Hari Terakhir</option>
+                            <option value="90" selected>90 Hari Terakhir</option>
+                            <option value="180">6 Bulan Terakhir</option>
+                            <option value="365">1 Tahun Terakhir</option>
+                            <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
+                        </select>
+                    </div>
+                    <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-purchasing-list-sj table', 'List_Surat_Jalan')">📊 Export ke Excel</button>
                 </div>
                 <div class="panel">
                     <table class="tbl">
@@ -2295,15 +2322,18 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     <h2>📑 List PO</h2>
                     <p>Semua Purchase Order yang sudah diterbitkan</p>
                 </div>
-                <div class="form-group" style="max-width:260px; margin-bottom:12px;">
-                    <label>Tampilkan</label>
-                    <select id="po-list-rentang" onchange="gantiRentangListPO(this.value)">
-                        <option value="30">30 Hari Terakhir</option>
-                        <option value="90" selected>90 Hari Terakhir</option>
-                        <option value="180">6 Bulan Terakhir</option>
-                        <option value="365">1 Tahun Terakhir</option>
-                        <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
-                    </select>
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+                    <div class="form-group" style="max-width:260px; margin-bottom:0;">
+                        <label>Tampilkan</label>
+                        <select id="po-list-rentang" onchange="gantiRentangListPO(this.value)">
+                            <option value="30">30 Hari Terakhir</option>
+                            <option value="90" selected>90 Hari Terakhir</option>
+                            <option value="180">6 Bulan Terakhir</option>
+                            <option value="365">1 Tahun Terakhir</option>
+                            <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
+                        </select>
+                    </div>
+                    <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-purchasing-list-po table', 'List_PO')">📊 Export ke Excel</button>
                 </div>
                 <div class="panel">
                     <table class="tbl">
@@ -2446,15 +2476,18 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     <h2>📑 List BMB / Faktur</h2>
                     <p>Semua BMB/Faktur yang sudah diterbitkan, sebagai dasar pembayaran ke supplier</p>
                 </div>
-                <div class="form-group" style="max-width:260px; margin-bottom:12px;">
-                    <label>Tampilkan</label>
-                    <select id="bmb-list-rentang" onchange="gantiRentangListBMB(this.value)">
-                        <option value="30">30 Hari Terakhir</option>
-                        <option value="90" selected>90 Hari Terakhir</option>
-                        <option value="180">6 Bulan Terakhir</option>
-                        <option value="365">1 Tahun Terakhir</option>
-                        <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
-                    </select>
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+                    <div class="form-group" style="max-width:260px; margin-bottom:0;">
+                        <label>Tampilkan</label>
+                        <select id="bmb-list-rentang" onchange="gantiRentangListBMB(this.value)">
+                            <option value="30">30 Hari Terakhir</option>
+                            <option value="90" selected>90 Hari Terakhir</option>
+                            <option value="180">6 Bulan Terakhir</option>
+                            <option value="365">1 Tahun Terakhir</option>
+                            <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
+                        </select>
+                    </div>
+                    <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-purchasing-list-bmb table', 'List_BMB_Faktur')">📊 Export ke Excel</button>
                 </div>
                 <div class="panel">
                     <table class="tbl">
@@ -3359,6 +3392,30 @@ window.cekKetersediaanStok = function(){
 
 // Export daftar SEGERA ORDER ke file Excel -- dipakai purchasing sebagai acuan
 // daftar barang yang perlu dibeli, tanpa harus ketik ulang manual dari layar.
+// Export generik: baca langsung tabel yang sedang tampil di layar (termasuk sel
+// gabungan/rowspan, ikut terbawa jadi merged cell di Excel-nya) -- dipakai semua
+// halaman List di purchasing & gudang, supaya tidak perlu logika terpisah tiap
+// halaman.
+window.exportTableExcel = function(selector, namaFile){
+    const table = document.querySelector(selector);
+    if(!table){
+        alert("Tabel tidak ditemukan.");
+        return;
+    }
+    const tbody = table.querySelector("tbody");
+    if(!tbody || tbody.children.length === 0){
+        alert("Tidak ada data untuk diekspor.");
+        return;
+    }
+
+    const ws = XLSX.utils.table_to_sheet(table, { raw: false });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Data");
+
+    const tanggalFile = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `${namaFile}_${tanggalFile}.xlsx`);
+}
+
 window.exportSegeraOrderExcel = function(){
     const daftarOrder = inventoryControlData
         .map(it => ({ it, ket: tentukanKeteranganStok(it) }))
