@@ -1880,6 +1880,110 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
 
             </div>
 
+            <div class="page page-wide" id="page-input-kbb">
+
+                <div class="page-header">
+                    <h2>♻️ Input Kembali Barang Bekas (KBB)</h2>
+                    <p>Catat barang lama/bekas yang dikembalikan setelah pengambilan barang baru (BKB)</p>
+                </div>
+
+                <div class="form-msg" id="kbb-msg" style="display:none;"></div>
+
+                <div class="panel">
+
+                    <div class="form-group" style="max-width:420px; margin-bottom:16px;">
+                        <label>Pilih No. BKB / Pengambilan *</label>
+                        <input type="text" id="kbb-pilih-bkb" list="kbb-bkb-datalist" autocomplete="off" placeholder="Ketik/pilih No. BKB..." onchange="pilihBkbUntukKBB()">
+                        <datalist id="kbb-bkb-datalist"></datalist>
+                    </div>
+
+                    <div id="kbb-form-detail" style="display:none;">
+
+                        <div class="opb-header-grid" style="grid-template-columns:1fr 1fr 1fr;">
+                            <div class="form-group">
+                                <label>No. KBB (preview)</label>
+                                <input type="text" id="kbb-no-preview" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Tanggal</label>
+                                <input type="text" id="kbb-tanggal-display" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Diambil oleh</label>
+                                <input type="text" id="kbb-nama-user" disabled>
+                            </div>
+                        </div>
+
+                        <p class="mb-hint" style="margin-top:12px;">
+                            Isi Jumlah Dikembalikan untuk tiap barang, upload foto barang bekasnya kalau ada. Baris dengan
+                            Jumlah Dikembalikan 0 tidak akan ikut disimpan.
+                        </p>
+
+                        <table class="tbl" style="table-layout:fixed; margin-top:8px;">
+                            <thead>
+                                <tr>
+                                    <th style="width:28px;">No</th>
+                                    <th>Nama Barang</th>
+                                    <th style="width:70px;">Satuan</th>
+                                    <th style="width:100px;">Jml Diambil</th>
+                                    <th style="width:130px;">Jml Dikembalikan</th>
+                                    <th style="width:170px;">Foto Barang Bekas</th>
+                                    <th>Keterangan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kbb-items-body"></tbody>
+                        </table>
+
+                        <button class="btn-primary" type="button" style="margin-top:16px;" onclick="submitKBB()">♻️ Simpan KBB</button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="page page-wide" id="page-list-kbb">
+                <div class="page-header">
+                    <h2>📃 List KBB</h2>
+                    <p>Semua Kembali Barang Bekas yang sudah dicatat</p>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+                    <div class="form-group" style="max-width:260px; margin-bottom:0;">
+                        <label>Tampilkan</label>
+                        <select id="kbb-list-rentang" onchange="gantiRentangListKBB(this.value)">
+                            <option value="30">30 Hari Terakhir</option>
+                            <option value="90" selected>90 Hari Terakhir</option>
+                            <option value="180">6 Bulan Terakhir</option>
+                            <option value="365">1 Tahun Terakhir</option>
+                            <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
+                        </select>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn-secondary" type="button" onclick="window.tblResetFilter('kbb')">✕ Reset Filter</button>
+                        <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-list-kbb table', 'List_KBB')">📊 Export ke Excel</button>
+                    </div>
+                </div>
+                <div class="panel">
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>No. KBB <span class="tbl-filter-icon" data-table="kbb" data-col="0" onclick="window.tblBukaFilter('kbb', 0, event)">▾</span></th>
+                                <th>No. BKB <span class="tbl-filter-icon" data-table="kbb" data-col="1" onclick="window.tblBukaFilter('kbb', 1, event)">▾</span></th>
+                                <th>Tanggal <span class="tbl-filter-icon" data-table="kbb" data-col="2" onclick="window.tblBukaFilter('kbb', 2, event)">▾</span></th>
+                                <th>Diambil Oleh <span class="tbl-filter-icon" data-table="kbb" data-col="3" onclick="window.tblBukaFilter('kbb', 3, event)">▾</span></th>
+                                <th>Nama Barang</th>
+                                <th>Jml Dikembalikan</th>
+                                <th>Satuan</th>
+                                <th>Foto</th>
+                                <th>Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="kbb-list-body"></tbody>
+                    </table>
+                    <div class="empty-state" id="kbb-list-empty" style="display:none;">Belum ada KBB yang dicatat.</div>
+                </div>
+            </div>
+
             <div class="page page-wide" id="page-list-penerimaan">
 
                 <div class="page-header">
@@ -2987,7 +3091,9 @@ const NAV_ITEMS = {
         ]},
         { group:"📤 BKB", items:[
             { id:"input-pemakaian", label:"📤 Pengambilan Barang (BKB)" },
-            { id:"list-pengeluaran", label:"📃 List Pengeluaran" }
+            { id:"list-pengeluaran", label:"📃 List Pengeluaran" },
+            { id:"input-kbb", label:"♻️ Input Kembali Barang Bekas (KBB)" },
+            { id:"list-kbb", label:"📃 List KBB" }
         ]},
         { group:"📊 Daily", items:[
             { id:"history", label:"🕒 History Keluar/Masuk" },
@@ -3096,6 +3202,13 @@ window.showPage = function(id){
     }
     if(id === "list-pengeluaran"){
         pantauSemuaPengeluaran();
+    }
+    if(id === "input-kbb"){
+        pantauBkbUntukKBB();
+        resetFormKBB();
+    }
+    if(id === "list-kbb"){
+        pantauListKBB();
     }
     if(id === "input-pemakaian"){
         siapkanDropdownBkb();
@@ -8442,6 +8555,301 @@ function pantauSemuaPengeluaran(){
 window.gantiRentangListPengeluaran = function(val){
     listPengeluaranRentangHari = val;
     pantauSemuaPengeluaran();
+}
+
+// =========================================================
+// GUDANG: INPUT & LIST KBB (Kembali Barang Bekas)
+// Format nomor: KBB-{tahun}{bulan}{urut}, reset tiap bulan -- sama pola dengan
+// nomor lain di aplikasi ini (BMB, PR jenis TTKK, dst).
+// =========================================================
+
+let bkbUntukKBBMap = {}; // no_bkb -> { id, data }
+let kbbSelectedBkb = null; // { id, data }
+let kbbFotoFiles = {}; // index baris -> File (sudah dikompres)
+let unsubListKBB = null;
+let kbbListMap = {};
+let listKBBRentangHari = "90";
+
+// Ambil daftar No. BKB untuk datalist pemilih di form Input KBB. Draft tidak
+// ditawarkan karena belum final (stok belum benar-benar berkurang).
+async function pantauBkbUntukKBB(){
+    try{
+        const snap = await getDocs(query(collection(db, "pengambilan_barang"), orderBy("created_at", "desc"), limit(500)));
+        bkbUntukKBBMap = {};
+        let optionsHtml = "";
+        snap.forEach(docSnap => {
+            const d = docSnap.data();
+            if(d.status === "draft") return;
+            bkbUntukKBBMap[d.no_bkb] = { id: docSnap.id, data: d };
+            optionsHtml += `<option value="${d.no_bkb}"></option>`;
+        });
+        const dl = document.getElementById("kbb-bkb-datalist");
+        if(dl) dl.innerHTML = optionsHtml;
+    } catch(e){
+        console.error("Gagal memuat daftar BKB untuk KBB:", e);
+    }
+}
+
+async function previewNoKBB(){
+    try{
+        const { yy, mm, key } = komponenTahunBulan();
+        const snap = await getDoc(doc(db, "counters", `kbb_${key}`));
+        const next = snap.exists() ? (snap.data().terakhir || 0) + 1 : 1;
+        return `KBB-${yy}${mm}${String(next).padStart(3, "0")}`;
+    } catch(e){
+        return "KBB-????";
+    }
+}
+
+async function generateNoKBB(){
+    const { yy, mm, key } = komponenTahunBulan();
+    const counterRef = doc(db, "counters", `kbb_${key}`);
+    const nomorBerikutnya = await runTransaction(db, async (tx) => {
+        const snap = await tx.get(counterRef);
+        const next = snap.exists() ? (snap.data().terakhir || 0) + 1 : 1;
+        tx.set(counterRef, { terakhir: next }, { merge: true });
+        return next;
+    });
+    return `KBB-${yy}${mm}${String(nomorBerikutnya).padStart(3, "0")}`;
+}
+
+window.pilihBkbUntukKBB = async function(){
+
+    const noBKB = document.getElementById("kbb-pilih-bkb").value.trim();
+    const msgEl = document.getElementById("kbb-msg");
+    msgEl.style.display = "none";
+
+    const entry = bkbUntukKBBMap[noBKB];
+    if(!entry){
+        msgEl.textContent = `No. BKB "${noBKB}" tidak ditemukan. Pilih dari daftar yang muncul.`;
+        msgEl.className = "form-msg err";
+        msgEl.style.display = "block";
+        document.getElementById("kbb-form-detail").style.display = "none";
+        kbbSelectedBkb = null;
+        return;
+    }
+
+    const d = entry.data;
+    kbbSelectedBkb = { id: entry.id, data: d };
+    kbbFotoFiles = {};
+
+    document.getElementById("kbb-nama-user").value = d.nama_user || "-";
+    const tanggalHariIni = new Date().toISOString().slice(0, 10);
+    document.getElementById("kbb-tanggal-display").value = formatTanggalIndo(tanggalHariIni);
+
+    const items = d.items || [];
+    document.getElementById("kbb-items-body").innerHTML = items.map((it, i) => `
+<tr>
+    <td>${i + 1}</td>
+    <td style="white-space:normal;">${it.nama_barang || "-"}</td>
+    <td>${it.satuan || "-"}</td>
+    <td class="num">${it.jumlah ?? "-"}</td>
+    <td><input type="number" min="0" class="kbb-input-jumlah" value="0"></td>
+    <td>
+        <input type="file" accept=".jpg,.jpeg,.png" class="kbb-input-foto" data-idx="${i}" onchange="pilihFotoKBB(${i})">
+        <div class="kbb-foto-status" id="kbb-foto-status-${i}" style="font-size:11px; color:#8d8d8d; margin-top:4px;">Belum ada foto</div>
+    </td>
+    <td><input type="text" class="kbb-input-keterangan" placeholder="Opsional"></td>
+</tr>`).join("");
+
+    document.getElementById("kbb-form-detail").style.display = "block";
+    document.getElementById("kbb-no-preview").value = await previewNoKBB();
+}
+
+// Foto barang bekas dikompres dulu sebelum diupload -- sama seperti lampiran
+// penawaran, hemat penyimpanan & bandwidth Cloudinary tanpa mengurangi kejelasan.
+window.pilihFotoKBB = async function(idx){
+    const input = document.querySelector(`.kbb-input-foto[data-idx="${idx}"]`);
+    const statusEl = document.getElementById(`kbb-foto-status-${idx}`);
+    if(!input.files || !input.files[0]) return;
+
+    const fileAsli = input.files[0];
+    if(fileAsli.size > 10 * 1024 * 1024){
+        alert("Ukuran foto maksimal 10MB (akan otomatis dikompres saat diproses).");
+        input.value = "";
+        return;
+    }
+
+    statusEl.textContent = "⏳ Memproses...";
+    const fileFinal = await kompresGambar(fileAsli);
+    kbbFotoFiles[idx] = fileFinal;
+    statusEl.textContent = `📎 ${fileFinal.name} (${Math.round(fileFinal.size / 1024)} KB)`;
+}
+
+function resetFormKBB(){
+    document.getElementById("kbb-pilih-bkb").value = "";
+    document.getElementById("kbb-form-detail").style.display = "none";
+    document.getElementById("kbb-items-body").innerHTML = "";
+    document.getElementById("kbb-msg").style.display = "none";
+    kbbSelectedBkb = null;
+    kbbFotoFiles = {};
+}
+
+window.submitKBB = async function(){
+
+    const msgEl = document.getElementById("kbb-msg");
+    msgEl.style.display = "none";
+
+    if(!kbbSelectedBkb){
+        msgEl.textContent = "Pilih No. BKB dulu.";
+        msgEl.className = "form-msg err";
+        msgEl.style.display = "block";
+        return;
+    }
+
+    const d = kbbSelectedBkb.data;
+    const itemsAsli = d.items || [];
+    const rows = document.querySelectorAll("#kbb-items-body tr");
+    const itemsUntukSimpan = [];
+
+    const btn = document.querySelector('#page-input-kbb .btn-primary');
+    if(btn){ btn.disabled = true; btn.textContent = "Menyimpan..."; }
+
+    try{
+        for(let i = 0; i < rows.length; i++){
+            const row = rows[i];
+            const jumlah = Number(row.querySelector(".kbb-input-jumlah")?.value) || 0;
+            if(jumlah <= 0) continue; // baris yang belum dikembalikan tidak ikut disimpan
+
+            const itemAsli = itemsAsli[i] || {};
+            const keterangan = row.querySelector(".kbb-input-keterangan")?.value.trim() || "";
+
+            let fotoUrl = "";
+            if(kbbFotoFiles[i]){
+                fotoUrl = await uploadKeCloudinary(kbbFotoFiles[i]);
+            }
+
+            itemsUntukSimpan.push({
+                nama_barang: itemAsli.nama_barang || "",
+                satuan: itemAsli.satuan || "",
+                jumlah_diambil: itemAsli.jumlah ?? 0,
+                jumlah_dikembalikan: jumlah,
+                foto_url: fotoUrl,
+                keterangan: keterangan
+            });
+        }
+
+        if(itemsUntukSimpan.length === 0){
+            msgEl.textContent = "Isi minimal satu baris dengan Jumlah Dikembalikan lebih dari 0.";
+            msgEl.className = "form-msg err";
+            msgEl.style.display = "block";
+            if(btn){ btn.disabled = false; btn.textContent = "♻️ Simpan KBB"; }
+            return;
+        }
+
+        const noKBB = await generateNoKBB();
+        const tanggalISO = new Date().toISOString().slice(0, 10);
+
+        await addDoc(collection(db, "kbb_barang"), {
+            no_kbb: noKBB,
+            no_bkb: d.no_bkb,
+            bkb_doc_id: kbbSelectedBkb.id,
+            tanggal: tanggalISO,
+            tanggal_display: formatTanggalIndo(tanggalISO),
+            nama_user: d.nama_user || "",
+            items: itemsUntukSimpan,
+            dibuat_oleh_uid: auth.currentUser.uid,
+            dibuat_oleh_email: auth.currentUser.email,
+            created_at: serverTimestamp()
+        });
+
+        msgEl.textContent = `${noKBB} berhasil disimpan.`;
+        msgEl.className = "form-msg ok";
+        msgEl.style.display = "block";
+
+        resetFormKBB();
+
+    } catch(e){
+        msgEl.textContent = "Gagal menyimpan KBB: " + e.message;
+        msgEl.className = "form-msg err";
+        msgEl.style.display = "block";
+    } finally {
+        if(btn){ btn.disabled = false; btn.textContent = "♻️ Simpan KBB"; }
+    }
+}
+
+function pantauListKBB(){
+
+    if(unsubListKBB) unsubListKBB();
+
+    tblDaftarkanTabel("kbb", "#page-list-kbb table", [0,1,2,3], "kbb-list-empty");
+
+    const BATAS_AMAN_KBB = 300;
+    const constraints = [collection(db, "kbb_barang")];
+    if(listKBBRentangHari !== "all"){
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - Number(listKBBRentangHari));
+        constraints.push(where("created_at", ">=", cutoff));
+    }
+    constraints.push(orderBy("created_at", "desc"));
+    constraints.push(limit(BATAS_AMAN_KBB));
+    const q = query(...constraints);
+
+    unsubListKBB = onSnapshot(q, (snapshot) => {
+
+        const tbody = document.getElementById("kbb-list-body");
+        const emptyEl = document.getElementById("kbb-list-empty");
+
+        if(snapshot.empty){
+            tbody.innerHTML = "";
+            emptyEl.style.display = "block";
+            return;
+        }
+        emptyEl.style.display = "none";
+
+        let html = "";
+        let grp = 0;
+        const daftarDocUntukFilter = [];
+
+        [...snapshot.docs].reverse().forEach(docSnap => {
+            const d = docSnap.data();
+            kbbListMap[docSnap.id] = d;
+            daftarDocUntukFilter.push(d);
+
+            const items = d.items && d.items.length ? d.items : [{}];
+            grp++;
+            const grpClass = grp % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a";
+
+            items.forEach((it, i) => {
+                if(i === 0){
+                    html += `
+<tr class="${grpClass} tbl-grp-first">
+    <td rowspan="${items.length}">${teksAtauKosong(d.no_kbb)}</td>
+    <td rowspan="${items.length}">${teksAtauKosong(d.no_bkb)}</td>
+    <td rowspan="${items.length}">${teksAtauKosong(d.tanggal_display || d.tanggal)}</td>
+    <td rowspan="${items.length}">${teksAtauKosong(d.nama_user)}</td>
+    <td style="white-space:normal;">${teksAtauKosong(it.nama_barang)}</td>
+    <td class="num">${it.jumlah_dikembalikan ?? ""}</td>
+    <td>${teksAtauKosong(it.satuan)}</td>
+    <td>${it.foto_url ? `<a href="${it.foto_url}" target="_blank" rel="noopener">📷 Lihat</a>` : "-"}</td>
+    <td>${teksAtauKosong(it.keterangan)}</td>
+</tr>`;
+                } else {
+                    html += `
+<tr class="${grpClass}">
+    <td style="white-space:normal;">${teksAtauKosong(it.nama_barang)}</td>
+    <td class="num">${it.jumlah_dikembalikan ?? ""}</td>
+    <td>${teksAtauKosong(it.satuan)}</td>
+    <td>${it.foto_url ? `<a href="${it.foto_url}" target="_blank" rel="noopener">📷 Lihat</a>` : "-"}</td>
+    <td>${teksAtauKosong(it.keterangan)}</td>
+</tr>`;
+                }
+            });
+        });
+
+        tbody.innerHTML = html;
+        tblFilterHitungOpsi("kbb", daftarDocUntukFilter.map(d => ({
+            0: d.no_kbb || "-", 1: d.no_bkb || "-",
+            2: d.tanggal_display || d.tanggal || "-", 3: d.nama_user || "-"
+        })));
+        window.tblTerapkanFilter("kbb");
+
+    }, err => console.error("Gagal memuat List KBB:", err));
+}
+
+window.gantiRentangListKBB = function(val){
+    listKBBRentangHari = val;
+    pantauListKBB();
 }
 
 // -------- Cetak dokumen BKB (mirip cetak permintaan) --------
