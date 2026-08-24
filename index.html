@@ -781,6 +781,23 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
 
 .print-footer-note{ margin-top:24px; font-size:9.5px; color:#999; text-align:right; }
 
+.audit-section{ margin-bottom:16px; }
+
+.audit-section summary{
+    cursor:pointer;
+    font-size:15px;
+    font-weight:700;
+    padding:12px 16px;
+    background:#f7f9fc;
+    border:1px solid #e0e4ea;
+    border-radius:9px;
+    list-style:none;
+}
+
+.audit-section summary::-webkit-details-marker{ display:none; }
+.audit-section[open] summary{ border-radius:9px 9px 0 0; border-bottom:none; }
+.audit-section .panel{ border-radius:0 0 9px 9px; margin-top:0; }
+
 .opb-totals{
     display:flex;
     gap:26px;
@@ -2870,6 +2887,118 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                 </div>
             </div>
 
+            <div class="page page-wide" id="page-audit-koreksi">
+
+                <div class="page-header">
+                    <h2>🔍 Audit & Koreksi Qty</h2>
+                    <p>Lihat dan koreksi qty yang salah input di seluruh transaksi. Koreksi di Penerimaan/BKB otomatis menyesuaikan stok gudang.</p>
+                </div>
+
+                <div class="form-msg" id="audit-msg" style="display:none;"></div>
+
+                <details class="audit-section" open>
+                    <summary>📋 Permintaan Barang (PR)</summary>
+                    <div class="panel">
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th>No. PR</th>
+                                    <th>Tanggal</th>
+                                    <th>Divisi</th>
+                                    <th>Nama Barang</th>
+                                    <th>Qty Saat Ini</th>
+                                    <th>Satuan</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="audit-permintaan-body"></tbody>
+                        </table>
+                        <div class="empty-state" id="audit-permintaan-empty" style="display:none;">Tidak ada data.</div>
+                    </div>
+                </details>
+
+                <details class="audit-section">
+                    <summary>📥 Penerimaan (mempengaruhi stok gudang)</summary>
+                    <div class="panel">
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th>No. Penerimaan</th>
+                                    <th>Tanggal</th>
+                                    <th>Nama Barang</th>
+                                    <th>Qty Diterima Saat Ini</th>
+                                    <th>Satuan</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="audit-penerimaan-body"></tbody>
+                        </table>
+                        <div class="empty-state" id="audit-penerimaan-empty" style="display:none;">Tidak ada data.</div>
+                    </div>
+                </details>
+
+                <details class="audit-section">
+                    <summary>📤 BKB / Pengambilan (mempengaruhi stok gudang)</summary>
+                    <div class="panel">
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th>No. BKB</th>
+                                    <th>Tanggal</th>
+                                    <th>Nama Barang</th>
+                                    <th>Qty Diambil Saat Ini</th>
+                                    <th>Satuan</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="audit-bkb-body"></tbody>
+                        </table>
+                        <div class="empty-state" id="audit-bkb-empty" style="display:none;">Tidak ada data.</div>
+                    </div>
+                </details>
+
+                <details class="audit-section">
+                    <summary>🧾 PO</summary>
+                    <div class="panel">
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th>No. PO</th>
+                                    <th>Tanggal</th>
+                                    <th>Nama Barang</th>
+                                    <th>Qty Saat Ini</th>
+                                    <th>Satuan</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="audit-po-body"></tbody>
+                        </table>
+                        <div class="empty-state" id="audit-po-empty" style="display:none;">Tidak ada data.</div>
+                    </div>
+                </details>
+
+                <details class="audit-section">
+                    <summary>💰 BMB / Faktur</summary>
+                    <div class="panel">
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th>No. BMB</th>
+                                    <th>Tanggal</th>
+                                    <th>Nama Barang</th>
+                                    <th>Qty Diterima Saat Ini</th>
+                                    <th>Satuan</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="audit-bmb-body"></tbody>
+                        </table>
+                        <div class="empty-state" id="audit-bmb-empty" style="display:none;">Tidak ada data.</div>
+                    </div>
+                </details>
+
+            </div>
+
             <!-- ============================================= -->
             <!-- ROLE LAIN (placeholder, belum ada sub-menu) -->
             <!-- ============================================= -->
@@ -3171,6 +3300,9 @@ const NAV_ITEMS = {
     ],
     finance: [
         { id:"finance-dashboard", label:"💳 Dashboard" }
+    ],
+    audit: [
+        { id:"audit-koreksi", label:"🔍 Audit & Koreksi Qty" }
     ]
 };
 
@@ -3309,6 +3441,9 @@ window.showPage = function(id){
     }
     if(id === "pimpinan-review"){
         pantauPimpinanReview();
+    }
+    if(id === "audit-koreksi"){
+        pantauAuditKoreksi();
     }
     if(id === "list-penerimaan"){
         pantauSemuaPenerimaan();
@@ -8596,6 +8731,378 @@ function pantauSemuaPengeluaran(){
 window.gantiRentangListPengeluaran = function(val){
     listPengeluaranRentangHari = val;
     pantauSemuaPengeluaran();
+}
+
+// =========================================================
+// ROLE AUDIT: LIHAT & KOREKSI QTY LINTAS SEMUA TRANSAKSI
+// Ambil data sekali (bukan live listener) tiap bagian dibuka/di-refresh setelah
+// koreksi -- ini alat perawatan data, bukan tampilan yang perlu realtime terus.
+// Koreksi Penerimaan & BKB otomatis menyesuaikan stok master_barang (lewat
+// transaction, supaya baca-lalu-tulis-nya aman dari race condition). Koreksi
+// PO & BMB otomatis menghitung ulang total_harga & grand_total. Koreksi PR
+// murni ubah angka, tidak ada efek berantai ke stok.
+// =========================================================
+
+function pantauAuditKoreksi(){
+    pantauAuditPermintaan();
+    pantauAuditPenerimaan();
+    pantauAuditBKB();
+    pantauAuditPO();
+    pantauAuditBMB();
+}
+
+function pesanAuditKoreksi(pesan, sukses){
+    const el = document.getElementById("audit-msg");
+    if(!el) return;
+    el.textContent = pesan;
+    el.className = "form-msg " + (sukses ? "ok" : "err");
+    el.style.display = "block";
+}
+
+async function pantauAuditPermintaan(){
+    const tbody = document.getElementById("audit-permintaan-body");
+    const emptyEl = document.getElementById("audit-permintaan-empty");
+    if(!tbody) return;
+    try{
+        const snap = await getDocs(query(collection(db, "permintaan_barang"), orderBy("created_at", "desc"), limit(200)));
+        let html = "";
+        snap.forEach(docSnap => {
+            const d = docSnap.data();
+            const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
+            (d.items || []).forEach((it, idx) => {
+                html += `
+<tr>
+    <td>${d.no_pr || "-"}</td>
+    <td>${tgl}</td>
+    <td>${d.divisi || "-"}</td>
+    <td style="white-space:normal;">${it.nama_barang || "-"}</td>
+    <td class="num">${it.jumlah ?? "-"}</td>
+    <td>${it.satuan || "-"}</td>
+    <td><button class="btn-ic-edit" type="button" onclick="koreksiQtyPermintaan('${docSnap.id}', ${idx}, ${Number(it.jumlah) || 0})">✏️ Koreksi</button></td>
+</tr>`;
+            });
+        });
+        tbody.innerHTML = html;
+        if(emptyEl) emptyEl.style.display = html ? "none" : "block";
+    } catch(e){
+        console.error("Gagal memuat data audit Permintaan:", e);
+    }
+}
+
+async function pantauAuditPenerimaan(){
+    const tbody = document.getElementById("audit-penerimaan-body");
+    const emptyEl = document.getElementById("audit-penerimaan-empty");
+    if(!tbody) return;
+    try{
+        const snap = await getDocs(query(collection(db, "penerimaan_barang"), orderBy("created_at", "desc"), limit(200)));
+        let html = "";
+        snap.forEach(docSnap => {
+            const d = docSnap.data();
+            const tgl = d.tanggal_display || d.tanggal || "-";
+            (d.items || []).forEach((it, idx) => {
+                html += `
+<tr>
+    <td>${d.no_penerimaan || "-"}</td>
+    <td>${tgl}</td>
+    <td style="white-space:normal;">${it.nama_barang || "-"}</td>
+    <td class="num">${it.jumlah ?? "-"}</td>
+    <td>${it.satuan || "-"}</td>
+    <td><button class="btn-ic-edit" type="button" onclick="koreksiQtyPenerimaan('${docSnap.id}', ${idx}, ${Number(it.jumlah) || 0})">✏️ Koreksi</button></td>
+</tr>`;
+            });
+        });
+        tbody.innerHTML = html;
+        if(emptyEl) emptyEl.style.display = html ? "none" : "block";
+    } catch(e){
+        console.error("Gagal memuat data audit Penerimaan:", e);
+    }
+}
+
+async function pantauAuditBKB(){
+    const tbody = document.getElementById("audit-bkb-body");
+    const emptyEl = document.getElementById("audit-bkb-empty");
+    if(!tbody) return;
+    try{
+        const snap = await getDocs(query(collection(db, "pengambilan_barang"), orderBy("created_at", "desc"), limit(200)));
+        let html = "";
+        snap.forEach(docSnap => {
+            const d = docSnap.data();
+            const tgl = d.tanggal_display || d.tanggal || "-";
+            (d.items || []).forEach((it, idx) => {
+                html += `
+<tr>
+    <td>${d.no_bkb || "-"}</td>
+    <td>${tgl}</td>
+    <td style="white-space:normal;">${it.nama_barang || "-"}</td>
+    <td class="num">${it.jumlah ?? "-"}</td>
+    <td>${it.satuan || "-"}</td>
+    <td><button class="btn-ic-edit" type="button" onclick="koreksiQtyBKB('${docSnap.id}', ${idx}, ${Number(it.jumlah) || 0})">✏️ Koreksi</button></td>
+</tr>`;
+            });
+        });
+        tbody.innerHTML = html;
+        if(emptyEl) emptyEl.style.display = html ? "none" : "block";
+    } catch(e){
+        console.error("Gagal memuat data audit BKB:", e);
+    }
+}
+
+async function pantauAuditPO(){
+    const tbody = document.getElementById("audit-po-body");
+    const emptyEl = document.getElementById("audit-po-empty");
+    if(!tbody) return;
+    try{
+        const snap = await getDocs(query(collection(db, "po_barang"), orderBy("created_at", "desc"), limit(200)));
+        let html = "";
+        snap.forEach(docSnap => {
+            const d = docSnap.data();
+            const tgl = d.tanggal_display || d.tanggal || "-";
+            (d.items || []).forEach((it, idx) => {
+                html += `
+<tr>
+    <td>${d.no_po || "-"}</td>
+    <td>${tgl}</td>
+    <td style="white-space:normal;">${it.nama_barang || "-"}</td>
+    <td class="num">${it.jumlah ?? "-"}</td>
+    <td>${it.satuan || "-"}</td>
+    <td><button class="btn-ic-edit" type="button" onclick="koreksiQtyPO('${docSnap.id}', ${idx}, ${Number(it.jumlah) || 0})">✏️ Koreksi</button></td>
+</tr>`;
+            });
+        });
+        tbody.innerHTML = html;
+        if(emptyEl) emptyEl.style.display = html ? "none" : "block";
+    } catch(e){
+        console.error("Gagal memuat data audit PO:", e);
+    }
+}
+
+async function pantauAuditBMB(){
+    const tbody = document.getElementById("audit-bmb-body");
+    const emptyEl = document.getElementById("audit-bmb-empty");
+    if(!tbody) return;
+    try{
+        const snap = await getDocs(query(collection(db, "bmb_faktur"), orderBy("created_at", "desc"), limit(200)));
+        let html = "";
+        snap.forEach(docSnap => {
+            const d = docSnap.data();
+            const tgl = d.tanggal_display || d.tanggal || "-";
+            (d.items || []).forEach((it, idx) => {
+                html += `
+<tr>
+    <td>${d.no_bmb || "-"}</td>
+    <td>${tgl}</td>
+    <td style="white-space:normal;">${it.nama_barang || "-"}</td>
+    <td class="num">${it.jumlah_diterima ?? "-"}</td>
+    <td>${it.satuan || "-"}</td>
+    <td><button class="btn-ic-edit" type="button" onclick="koreksiQtyBMB('${docSnap.id}', ${idx}, ${Number(it.jumlah_diterima) || 0})">✏️ Koreksi</button></td>
+</tr>`;
+            });
+        });
+        tbody.innerHTML = html;
+        if(emptyEl) emptyEl.style.display = html ? "none" : "block";
+    } catch(e){
+        console.error("Gagal memuat data audit BMB:", e);
+    }
+}
+
+// ---- Koreksi PR: murni ubah angka, tidak ada efek berantai ke stok ----
+window.koreksiQtyPermintaan = async function(docId, itemIdx, qtyLama){
+    const input = prompt(`Qty diminta saat ini: ${qtyLama}\nMasukkan qty yang benar:`, qtyLama);
+    if(input === null) return;
+    const qtyBaru = Number(input);
+    if(!Number.isFinite(qtyBaru) || qtyBaru < 0){
+        alert("Qty harus angka dan tidak boleh negatif.");
+        return;
+    }
+
+    try{
+        const ref = doc(db, "permintaan_barang", docId);
+        const snap = await getDoc(ref);
+        if(!snap.exists()){ alert("Data tidak ditemukan (mungkin sudah dihapus)."); return; }
+        const items = snap.data().items || [];
+        if(!items[itemIdx]){ alert("Item tidak ditemukan."); return; }
+        items[itemIdx].jumlah = qtyBaru;
+        await setDoc(ref, { items }, { merge: true });
+        pesanAuditKoreksi("Qty Permintaan berhasil dikoreksi.", true);
+        pantauAuditPermintaan();
+    } catch(e){
+        pesanAuditKoreksi("Gagal mengoreksi: " + e.message, false);
+    }
+}
+
+// ---- Koreksi Penerimaan: Penerimaan menambah stok (arah +1), jadi delta
+// (qty baru - qty lama) langsung ditambahkan ke stok & total_masuk. Juga
+// menyesuaikan item_progress.diterima di PR asalnya (dipakai BMB jalur gabungan). ----
+window.koreksiQtyPenerimaan = async function(docId, itemIdx, qtyLama){
+    const input = prompt(`Qty diterima saat ini: ${qtyLama}\nMasukkan qty yang benar:`, qtyLama);
+    if(input === null) return;
+    const qtyBaru = Number(input);
+    if(!Number.isFinite(qtyBaru) || qtyBaru < 0){
+        alert("Qty harus angka dan tidak boleh negatif.");
+        return;
+    }
+
+    try{
+        await runTransaction(db, async (tx) => {
+            const ref = doc(db, "penerimaan_barang", docId);
+            const snap = await tx.get(ref);
+            if(!snap.exists()) throw new Error("Data Penerimaan tidak ditemukan.");
+            const items = snap.data().items || [];
+            const item = items[itemIdx];
+            if(!item) throw new Error("Item tidak ditemukan.");
+
+            const delta = qtyBaru - (Number(item.jumlah) || 0);
+            const idBarang = delta !== 0 ? slugBarang(item.nama_barang || "") : null;
+            const refBarang = idBarang ? doc(db, "master_barang", idBarang) : null;
+            const refPR = (item.doc_id_asal && item.no_urut && delta !== 0) ? doc(db, "permintaan_barang", item.doc_id_asal) : null;
+
+            // -- Semua baca (get) dulu, sebelum ada tulis (set) apa pun --
+            const dataBarang = refBarang ? await tx.get(refBarang) : null;
+            const dataPR = refPR ? await tx.get(refPR) : null;
+
+            // -- Baru tahap tulis --
+            item.jumlah = qtyBaru;
+            tx.set(ref, { items }, { merge: true });
+
+            if(refBarang){
+                const dd = dataBarang.exists() ? dataBarang.data() : {};
+                const stokSekarang = typeof dd.stok === "number" ? dd.stok : 0;
+                const masukSekarang = typeof dd.total_masuk === "number" ? dd.total_masuk : 0;
+                tx.set(refBarang, {
+                    stok: stokSekarang + delta,
+                    total_masuk: masukSekarang + delta,
+                    updated_at: serverTimestamp()
+                }, { merge: true });
+            }
+
+            if(refPR && dataPR.exists()){
+                const progress = dataPR.data().item_progress || {};
+                const diterimaSekarang = Number((progress[item.no_urut] || {}).diterima) || 0;
+                tx.set(refPR, {
+                    [`item_progress.${item.no_urut}.diterima`]: diterimaSekarang + delta
+                }, { merge: true });
+            }
+        });
+
+        pesanAuditKoreksi("Qty Penerimaan berhasil dikoreksi, stok gudang sudah ikut disesuaikan.", true);
+        pantauAuditPenerimaan();
+
+    } catch(e){
+        pesanAuditKoreksi("Gagal mengoreksi: " + e.message, false);
+    }
+}
+
+// ---- Koreksi BKB: BKB mengurangi stok (arah -1), jadi delta dikurangkan
+// (bukan ditambahkan) dari stok, dan ditambahkan ke total_keluar. ----
+window.koreksiQtyBKB = async function(docId, itemIdx, qtyLama){
+    const input = prompt(`Qty diambil saat ini: ${qtyLama}\nMasukkan qty yang benar:`, qtyLama);
+    if(input === null) return;
+    const qtyBaru = Number(input);
+    if(!Number.isFinite(qtyBaru) || qtyBaru < 0){
+        alert("Qty harus angka dan tidak boleh negatif.");
+        return;
+    }
+
+    try{
+        await runTransaction(db, async (tx) => {
+            const ref = doc(db, "pengambilan_barang", docId);
+            const snap = await tx.get(ref);
+            if(!snap.exists()) throw new Error("Data BKB tidak ditemukan.");
+            const items = snap.data().items || [];
+            const item = items[itemIdx];
+            if(!item) throw new Error("Item tidak ditemukan.");
+
+            const delta = qtyBaru - (Number(item.jumlah) || 0);
+            const idBarang = delta !== 0 ? slugBarang(item.nama_barang || "") : null;
+            const refBarang = idBarang ? doc(db, "master_barang", idBarang) : null;
+
+            const dataBarang = refBarang ? await tx.get(refBarang) : null;
+
+            item.jumlah = qtyBaru;
+            tx.set(ref, { items }, { merge: true });
+
+            if(refBarang){
+                const dd = dataBarang.exists() ? dataBarang.data() : {};
+                const stokSekarang = typeof dd.stok === "number" ? dd.stok : 0;
+                const keluarSekarang = typeof dd.total_keluar === "number" ? dd.total_keluar : 0;
+                tx.set(refBarang, {
+                    stok: stokSekarang - delta,
+                    total_keluar: keluarSekarang + delta,
+                    updated_at: serverTimestamp()
+                }, { merge: true });
+            }
+        });
+
+        pesanAuditKoreksi("Qty BKB berhasil dikoreksi, stok gudang sudah ikut disesuaikan.", true);
+        pantauAuditBKB();
+
+    } catch(e){
+        pesanAuditKoreksi("Gagal mengoreksi: " + e.message, false);
+    }
+}
+
+// ---- Koreksi PO: tidak ada efek ke stok, cuma hitung ulang total_harga
+// barisnya & grand_total dokumen. ----
+window.koreksiQtyPO = async function(docId, itemIdx, qtyLama){
+    const input = prompt(`Qty saat ini: ${qtyLama}\nMasukkan qty yang benar:`, qtyLama);
+    if(input === null) return;
+    const qtyBaru = Number(input);
+    if(!Number.isFinite(qtyBaru) || qtyBaru < 0){
+        alert("Qty harus angka dan tidak boleh negatif.");
+        return;
+    }
+
+    try{
+        const ref = doc(db, "po_barang", docId);
+        const snap = await getDoc(ref);
+        if(!snap.exists()){ alert("Data tidak ditemukan."); return; }
+        const items = snap.data().items || [];
+        const item = items[itemIdx];
+        if(!item){ alert("Item tidak ditemukan."); return; }
+
+        item.jumlah = qtyBaru;
+        item.total_harga = (qtyBaru * (item.harga_satuan || 0)) - (item.diskon || 0) - (item.pph23 || 0) + (item.ppn || 0);
+        const grandTotal = items.reduce((a, b) => a + (b.total_harga || 0), 0);
+
+        await setDoc(ref, { items, grand_total: grandTotal }, { merge: true });
+        pesanAuditKoreksi("Qty PO berhasil dikoreksi, total ikut disesuaikan.", true);
+        pantauAuditPO();
+    } catch(e){
+        pesanAuditKoreksi("Gagal mengoreksi: " + e.message, false);
+    }
+}
+
+// ---- Koreksi BMB: tidak ada efek ke stok, cuma hitung ulang total_harga
+// barisnya & grand_total dokumen (subtotal - diskon - pph23 + ppn). ----
+window.koreksiQtyBMB = async function(docId, itemIdx, qtyLama){
+    const input = prompt(`Qty diterima saat ini: ${qtyLama}\nMasukkan qty yang benar:`, qtyLama);
+    if(input === null) return;
+    const qtyBaru = Number(input);
+    if(!Number.isFinite(qtyBaru) || qtyBaru < 0){
+        alert("Qty harus angka dan tidak boleh negatif.");
+        return;
+    }
+
+    try{
+        const ref = doc(db, "bmb_faktur", docId);
+        const snap = await getDoc(ref);
+        if(!snap.exists()){ alert("Data tidak ditemukan."); return; }
+        const d = snap.data();
+        const items = d.items || [];
+        const item = items[itemIdx];
+        if(!item){ alert("Item tidak ditemukan."); return; }
+
+        item.jumlah_diterima = qtyBaru;
+        item.total_harga = qtyBaru * (item.harga_satuan || 0);
+        const subtotal = items.reduce((a, b) => a + (b.total_harga || 0), 0);
+        const grandTotal = subtotal - (d.diskon || 0) - (d.pph23 || 0) + (d.ppn || 0);
+
+        await setDoc(ref, { items, grand_total: grandTotal }, { merge: true });
+        pesanAuditKoreksi("Qty BMB berhasil dikoreksi, total ikut disesuaikan.", true);
+        pantauAuditBMB();
+    } catch(e){
+        pesanAuditKoreksi("Gagal mengoreksi: " + e.message, false);
+    }
 }
 
 // =========================================================
