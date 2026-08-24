@@ -739,6 +739,46 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
 }
 .print-sign-grid .sign-box .line{ margin-top:50px; border-top:1px solid #333; padding-top:4px; }
 
+.kbb-cetak-galeri-judul{
+    margin-top:18px;
+    font-size:11px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.3px;
+    border-bottom:1px solid #000;
+    padding-bottom:4px;
+}
+
+.kbb-cetak-galeri{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:10px;
+}
+
+.kbb-cetak-foto-item{
+    width:150px;
+    border:1px solid #ccc;
+    border-radius:4px;
+    overflow:hidden;
+    page-break-inside:avoid;
+}
+
+.kbb-cetak-foto-item img{
+    width:100%;
+    height:150px;
+    object-fit:cover;
+    display:block;
+}
+
+.kbb-cetak-foto-caption{
+    font-size:9.5px;
+    text-align:center;
+    padding:4px 4px;
+    border-top:1px solid #eee;
+    word-break:break-word;
+}
+
 .print-footer-note{ margin-top:24px; font-size:9.5px; color:#999; text-align:right; }
 
 .opb-totals{
@@ -1976,6 +2016,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                                 <th>Satuan</th>
                                 <th>Foto</th>
                                 <th>Keterangan</th>
+                                <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="kbb-list-body"></tbody>
@@ -8823,6 +8864,7 @@ function pantauListKBB(){
     <td>${teksAtauKosong(it.satuan)}</td>
     <td>${it.foto_url ? `<a href="${it.foto_url}" target="_blank" rel="noopener">📷 Lihat</a>` : "-"}</td>
     <td>${teksAtauKosong(it.keterangan)}</td>
+    <td rowspan="${items.length}"><button class="btn-ic-edit" type="button" onclick="cetakKBB('${docSnap.id}')">🖨️ Cetak</button></td>
 </tr>`;
                 } else {
                     html += `
@@ -8850,6 +8892,93 @@ function pantauListKBB(){
 window.gantiRentangListKBB = function(val){
     listKBBRentangHari = val;
     pantauListKBB();
+}
+
+window.cetakKBB = function(id){
+
+    const d = kbbListMap[id];
+    if(!d) return;
+
+    const items = d.items || [];
+
+    const baris = items.map((it, i) => `
+<tr>
+    <td class="num">${i + 1}</td>
+    <td>${it.nama_barang || "-"}</td>
+    <td class="num">${it.satuan || "-"}</td>
+    <td class="num">${it.jumlah_diambil ?? "-"}</td>
+    <td class="num">${it.jumlah_dikembalikan ?? "-"}</td>
+    <td>${it.keterangan || "-"}</td>
+</tr>`).join("");
+
+    // Galeri foto -- cuma barang yang memang ada fotonya yang ditampilkan.
+    const itemAdaFoto = items.filter(it => it.foto_url);
+    const galeriFotoHtml = itemAdaFoto.length > 0
+        ? `
+<div class="kbb-cetak-galeri-judul">Lampiran Foto Barang Bekas</div>
+<div class="kbb-cetak-galeri">
+    ${itemAdaFoto.map(it => `
+        <div class="kbb-cetak-foto-item">
+            <img src="${it.foto_url}" crossorigin="anonymous">
+            <div class="kbb-cetak-foto-caption">${it.nama_barang || "-"}</div>
+        </div>
+    `).join("")}
+</div>`
+        : `<p style="font-size:11px; color:#8d8d8d; margin-top:14px;">Tidak ada foto lampiran untuk KBB ini.</p>`;
+
+    const html = `
+<div class="print-doc po-cetak-excel">
+
+    <table class="po-cetak-header">
+        <tr>
+            <td class="po-judul" rowspan="3">KBB</td>
+            <td class="po-label">No. KBB:</td>
+            <td class="po-isi">${d.no_kbb || "-"}</td>
+        </tr>
+        <tr>
+            <td class="po-label">No. BKB:</td>
+            <td class="po-isi">${d.no_bkb || "-"}</td>
+        </tr>
+        <tr>
+            <td class="po-label">Tanggal:</td>
+            <td class="po-isi">${d.tanggal_display || "-"}</td>
+        </tr>
+        <tr>
+            <td></td>
+            <td class="po-label">Diambil Oleh:</td>
+            <td class="po-isi">${d.nama_user || "-"}</td>
+        </tr>
+    </table>
+
+    <table class="po-cetak-items" style="margin-top:10px;">
+        <thead>
+            <tr>
+                <th style="width:16px;">No</th>
+                <th style="width:260px;">Nama Barang</th>
+                <th style="width:50px;">Satuan</th>
+                <th style="width:80px;">Jml Diambil</th>
+                <th style="width:100px;">Jml Dikembalikan</th>
+                <th>Keterangan</th>
+            </tr>
+        </thead>
+        <tbody>${baris}</tbody>
+    </table>
+
+    ${galeriFotoHtml}
+
+    <div class="print-footer-note">Dicetak dari sistem Purchasing &amp; Finance - ${new Date().toLocaleString("id-ID")}</div>
+
+</div>`;
+
+    document.getElementById("print-area").innerHTML = html;
+    document.body.classList.add("printing-mode");
+
+    window.print();
+
+    setTimeout(() => {
+        document.body.classList.remove("printing-mode");
+    }, 500);
+
 }
 
 // -------- Cetak dokumen BKB (mirip cetak permintaan) --------
