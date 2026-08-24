@@ -1493,7 +1493,10 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                             <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
                         </select>
                     </div>
-                    <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-list-permintaan-global table', 'List_Permintaan_Global')">📊 Export ke Excel</button>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn-secondary" type="button" onclick="window.tblResetFilter('pbglobal')">✕ Reset Filter</button>
+                        <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-list-permintaan-global table', 'List_Permintaan_Global')">📊 Export ke Excel</button>
+                    </div>
                 </div>
 
                 <div class="form-msg err" id="pb-global-limit-warning" style="display:none; margin-bottom:12px;">
@@ -1504,17 +1507,17 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     <table class="tbl">
                         <thead>
                             <tr>
-                                <th>No. OPB</th>
+                                <th>No. OPB <span class="tbl-filter-icon" data-table="pbglobal" data-col="0" onclick="window.tblBukaFilter('pbglobal', 0, event)">▾</span></th>
                                 <th>No PR Urut</th>
-                                <th>Kategori 1</th>
-                                <th>Kategori 2</th>
-                                <th>Kategori 3</th>
-                                <th>Divisi</th>
+                                <th>Kategori 1 <span class="tbl-filter-icon" data-table="pbglobal" data-col="2" onclick="window.tblBukaFilter('pbglobal', 2, event)">▾</span></th>
+                                <th>Kategori 2 <span class="tbl-filter-icon" data-table="pbglobal" data-col="3" onclick="window.tblBukaFilter('pbglobal', 3, event)">▾</span></th>
+                                <th>Kategori 3 <span class="tbl-filter-icon" data-table="pbglobal" data-col="4" onclick="window.tblBukaFilter('pbglobal', 4, event)">▾</span></th>
+                                <th>Divisi <span class="tbl-filter-icon" data-table="pbglobal" data-col="5" onclick="window.tblBukaFilter('pbglobal', 5, event)">▾</span></th>
                                 <th>Nama Barang</th>
                                 <th>Jml Diminta</th>
                                 <th>Satuan</th>
-                                <th>Permintaan</th>
-                                <th>Keterangan</th>
+                                <th>Permintaan <span class="tbl-filter-icon" data-table="pbglobal" data-col="9" onclick="window.tblBukaFilter('pbglobal', 9, event)">▾</span></th>
+                                <th>Keterangan <span class="tbl-filter-icon" data-table="pbglobal" data-col="10" onclick="window.tblBukaFilter('pbglobal', 10, event)">▾</span></th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -1544,7 +1547,8 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     ⚠ Menampilkan 500 PR proses terbaru. Kalau ada PR lama yang masih tersangkut, gunakan pencarian manual atau hubungi developer.
                 </div>
 
-                <div style="text-align:right; margin-bottom:12px;">
+                <div style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:12px;">
+                    <button class="btn-secondary" type="button" onclick="window.tblResetFilter('pbproses')">✕ Reset Filter</button>
                     <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-list-permintaan-proses table', 'List_Permintaan_Proses')">📊 Export ke Excel</button>
                 </div>
 
@@ -1552,15 +1556,15 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     <table class="tbl">
                         <thead>
                             <tr>
-                                <th>No. OPB</th>
+                                <th>No. OPB <span class="tbl-filter-icon" data-table="pbproses" data-col="0" onclick="window.tblBukaFilter('pbproses', 0, event)">▾</span></th>
                                 <th>No PR Urut</th>
-                                <th>Tanggal Input</th>
-                                <th>Divisi</th>
+                                <th>Tanggal Input <span class="tbl-filter-icon" data-table="pbproses" data-col="2" onclick="window.tblBukaFilter('pbproses', 2, event)">▾</span></th>
+                                <th>Divisi <span class="tbl-filter-icon" data-table="pbproses" data-col="3" onclick="window.tblBukaFilter('pbproses', 3, event)">▾</span></th>
                                 <th>Nama Barang</th>
                                 <th>Jml Diminta</th>
                                 <th>Satuan</th>
-                                <th>Permintaan</th>
-                                <th>Keterangan</th>
+                                <th>Permintaan <span class="tbl-filter-icon" data-table="pbproses" data-col="7" onclick="window.tblBukaFilter('pbproses', 7, event)">▾</span></th>
+                                <th>Keterangan <span class="tbl-filter-icon" data-table="pbproses" data-col="8" onclick="window.tblBukaFilter('pbproses', 8, event)">▾</span></th>
                                 <th>Status Approvement</th>
                                 <th>Status Pengiriman</th>
                             </tr>
@@ -1590,6 +1594,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                             <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
                         </select>
                     </div>
+                    <button class="btn-secondary" type="button" onclick="window.tblResetFilter('pbselesai')">✕ Reset Filter</button>
                     <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-list-permintaan-selesai table', 'List_Permintaan_Selesai')">📊 Export ke Excel</button>
                 </div>
 
@@ -1601,15 +1606,15 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     <table class="tbl">
                         <thead>
                             <tr>
-                                <th>No. OPB</th>
+                                <th>No. OPB <span class="tbl-filter-icon" data-table="pbselesai" data-col="0" onclick="window.tblBukaFilter('pbselesai', 0, event)">▾</span></th>
                                 <th>No PR Urut</th>
-                                <th>Tanggal Input</th>
-                                <th>Divisi</th>
+                                <th>Tanggal Input <span class="tbl-filter-icon" data-table="pbselesai" data-col="2" onclick="window.tblBukaFilter('pbselesai', 2, event)">▾</span></th>
+                                <th>Divisi <span class="tbl-filter-icon" data-table="pbselesai" data-col="3" onclick="window.tblBukaFilter('pbselesai', 3, event)">▾</span></th>
                                 <th>Nama Barang</th>
                                 <th>Jml Diminta</th>
                                 <th>Satuan</th>
-                                <th>Permintaan</th>
-                                <th>Keterangan</th>
+                                <th>Permintaan <span class="tbl-filter-icon" data-table="pbselesai" data-col="7" onclick="window.tblBukaFilter('pbselesai', 7, event)">▾</span></th>
+                                <th>Keterangan <span class="tbl-filter-icon" data-table="pbselesai" data-col="8" onclick="window.tblBukaFilter('pbselesai', 8, event)">▾</span></th>
                                 <th>Status Approvement</th>
                                 <th>Status Pengiriman</th>
                             </tr>
@@ -1845,23 +1850,26 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                             <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
                         </select>
                     </div>
-                    <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-list-pengeluaran table', 'List_Pengeluaran')">📊 Export ke Excel</button>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn-secondary" type="button" onclick="window.tblResetFilter('bkb')">✕ Reset Filter</button>
+                        <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-list-pengeluaran table', 'List_Pengeluaran')">📊 Export ke Excel</button>
+                    </div>
                 </div>
 
                 <div class="panel">
                     <table class="tbl">
                         <thead>
                             <tr>
-                                <th>No. BKB</th>
-                                <th>Tanggal</th>
+                                <th>No. BKB <span class="tbl-filter-icon" data-table="bkb" data-col="0" onclick="window.tblBukaFilter('bkb', 0, event)">▾</span></th>
+                                <th>Tanggal <span class="tbl-filter-icon" data-table="bkb" data-col="1" onclick="window.tblBukaFilter('bkb', 1, event)">▾</span></th>
                                 <th>Jam</th>
-                                <th>Nama User</th>
-                                <th>Divisi</th>
+                                <th>Nama User <span class="tbl-filter-icon" data-table="bkb" data-col="3" onclick="window.tblBukaFilter('bkb', 3, event)">▾</span></th>
+                                <th>Divisi <span class="tbl-filter-icon" data-table="bkb" data-col="4" onclick="window.tblBukaFilter('bkb', 4, event)">▾</span></th>
                                 <th>Nama Barang</th>
                                 <th>Jumlah</th>
                                 <th>Satuan</th>
-                                <th>Untuk</th>
-                                <th>Status</th>
+                                <th>Untuk <span class="tbl-filter-icon" data-table="bkb" data-col="8" onclick="window.tblBukaFilter('bkb', 8, event)">▾</span></th>
+                                <th>Status <span class="tbl-filter-icon" data-table="bkb" data-col="9" onclick="window.tblBukaFilter('bkb', 9, event)">▾</span></th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -1890,23 +1898,26 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                             <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
                         </select>
                     </div>
-                    <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-list-penerimaan table', 'List_Penerimaan')">📊 Export ke Excel</button>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn-secondary" type="button" onclick="window.tblResetFilter('pnm')">✕ Reset Filter</button>
+                        <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-list-penerimaan table', 'List_Penerimaan')">📊 Export ke Excel</button>
+                    </div>
                 </div>
 
                 <div class="panel">
                     <table class="tbl">
                         <thead>
                             <tr>
-                                <th>No Penerimaan</th>
+                                <th>No Penerimaan <span class="tbl-filter-icon" data-table="pnm" data-col="0" onclick="window.tblBukaFilter('pnm', 0, event)">▾</span></th>
                                 <th>No OPB Urut</th>
                                 <th>Nama Barang</th>
                                 <th>Jumlah</th>
                                 <th>Satuan</th>
-                                <th>Divisi</th>
-                                <th>Keterangan</th>
-                                <th>Tanggal Penerimaan</th>
-                                <th>User Penerima</th>
-                                <th>Status</th>
+                                <th>Divisi <span class="tbl-filter-icon" data-table="pnm" data-col="5" onclick="window.tblBukaFilter('pnm', 5, event)">▾</span></th>
+                                <th>Keterangan <span class="tbl-filter-icon" data-table="pnm" data-col="6" onclick="window.tblBukaFilter('pnm', 6, event)">▾</span></th>
+                                <th>Tanggal Penerimaan <span class="tbl-filter-icon" data-table="pnm" data-col="7" onclick="window.tblBukaFilter('pnm', 7, event)">▾</span></th>
+                                <th>User Penerima <span class="tbl-filter-icon" data-table="pnm" data-col="8" onclick="window.tblBukaFilter('pnm', 8, event)">▾</span></th>
+                                <th>Status <span class="tbl-filter-icon" data-table="pnm" data-col="9" onclick="window.tblBukaFilter('pnm', 9, event)">▾</span></th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -1939,6 +1950,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     <div class="mb-counter" style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
                         <span>Menampilkan <strong id="ic-shown-count">0</strong> dari <strong id="ic-total-count">0</strong> barang</span>
                         <div style="display:flex; gap:8px;">
+                            <button class="btn-secondary" type="button" onclick="window.tblResetFilter('ic')">✕ Reset Filter</button>
                             <button class="btn-secondary" type="button" onclick="cekKetersediaanStok()">📦 Cek Ketersediaan Stok</button>
                             <button class="btn-secondary" type="button" onclick="cekDuplikatMasterBarang()">🔍 Cek Barang Duplikat</button>
                             <button class="btn-secondary" type="button" onclick="exportTableExcel('#ic-main-table', 'Inventory_Control')">📊 Export ke Excel</button>
@@ -1974,14 +1986,14 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                             <tr>
                                 <th style="width:34px;">No</th>
                                 <th>Nama Barang</th>
-                                <th style="width:60px;">Satuan</th>
+                                <th style="width:60px;">Satuan <span class="tbl-filter-icon" data-table="ic" data-col="2" onclick="window.tblBukaFilter('ic', 2, event)">▾</span></th>
                                 <th style="width:200px;">Barcode</th>
                                 <th style="width:100px;">Stok Awal</th>
                                 <th style="width:90px;">Masuk</th>
                                 <th style="width:90px;">Keluar</th>
                                 <th style="width:110px;">Stok Akhir</th>
                                 <th style="width:100px;">Minimal Stok</th>
-                                <th style="width:150px;">Keterangan</th>
+                                <th style="width:150px;">Keterangan <span class="tbl-filter-icon" data-table="ic" data-col="9" onclick="window.tblBukaFilter('ic', 9, event)">▾</span></th>
                             </tr>
                         </thead>
                         <tbody id="ic-list-body"></tbody>
@@ -2141,25 +2153,26 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     <h2>📋 List Permintaan</h2>
                     <p>Input penawaran vendor untuk setiap permintaan yang masuk dari gudang</p>
                 </div>
-                <div style="text-align:right; margin-bottom:12px;">
+                <div style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:12px;">
+                    <button class="btn-secondary" type="button" onclick="window.tblResetFilter('purlist')">✕ Reset Filter</button>
                     <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-purchasing-list-permintaan table', 'List_Permintaan')">📊 Export ke Excel</button>
                 </div>
                 <div class="panel">
                     <table class="tbl">
                         <thead>
                             <tr>
-                                <th>Tanggal</th>
-                                <th>No PR</th>
-                                <th>Kategori 1</th>
-                                <th>Kategori 2</th>
-                                <th>Kategori 3</th>
-                                <th>Divisi</th>
+                                <th>Tanggal <span class="tbl-filter-icon" data-table="purlist" data-col="0" onclick="window.tblBukaFilter('purlist', 0, event)">▾</span></th>
+                                <th>No PR <span class="tbl-filter-icon" data-table="purlist" data-col="1" onclick="window.tblBukaFilter('purlist', 1, event)">▾</span></th>
+                                <th>Kategori 1 <span class="tbl-filter-icon" data-table="purlist" data-col="2" onclick="window.tblBukaFilter('purlist', 2, event)">▾</span></th>
+                                <th>Kategori 2 <span class="tbl-filter-icon" data-table="purlist" data-col="3" onclick="window.tblBukaFilter('purlist', 3, event)">▾</span></th>
+                                <th>Kategori 3 <span class="tbl-filter-icon" data-table="purlist" data-col="4" onclick="window.tblBukaFilter('purlist', 4, event)">▾</span></th>
+                                <th>Divisi <span class="tbl-filter-icon" data-table="purlist" data-col="5" onclick="window.tblBukaFilter('purlist', 5, event)">▾</span></th>
                                 <th style="width:100px;">No PR Urut</th>
                                 <th>Nama Barang</th>
-                                <th>Keterangan</th>
+                                <th>Keterangan <span class="tbl-filter-icon" data-table="purlist" data-col="8" onclick="window.tblBukaFilter('purlist', 8, event)">▾</span></th>
                                 <th>Input Penawaran</th>
                                 <th>Catatan dr Purchasing</th>
-                                <th>Status</th>
+                                <th>Status <span class="tbl-filter-icon" data-table="purlist" data-col="11" onclick="window.tblBukaFilter('purlist', 11, event)">▾</span></th>
                                 <th>Approvement</th>
                             </tr>
                         </thead>
@@ -2194,7 +2207,8 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     </div>
                 </details>
 
-                <div style="text-align:right; margin-bottom:12px;">
+                <div style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:12px;">
+                    <button class="btn-secondary" type="button" onclick="window.tblResetFilter('approve')">✕ Reset Filter</button>
                     <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-purchasing-list-approve table.tbl', 'List_Permintaan_Approve')">📊 Export ke Excel</button>
                 </div>
 
@@ -2202,10 +2216,10 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     <table class="tbl">
                         <thead>
                             <tr>
-                                <th>Tanggal</th>
-                                <th>No. PR</th>
-                                <th>Divisi</th>
-                                <th>Vendor</th>
+                                <th>Tanggal <span class="tbl-filter-icon" data-table="approve" data-col="0" onclick="window.tblBukaFilter('approve', 0, event)">▾</span></th>
+                                <th>No. PR <span class="tbl-filter-icon" data-table="approve" data-col="1" onclick="window.tblBukaFilter('approve', 1, event)">▾</span></th>
+                                <th>Divisi <span class="tbl-filter-icon" data-table="approve" data-col="2" onclick="window.tblBukaFilter('approve', 2, event)">▾</span></th>
+                                <th>Vendor <span class="tbl-filter-icon" data-table="approve" data-col="3" onclick="window.tblBukaFilter('approve', 3, event)">▾</span></th>
                                 <th style="width:100px;">No PR Urut</th>
                                 <th>Nama Barang</th>
                                 <th>Qty</th>
@@ -2273,19 +2287,22 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                             <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
                         </select>
                     </div>
-                    <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-purchasing-list-sj table', 'List_Surat_Jalan')">📊 Export ke Excel</button>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn-secondary" type="button" onclick="window.tblResetFilter('sj')">✕ Reset Filter</button>
+                        <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-purchasing-list-sj table', 'List_Surat_Jalan')">📊 Export ke Excel</button>
+                    </div>
                 </div>
                 <div class="panel">
                     <table class="tbl">
                         <thead>
                             <tr>
-                                <th>Tanggal SJ</th>
-                                <th>No. SJ</th>
-                                <th>No. PR</th>
-                                <th>Divisi</th>
+                                <th>Tanggal SJ <span class="tbl-filter-icon" data-table="sj" data-col="0" onclick="window.tblBukaFilter('sj', 0, event)">▾</span></th>
+                                <th>No. SJ <span class="tbl-filter-icon" data-table="sj" data-col="1" onclick="window.tblBukaFilter('sj', 1, event)">▾</span></th>
+                                <th>No. PR <span class="tbl-filter-icon" data-table="sj" data-col="2" onclick="window.tblBukaFilter('sj', 2, event)">▾</span></th>
+                                <th>Divisi <span class="tbl-filter-icon" data-table="sj" data-col="3" onclick="window.tblBukaFilter('sj', 3, event)">▾</span></th>
                                 <th>Barang yang Dikirim</th>
-                                <th>Status</th>
-                                <th>No. Penerimaan</th>
+                                <th>Status <span class="tbl-filter-icon" data-table="sj" data-col="5" onclick="window.tblBukaFilter('sj', 5, event)">▾</span></th>
+                                <th>No. Penerimaan <span class="tbl-filter-icon" data-table="sj" data-col="6" onclick="window.tblBukaFilter('sj', 6, event)">▾</span></th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -2419,7 +2436,7 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                         </select>
                     </div>
                     <div style="display:flex; gap:8px;">
-                        <button class="btn-secondary" type="button" onclick="resetListPOFilters()">✕ Reset Filter</button>
+                        <button class="btn-secondary" type="button" onclick="window.tblResetFilter('po')">✕ Reset Filter</button>
                         <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-purchasing-list-po table', 'List_PO')">📊 Export ke Excel</button>
                     </div>
                 </div>
@@ -2427,11 +2444,11 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     <table class="tbl">
                         <thead>
                             <tr>
-                                <th>No. PO <span class="tbl-filter-icon" onclick="window.bukaFilterPO(0, event)">▾</span></th>
-                                <th>Tanggal <span class="tbl-filter-icon" onclick="window.bukaFilterPO(1, event)">▾</span></th>
-                                <th>Nama Supplier <span class="tbl-filter-icon" onclick="window.bukaFilterPO(2, event)">▾</span></th>
-                                <th>Metode Payment <span class="tbl-filter-icon" onclick="window.bukaFilterPO(3, event)">▾</span></th>
-                                <th>Tenor <span class="tbl-filter-icon" onclick="window.bukaFilterPO(4, event)">▾</span></th>
+                                <th>No. PO <span class="tbl-filter-icon" data-table="po" data-col="0" onclick="window.tblBukaFilter('po', 0, event)">▾</span></th>
+                                <th>Tanggal <span class="tbl-filter-icon" data-table="po" data-col="1" onclick="window.tblBukaFilter('po', 1, event)">▾</span></th>
+                                <th>Nama Supplier <span class="tbl-filter-icon" data-table="po" data-col="2" onclick="window.tblBukaFilter('po', 2, event)">▾</span></th>
+                                <th>Metode Payment <span class="tbl-filter-icon" data-table="po" data-col="3" onclick="window.tblBukaFilter('po', 3, event)">▾</span></th>
+                                <th>Tenor <span class="tbl-filter-icon" data-table="po" data-col="4" onclick="window.tblBukaFilter('po', 4, event)">▾</span></th>
                                 <th>No PR Urut</th>
                                 <th>Nama Barang</th>
                                 <th>Jumlah</th>
@@ -2575,24 +2592,27 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                             <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
                         </select>
                     </div>
-                    <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-purchasing-list-bmb table', 'List_BMB_Faktur')">📊 Export ke Excel</button>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn-secondary" type="button" onclick="window.tblResetFilter('bmb')">✕ Reset Filter</button>
+                        <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-purchasing-list-bmb table', 'List_BMB_Faktur')">📊 Export ke Excel</button>
+                    </div>
                 </div>
                 <div class="panel">
                     <table class="tbl">
                         <thead>
                             <tr>
-                                <th>No. BMB</th>
-                                <th>No. Penerimaan</th>
-                                <th>No. PO</th>
-                                <th>Tanggal</th>
-                                <th>Supplier</th>
+                                <th>No. BMB <span class="tbl-filter-icon" data-table="bmb" data-col="0" onclick="window.tblBukaFilter('bmb', 0, event)">▾</span></th>
+                                <th>No. Penerimaan <span class="tbl-filter-icon" data-table="bmb" data-col="1" onclick="window.tblBukaFilter('bmb', 1, event)">▾</span></th>
+                                <th>No. PO <span class="tbl-filter-icon" data-table="bmb" data-col="2" onclick="window.tblBukaFilter('bmb', 2, event)">▾</span></th>
+                                <th>Tanggal <span class="tbl-filter-icon" data-table="bmb" data-col="3" onclick="window.tblBukaFilter('bmb', 3, event)">▾</span></th>
+                                <th>Supplier <span class="tbl-filter-icon" data-table="bmb" data-col="4" onclick="window.tblBukaFilter('bmb', 4, event)">▾</span></th>
                                 <th>Nama Barang</th>
                                 <th>Jml Diterima</th>
                                 <th>Satuan</th>
                                 <th>Harga Satuan</th>
                                 <th>Total Harga</th>
-                                <th>Keterangan</th>
-                                <th>Pembeli</th>
+                                <th>Keterangan <span class="tbl-filter-icon" data-table="bmb" data-col="10" onclick="window.tblBukaFilter('bmb', 10, event)">▾</span></th>
+                                <th>Pembeli <span class="tbl-filter-icon" data-table="bmb" data-col="11" onclick="window.tblBukaFilter('bmb', 11, event)">▾</span></th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -3384,6 +3404,8 @@ function htmlBadgeKeterangan(ket){
 }
 
 window.renderInventoryControl = function(){
+    tblDaftarkanTabel("ic", "#ic-main-table", [2,9], "ic-list-empty");
+
     const cari = (document.getElementById("ic-search")?.value || "").trim().toLowerCase();
     const data = cari
         ? inventoryControlData.filter(it => (it.nama || "").toLowerCase().includes(cari))
@@ -3417,7 +3439,7 @@ window.renderInventoryControl = function(){
         const keteranganHtml = htmlBadgeKeterangan(tentukanKeteranganStok(it));
 
         return `
-<tr id="ic-row-${it.id}" class="${i % 2 === 0 ? 'tbl-grp-a' : 'tbl-grp-b'}">
+<tr id="ic-row-${it.id}" class="${i % 2 === 0 ? 'tbl-grp-a' : 'tbl-grp-b'} tbl-grp-first">
     <td>${i + 1}</td>
     <td>${it.nama || "-"}</td>
     <td>${it.satuan_default || "-"}</td>
@@ -3430,6 +3452,12 @@ window.renderInventoryControl = function(){
     <td>${keteranganHtml}</td>
 </tr>`;
     }).join("");
+
+    tblFilterHitungOpsi("ic", data.map(it => {
+        const ket = tentukanKeteranganStok(it);
+        return { 2: it.satuan_default || "-", 9: ket ? ket.label : "-" };
+    }));
+    window.tblTerapkanFilter("ic");
 }
 
 // Daftar barang berstatus SEGERA ORDER -- yang benar-benar perlu ditindaklanjuti
@@ -3483,64 +3511,72 @@ window.cekKetersediaanStok = function(){
 // Export generik: baca langsung tabel yang sedang tampil di layar (termasuk sel
 // gabungan/rowspan, ikut terbawa jadi merged cell di Excel-nya) -- dipakai semua
 // halaman List di purchasing & gudang, supaya tidak perlu logika terpisah tiap
-// halaman.
-// Filter List PO ala Excel/Sheets: cuma di 5 kolom yang di-merge (No PO, Tanggal,
-// Supplier, Metode Payment, Tenor) -- karena kolom itu nilainya cuma satu per PO,
-// jadi cukup dicek sekali per grup, tidak perlu cek tiap baris barang satu-satu.
-let poFilterOptions = { 0:[], 1:[], 2:[], 3:[], 4:[] }; // kolom -> daftar nilai unik yang tersedia
-let poActiveFilters = {}; // kolom -> Set nilai yang dicentang (kosong/tidak ada entry = semua dicentang, tidak difilter)
+// =========================================================
+// SISTEM FILTER GENERIK ALA EXCEL/SHEETS -- dipakai semua halaman List.
+// Cuma berlaku untuk kolom yang di-rowspan (merge) per grup dokumen, karena
+// kolom itu nilainya cuma satu per grup -- pas buat checklist nilai unik.
+// Tiap tabel didaftarkan sekali (selector, kolom yang boleh difilter, id
+// elemen kosong), lalu tiap render, halaman itu sendiri yang panggil
+// tblFilterHitungOpsi() dengan nilai per grup dari data Firestore-nya
+// (bukan dari DOM), supaya daftar checklist akurat.
+// =========================================================
 
-// Dipanggil dari pantauPurchasingListPO() tiap kali data diperbarui, supaya daftar
-// nilai unik di tiap dropdown selalu sesuai data yang sedang tampil.
-function hitungOpsiFilterPO(daftarDoc){
-    const label = { 0:"no_po", 1:"tanggal", 2:"vendor", 3:"metode_payment", 4:"tenor" };
-    const set = { 0:new Set(), 1:new Set(), 2:new Set(), 3:new Set(), 4:new Set() };
+let tblTableRegistry = {}; // tableKey -> { selector, kolom:[...], emptyElId }
+let tblFilterState = {}; // tableKey -> { options:{col:[...]}, active:{col:Set} }
 
-    daftarDoc.forEach(d => {
-        set[0].add(d.no_po || "-");
-        set[1].add(d.tanggal_display || d.tanggal || "-");
-        set[2].add(d.vendor || "-");
-        set[3].add(d.metode_payment || "-");
-        set[4].add(d.metode_payment === "KREDIT" ? (d.tenor || "-") : "-");
-    });
-
-    poFilterOptions = {
-        0: Array.from(set[0]).sort(),
-        1: Array.from(set[1]).sort(),
-        2: Array.from(set[2]).sort(),
-        3: Array.from(set[3]).sort(),
-        4: Array.from(set[4]).sort()
-    };
-
-    perbaruiIkonFilterPO();
+function tblDaftarkanTabel(tableKey, selector, kolom, emptyElId){
+    tblTableRegistry[tableKey] = { selector, kolom, emptyElId };
 }
 
-function perbaruiIkonFilterPO(){
-    document.querySelectorAll("#page-purchasing-list-po .tbl-filter-icon").forEach((icon, col) => {
-        icon.classList.toggle("aktif", !!poActiveFilters[col]);
+function tblFilterInit(tableKey){
+    if(!tblFilterState[tableKey]) tblFilterState[tableKey] = { options:{}, active:{} };
+    return tblFilterState[tableKey];
+}
+
+// daftarNilaiPerGrup: array of { colIdx: "nilai", ... }, satu entry per grup/dokumen.
+function tblFilterHitungOpsi(tableKey, daftarNilaiPerGrup){
+    const info = tblTableRegistry[tableKey];
+    if(!info) return;
+    const state = tblFilterInit(tableKey);
+
+    info.kolom.forEach(col => {
+        const set = new Set();
+        daftarNilaiPerGrup.forEach(obj => set.add(obj[col] ?? "-"));
+        state.options[col] = Array.from(set).sort();
+    });
+
+    tblFilterPerbaruiIkon(tableKey);
+}
+
+function tblFilterPerbaruiIkon(tableKey){
+    const state = tblFilterState[tableKey];
+    document.querySelectorAll(`.tbl-filter-icon[data-table="${tableKey}"]`).forEach(icon => {
+        const col = Number(icon.dataset.col);
+        icon.classList.toggle("aktif", !!(state && state.active[col]));
     });
 }
 
-window.bukaFilterPO = function(col, event){
+window.tblBukaFilter = function(tableKey, col, event){
     event.stopPropagation();
     document.querySelectorAll(".tbl-filter-popup").forEach(p => p.remove());
 
-    const options = poFilterOptions[col] || [];
-    const selected = poActiveFilters[col]; // Set atau undefined (undefined = semua tercentang)
+    const state = tblFilterInit(tableKey);
+    const options = state.options[col] || [];
+    const selected = state.active[col]; // Set atau undefined (undefined = semua tercentang)
 
     const popup = document.createElement("div");
     popup.className = "tbl-filter-popup";
     popup.onclick = (e) => e.stopPropagation();
     popup.innerHTML = `
-        <input type="text" class="tbl-filter-popup-search" placeholder="🔍 Cari nilai..." oninput="window.cariDalamFilterPO(this)">
+        <input type="text" class="tbl-filter-popup-search" placeholder="🔍 Cari nilai..." oninput="window.tblCariFilter(this)">
         <div class="tbl-filter-popup-actions">
-            <button type="button" onclick="window.toggleAllFilterPO(${col}, true)">Pilih Semua</button>
-            <button type="button" onclick="window.toggleAllFilterPO(${col}, false)">Kosongkan</button>
+            <button type="button" onclick="window.tblToggleSemua('${tableKey}', ${col}, true)">Pilih Semua</button>
+            <button type="button" onclick="window.tblToggleSemua('${tableKey}', ${col}, false)">Kosongkan</button>
         </div>
         <div class="tbl-filter-popup-list">
             ${options.map(val => `
                 <label class="tbl-filter-popup-item" data-label="${String(val).toLowerCase().replace(/"/g, "&quot;")}">
-                    <input type="checkbox" value="${String(val).replace(/"/g, "&quot;")}" ${(!selected || selected.has(val)) ? "checked" : ""} onchange="window.onCentangFilterPO(${col}, this)">
+                    <input type="checkbox" value="${String(val).replace(/"/g, "&quot;")}" ${(!selected || selected.has(val)) ? "checked" : ""} onchange="window.tblOnCentang('${tableKey}', ${col}, this)">
                     <span>${val || "(kosong)"}</span>
                 </label>
             `).join("")}
@@ -3564,47 +3600,43 @@ window.bukaFilterPO = function(col, event){
 
 // Kotak cari cuma menyembunyikan/menampilkan baris checklist -- TIDAK mengubah
 // centang yang sudah dipilih, persis seperti kotak cari di Google Sheets.
-window.cariDalamFilterPO = function(inputEl){
+window.tblCariFilter = function(inputEl){
     const kata = inputEl.value.trim().toLowerCase();
     const popup = inputEl.closest(".tbl-filter-popup");
     popup.querySelectorAll(".tbl-filter-popup-item").forEach(item => {
-        const label = item.dataset.label || "";
-        item.style.display = label.includes(kata) ? "" : "none";
+        item.style.display = (item.dataset.label || "").includes(kata) ? "" : "none";
     });
 }
 
-window.onCentangFilterPO = function(col, checkbox){
-    const options = poFilterOptions[col] || [];
-    if(!poActiveFilters[col]){
-        poActiveFilters[col] = new Set(options); // mulai dari semua tercentang
-    }
-    if(checkbox.checked) poActiveFilters[col].add(checkbox.value);
-    else poActiveFilters[col].delete(checkbox.value);
-
-    // Kalau semua balik tercentang, anggap filter kolom ini tidak aktif lagi.
-    if(poActiveFilters[col].size >= options.length) delete poActiveFilters[col];
-
-    perbaruiIkonFilterPO();
-    window.applyListPOFilters();
+window.tblOnCentang = function(tableKey, col, checkbox){
+    const state = tblFilterInit(tableKey);
+    const options = state.options[col] || [];
+    if(!state.active[col]) state.active[col] = new Set(options);
+    if(checkbox.checked) state.active[col].add(checkbox.value);
+    else state.active[col].delete(checkbox.value);
+    if(state.active[col].size >= options.length) delete state.active[col];
+    tblFilterPerbaruiIkon(tableKey);
+    window.tblTerapkanFilter(tableKey);
 }
 
-window.toggleAllFilterPO = function(col, pilihSemua){
-    if(pilihSemua){
-        delete poActiveFilters[col];
-    } else {
-        poActiveFilters[col] = new Set();
-    }
+window.tblToggleSemua = function(tableKey, col, pilihSemua){
+    const state = tblFilterInit(tableKey);
+    if(pilihSemua) delete state.active[col];
+    else state.active[col] = new Set();
     document.querySelectorAll(".tbl-filter-popup-item input").forEach(cb => { cb.checked = pilihSemua; });
-    perbaruiIkonFilterPO();
-    window.applyListPOFilters();
+    tblFilterPerbaruiIkon(tableKey);
+    window.tblTerapkanFilter(tableKey);
 }
 
-window.applyListPOFilters = function(){
-    const table = document.querySelector("#page-purchasing-list-po table");
+window.tblTerapkanFilter = function(tableKey){
+    const info = tblTableRegistry[tableKey];
+    if(!info) return;
+    const table = document.querySelector(info.selector);
     if(!table) return;
     const tbody = table.querySelector("tbody");
     if(!tbody) return;
 
+    const state = tblFilterState[tableKey] || { active:{} };
     const allRows = Array.from(tbody.querySelectorAll("tr"));
     const groups = [];
     let current = null;
@@ -3621,17 +3653,11 @@ window.applyListPOFilters = function(){
     groups.forEach(grpRows => {
         const firstRow = grpRows[0];
         const cells = Array.from(firstRow.children);
-        // Kolom 0-4 adalah kolom yang di-rowspan, nilainya diambil dari baris pertama grup.
-        const nilaiGrup = {
-            0: (cells[0]?.textContent || "").trim(),
-            1: (cells[1]?.textContent || "").trim(),
-            2: (cells[2]?.textContent || "").trim(),
-            3: (cells[3]?.textContent || "").trim(),
-            4: (cells[4]?.textContent || "").trim()
-        };
+        const nilaiGrup = {};
+        info.kolom.forEach(col => { nilaiGrup[col] = (cells[col]?.textContent || "").trim(); });
 
-        const cocok = [0, 1, 2, 3, 4].every(col => {
-            const filterSet = poActiveFilters[col];
+        const cocok = info.kolom.every(col => {
+            const filterSet = state.active[col];
             if(!filterSet) return true;
             return filterSet.has(nilaiGrup[col]);
         });
@@ -3640,14 +3666,17 @@ window.applyListPOFilters = function(){
         if(cocok) adaYangTampil = true;
     });
 
-    const emptyEl = document.getElementById("po-list-empty");
-    if(emptyEl) emptyEl.style.display = adaYangTampil ? "none" : "block";
+    if(info.emptyElId){
+        const emptyEl = document.getElementById(info.emptyElId);
+        if(emptyEl) emptyEl.style.display = adaYangTampil ? "none" : "block";
+    }
 }
 
-window.resetListPOFilters = function(){
-    poActiveFilters = {};
-    perbaruiIkonFilterPO();
-    window.applyListPOFilters();
+window.tblResetFilter = function(tableKey){
+    const state = tblFilterInit(tableKey);
+    state.active = {};
+    tblFilterPerbaruiIkon(tableKey);
+    window.tblTerapkanFilter(tableKey);
 }
 
 window.exportTableExcel = function(selector, namaFile){
@@ -5047,6 +5076,8 @@ function pantauPermintaanProses(){
 
     if(unsubPermintaanProses) unsubPermintaanProses();
 
+    tblDaftarkanTabel("pbproses", "#page-list-permintaan-proses table", [0,2,3,7,8], "pb-empty-proses");
+
     const BATAS_AMAN = 500;
     const q = query(
         collection(db, "permintaan_barang"),
@@ -5063,9 +5094,17 @@ function pantauPermintaanProses(){
 
         let html = "";
         let grp = 0;
+        const daftarDocUntukFilter = [];
         [...snapshot.docs].reverse().forEach(docSnap => {
             grp++;
             html += bangunBarisPermintaan(docSnap, grp % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a");
+            const d = docSnap.data();
+            const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
+            daftarDocUntukFilter.push({
+                0: d.no_pr || "-", 2: tgl, 3: d.divisi || "-",
+                7: namaDenganRole(d.pembuat, d.dibuat_oleh_role) || d.dibuat_oleh_email || "-",
+                8: d.keterangan || "-"
+            });
         });
 
         if(tbody){
@@ -5073,6 +5112,9 @@ function pantauPermintaanProses(){
             if(emptyEl) emptyEl.style.display = html ? "none" : "block";
         }
         if(warnEl) warnEl.style.display = snapshot.size >= BATAS_AMAN ? "block" : "none";
+
+        tblFilterHitungOpsi("pbproses", daftarDocUntukFilter);
+        window.tblTerapkanFilter("pbproses");
 
     }, (err) => {
         console.error("Gagal memuat permintaan proses (cek apakah index Firestore sudah dibuat):", err);
@@ -5084,6 +5126,8 @@ function pantauPermintaanProses(){
 function pantauPermintaanSelesai(){
 
     if(unsubPermintaanSelesai) unsubPermintaanSelesai();
+
+    tblDaftarkanTabel("pbselesai", "#page-list-permintaan-selesai table", [0,2,3,7,8], "pb-empty-selesai");
 
     const tbody = document.getElementById("pb-list-body-selesai");
     const emptyEl = document.getElementById("pb-empty-selesai");
@@ -5110,9 +5154,17 @@ function pantauPermintaanSelesai(){
 
         let html = "";
         let grp = 0;
+        const daftarDocUntukFilter = [];
         [...snapshot.docs].reverse().forEach(docSnap => {
             grp++;
             html += bangunBarisPermintaan(docSnap, grp % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a");
+            const d = docSnap.data();
+            const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
+            daftarDocUntukFilter.push({
+                0: d.no_pr || "-", 2: tgl, 3: d.divisi || "-",
+                7: namaDenganRole(d.pembuat, d.dibuat_oleh_role) || d.dibuat_oleh_email || "-",
+                8: d.keterangan || "-"
+            });
         });
 
         if(tbody){
@@ -5120,6 +5172,9 @@ function pantauPermintaanSelesai(){
             if(emptyEl) emptyEl.style.display = html ? "none" : "block";
         }
         if(warnEl) warnEl.style.display = snapshot.size >= BATAS_AMAN ? "block" : "none";
+
+        tblFilterHitungOpsi("pbselesai", daftarDocUntukFilter);
+        window.tblTerapkanFilter("pbselesai");
 
     }, (err) => {
         console.error("Gagal memuat permintaan selesai (cek apakah index Firestore sudah dibuat):", err);
@@ -5203,6 +5258,8 @@ function pantauPermintaanGlobal(){
 
     if(unsubPermintaanGlobal) unsubPermintaanGlobal();
 
+    tblDaftarkanTabel("pbglobal", "#page-list-permintaan-global table", [0,2,3,4,5,9,10], "pb-empty-global");
+
     const tbody = document.getElementById("pb-list-body-global");
     const emptyEl = document.getElementById("pb-empty-global");
     const warnEl = document.getElementById("pb-global-limit-warning");
@@ -5223,9 +5280,17 @@ function pantauPermintaanGlobal(){
 
         let html = "";
         let grp = 0;
+        const daftarDocUntukFilter = [];
         [...snapshot.docs].reverse().forEach(docSnap => {
             grp++;
             html += bangunBarisPermintaanGlobal(docSnap, grp % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a");
+            const d = docSnap.data();
+            daftarDocUntukFilter.push({
+                0: d.no_pr || "-", 2: d.kategori1 || "-", 3: d.kategori2 || "-", 4: d.kategori3 || "-",
+                5: d.divisi || "-",
+                9: namaDenganRole(d.pembuat, d.dibuat_oleh_role) || d.dibuat_oleh_email || "-",
+                10: d.keterangan || "-"
+            });
         });
 
         if(tbody){
@@ -5233,6 +5298,9 @@ function pantauPermintaanGlobal(){
             if(emptyEl) emptyEl.style.display = html ? "none" : "block";
         }
         if(warnEl) warnEl.style.display = snapshot.size >= BATAS_AMAN ? "block" : "none";
+
+        tblFilterHitungOpsi("pbglobal", daftarDocUntukFilter);
+        window.tblTerapkanFilter("pbglobal");
 
     }, (err) => {
         console.error("Gagal memuat permintaan global (cek apakah index Firestore sudah dibuat):", err);
@@ -5338,6 +5406,8 @@ function pantauPurchasingListPermintaan(){
 
     if(unsubPurList) unsubPurList();
 
+    tblDaftarkanTabel("purlist", "#page-purchasing-list-permintaan table", [0,1,2,3,4,5,8,11], "pur-list-empty");
+
     // Yang sudah approve dipindah tampilannya ke List Permintaan Approve -- disaring
     // langsung lewat query, bukan menarik semua lalu difilter di browser.
     const BATAS_AMAN = 500;
@@ -5394,7 +5464,7 @@ function pantauPurchasingListPermintaan(){
                 : "";
 
             html += `
-<tr class="${grpClass}">
+<tr class="${grpClass} tbl-grp-first">
     <td>${tgl}</td>
     <td>${d.no_pr || "-"}</td>
     <td>${d.kategori1 || "-"}</td>
@@ -5420,6 +5490,17 @@ function pantauPurchasingListPermintaan(){
 
         tbody.innerHTML = html;
         emptyEl.style.display = jumlahTampil === 0 ? "block" : "none";
+
+        tblFilterHitungOpsi("purlist", [...snapshot.docs].reverse().map(docSnap => {
+            const d = docSnap.data();
+            const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
+            return {
+                0: tgl, 1: d.no_pr || "-", 2: d.kategori1 || "-", 3: d.kategori2 || "-",
+                4: d.kategori3 || "-", 5: d.divisi || "-", 8: d.keterangan || "-",
+                11: (d.status || "menunggu") === "hold" ? "Hold" : "Menunggu"
+            };
+        }));
+        window.tblTerapkanFilter("purlist");
 
         // Badge di sidebar -- jumlah PR (bukan item) yang masih perlu diproses purchasing.
         const badgeEl = document.getElementById("nav-badge-pur-list");
@@ -5888,6 +5969,8 @@ function pantauPurchasingListApprove(){
 
     if(unsubPurApprove) unsubPurApprove();
 
+    tblDaftarkanTabel("approve", "#page-purchasing-list-approve table.tbl", [0,1,2,3], "pur-approve-empty");
+
     // Batas pengaman -- halaman ini menampilkan SEMUA PR approve tanpa filter
     // tanggal (karena PR yang belum selesai diproses harus tetap kelihatan walau
     // lama), tapi tetap dikunci supaya query-nya tidak pernah tak terbatas.
@@ -5919,7 +6002,7 @@ function pantauPurchasingListApprove(){
             const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
 
             html += `
-<tr class="${grpClass}">
+<tr class="${grpClass} tbl-grp-first">
     <td>${tgl}</td>
     <td>${d.no_pr || "-"}</td>
     <td>${d.divisi || "-"}</td>
@@ -5935,6 +6018,17 @@ function pantauPurchasingListApprove(){
         });
 
         tbody.innerHTML = html;
+        tblFilterHitungOpsi("approve", [...snapshot.docs].reverse().map(docSnap => {
+            const d = docSnap.data();
+            const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : "-";
+            return {
+                0: tgl,
+                1: d.no_pr || "-",
+                2: d.divisi || "-",
+                3: (d.penawaran_list && d.penawaran_list[0]) ? d.penawaran_list[0].vendor : "-"
+            };
+        }));
+        window.tblTerapkanFilter("approve");
 
     }, err => console.error("Gagal memuat List Permintaan Approve:", err));
 }
@@ -7057,6 +7151,8 @@ async function pantauPurchasingListSJ(){
 
     if(unsubListSJ) unsubListSJ();
 
+    tblDaftarkanTabel("sj", "#page-purchasing-list-sj table", [0,1,2,3,5,6], "sj-list-empty");
+
     // Kumpulkan No. Penerimaan per No. SJ -- sekali ambil saja (bukan live listener),
     // cukup buat referensi tampilan di kolom baru.
     let penerimaanPerNoSJ = {};
@@ -7117,7 +7213,7 @@ async function pantauPurchasingListSJ(){
             const noPenerimaan = penerimaanPerNoSJ[sj.no_sj] || "-";
 
             return `
-<tr class="${grpClass}">
+<tr class="${grpClass} tbl-grp-first">
     <td>${sj.tanggal_display || sj.tanggal || "-"}</td>
     <td><b>${sj.no_sj || "-"}</b></td>
     <td>${d.no_pr || "-"}</td>
@@ -7131,6 +7227,16 @@ async function pantauPurchasingListSJ(){
     </td>
 </tr>`;
         }).join("");
+
+        tblFilterHitungOpsi("sj", baris.map(({ d, sj }) => ({
+            0: sj.tanggal_display || sj.tanggal || "-",
+            1: sj.no_sj || "-",
+            2: d.no_pr || "-",
+            3: d.divisi || "-",
+            5: sj.status === "diterima" ? "Diterima" : "Dikirim",
+            6: penerimaanPerNoSJ[sj.no_sj] || "-"
+        })));
+        window.tblTerapkanFilter("sj");
 
     }, err => console.error("Gagal memuat List Surat Jalan:", err));
 }
@@ -7158,6 +7264,8 @@ let listPORentangHari = "90";
 function pantauPurchasingListPO(){
 
     if(unsubListPO) unsubListPO();
+
+    tblDaftarkanTabel("po", "#page-purchasing-list-po table", [0,1,2,3,4], "po-list-empty");
 
     // Log riwayat PO -- aman dibatasi rentang tanggal + jumlah.
     const BATAS_AMAN_PO = 300;
@@ -7241,8 +7349,14 @@ function pantauPurchasingListPO(){
         });
 
         tbody.innerHTML = html;
-        hitungOpsiFilterPO(daftarDocUntukFilter);
-        window.applyListPOFilters(); // pertahankan filter yang sedang aktif kalau ada update live
+        tblFilterHitungOpsi("po", daftarDocUntukFilter.map(d => ({
+            0: d.no_po || "-",
+            1: d.tanggal_display || d.tanggal || "-",
+            2: d.vendor || "-",
+            3: d.metode_payment || "-",
+            4: d.metode_payment === "KREDIT" ? (d.tenor || "-") : "-"
+        })));
+        window.tblTerapkanFilter("po"); // pertahankan filter yang sedang aktif kalau ada update live
 
     }, err => console.error("Gagal memuat List PO:", err));
 }
@@ -7713,6 +7827,8 @@ function pantauPurchasingListBMB(){
 
     if(unsubListBMB) unsubListBMB();
 
+    tblDaftarkanTabel("bmb", "#page-purchasing-list-bmb table", [0,1,2,3,4,10,11], "bmb-list-empty");
+
     const BATAS_AMAN_BMB = 300;
     const constraints = [collection(db, "bmb_faktur")];
     if(listBMBRentangHari !== "all"){
@@ -7739,10 +7855,12 @@ function pantauPurchasingListBMB(){
 
         let html = "";
         let grp = 0;
+        const daftarDocUntukFilter = [];
 
         [...snapshot.docs].reverse().forEach(docSnap => {
             const d = docSnap.data();
             bmbListMap[docSnap.id] = d;
+            daftarDocUntukFilter.push(d);
             const items = d.items && d.items.length ? d.items : [{}];
             grp++;
             const grpClass = grp % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a";
@@ -7779,6 +7897,16 @@ function pantauPurchasingListBMB(){
         });
 
         tbody.innerHTML = html;
+        tblFilterHitungOpsi("bmb", daftarDocUntukFilter.map(d => ({
+            0: d.no_bmb || "-",
+            1: d.no_penerimaan || "-",
+            2: d.no_po || "-",
+            3: d.tanggal_display || d.tanggal || "-",
+            4: d.supplier || "-",
+            10: d.keterangan || "-",
+            11: d.pembeli || "-"
+        })));
+        window.tblTerapkanFilter("bmb");
 
     }, err => console.error("Gagal memuat List BMB:", err));
 }
@@ -8015,6 +8143,8 @@ function pantauSemuaPengeluaran(){
 
     if(unsubPengeluaran) unsubPengeluaran();
 
+    tblDaftarkanTabel("bkb", "#page-list-pengeluaran table", [0,1,3,4,8,9], "bkb-list-empty");
+
     const BATAS_AMAN_BKB = 300;
     const constraints = [collection(db, "pengambilan_barang")];
     if(listPengeluaranRentangHari !== "all"){
@@ -8042,11 +8172,13 @@ function pantauSemuaPengeluaran(){
         let html = "";
         let grp = 0;
         semuaPengeluaranMap = {};
+        const daftarDocUntukFilter = [];
 
         [...snapshot.docs].reverse().forEach(docSnap => {
 
             const d = docSnap.data();
             semuaPengeluaranMap[docSnap.id] = d;
+            daftarDocUntukFilter.push(d);
             grp++;
             const grpClass = grp % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a";
 
@@ -8089,6 +8221,15 @@ function pantauSemuaPengeluaran(){
         });
 
         tbody.innerHTML = html;
+        tblFilterHitungOpsi("bkb", daftarDocUntukFilter.map(d => {
+            const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : (d.tanggal || "-");
+            const status = d.status || "submit";
+            return {
+                0: d.no_bkb || "-", 1: tgl, 3: d.nama_user || d.dibuat_oleh_email || "-",
+                4: d.divisi || "-", 8: d.untuk || "-", 9: status === "draft" ? "Draft" : "Submitted"
+            };
+        }));
+        window.tblTerapkanFilter("bkb");
 
     }, (err) => {
         console.error("Gagal memuat data pengeluaran:", err);
@@ -9203,6 +9344,8 @@ function pantauSemuaPenerimaan(){
 
     if(unsubPenerimaan) unsubPenerimaan();
 
+    tblDaftarkanTabel("pnm", "#page-list-penerimaan table", [0,5,6,7,8,9], "pnm-list-empty");
+
     const BATAS_AMAN_PNM = 300;
     const constraints = [collection(db, "penerimaan_barang")];
     if(listPenerimaanRentangHari !== "all"){
@@ -9231,11 +9374,13 @@ function pantauSemuaPenerimaan(){
         let html = "";
         let grp = 0;
         semuaPenerimaanMap = {};
+        const daftarDocUntukFilter = [];
 
         [...snapshot.docs].reverse().forEach(docSnap => {
 
             const d = docSnap.data();
             semuaPenerimaanMap[docSnap.id] = d;
+            daftarDocUntukFilter.push(d);
             grp++;
             const grpClass = grp % 2 === 0 ? "tbl-grp-b" : "tbl-grp-a";
 
@@ -9279,6 +9424,15 @@ function pantauSemuaPenerimaan(){
         });
 
         tbody.innerHTML = html;
+        tblFilterHitungOpsi("pnm", daftarDocUntukFilter.map(d => {
+            const tgl = d.created_at ? d.created_at.toDate().toLocaleDateString("id-ID", { day:"numeric", month:"short", year:"numeric" }) : (d.tanggal || "-");
+            const status = d.status || "diajukan";
+            return {
+                0: d.no_penerimaan || "-", 5: d.divisi || "-", 6: d.keterangan || "-",
+                7: tgl, 8: d.penerima || "-", 9: status === "draft" ? "Draft" : "Submitted"
+            };
+        }));
+        window.tblTerapkanFilter("pnm");
 
     }, (err) => {
         console.error("Gagal memuat data penerimaan:", err);
