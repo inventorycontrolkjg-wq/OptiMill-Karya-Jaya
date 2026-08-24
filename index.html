@@ -2887,116 +2887,125 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                 </div>
             </div>
 
-            <div class="page page-wide" id="page-audit-koreksi">
-
+            <div class="page page-wide" id="page-audit-permintaan">
                 <div class="page-header">
-                    <h2>🔍 Audit & Koreksi Qty</h2>
-                    <p>Lihat dan koreksi qty yang salah input di seluruh transaksi. Koreksi di Penerimaan/BKB otomatis menyesuaikan stok gudang.</p>
+                    <h2>📋 Koreksi Permintaan (PR)</h2>
+                    <p>Koreksi qty Permintaan Barang yang salah input. Tidak ada efek ke stok gudang.</p>
                 </div>
+                <div class="form-msg" id="audit-msg-permintaan" style="display:none;"></div>
+                <div class="panel">
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>No. PR</th>
+                                <th>Tanggal</th>
+                                <th>Divisi</th>
+                                <th>Nama Barang</th>
+                                <th>Qty Saat Ini</th>
+                                <th>Satuan</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-permintaan-body"></tbody>
+                    </table>
+                    <div class="empty-state" id="audit-permintaan-empty" style="display:none;">Tidak ada data.</div>
+                </div>
+            </div>
 
-                <div class="form-msg" id="audit-msg" style="display:none;"></div>
+            <div class="page page-wide" id="page-audit-penerimaan">
+                <div class="page-header">
+                    <h2>📥 Koreksi Penerimaan</h2>
+                    <p>Koreksi qty Penerimaan yang salah input. Stok gudang otomatis ikut disesuaikan.</p>
+                </div>
+                <div class="form-msg" id="audit-msg-penerimaan" style="display:none;"></div>
+                <div class="panel">
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>No. Penerimaan</th>
+                                <th>Tanggal</th>
+                                <th>Nama Barang</th>
+                                <th>Qty Diterima Saat Ini</th>
+                                <th>Satuan</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-penerimaan-body"></tbody>
+                    </table>
+                    <div class="empty-state" id="audit-penerimaan-empty" style="display:none;">Tidak ada data.</div>
+                </div>
+            </div>
 
-                <details class="audit-section" open>
-                    <summary>📋 Permintaan Barang (PR)</summary>
-                    <div class="panel">
-                        <table class="tbl">
-                            <thead>
-                                <tr>
-                                    <th>No. PR</th>
-                                    <th>Tanggal</th>
-                                    <th>Divisi</th>
-                                    <th>Nama Barang</th>
-                                    <th>Qty Saat Ini</th>
-                                    <th>Satuan</th>
-                                    <th>Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="audit-permintaan-body"></tbody>
-                        </table>
-                        <div class="empty-state" id="audit-permintaan-empty" style="display:none;">Tidak ada data.</div>
-                    </div>
-                </details>
+            <div class="page page-wide" id="page-audit-bkb">
+                <div class="page-header">
+                    <h2>📤 Koreksi BKB</h2>
+                    <p>Koreksi qty BKB/Pengambilan yang salah input. Stok gudang otomatis ikut disesuaikan.</p>
+                </div>
+                <div class="form-msg" id="audit-msg-bkb" style="display:none;"></div>
+                <div class="panel">
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>No. BKB</th>
+                                <th>Tanggal</th>
+                                <th>Nama Barang</th>
+                                <th>Qty Diambil Saat Ini</th>
+                                <th>Satuan</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-bkb-body"></tbody>
+                    </table>
+                    <div class="empty-state" id="audit-bkb-empty" style="display:none;">Tidak ada data.</div>
+                </div>
+            </div>
 
-                <details class="audit-section">
-                    <summary>📥 Penerimaan (mempengaruhi stok gudang)</summary>
-                    <div class="panel">
-                        <table class="tbl">
-                            <thead>
-                                <tr>
-                                    <th>No. Penerimaan</th>
-                                    <th>Tanggal</th>
-                                    <th>Nama Barang</th>
-                                    <th>Qty Diterima Saat Ini</th>
-                                    <th>Satuan</th>
-                                    <th>Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="audit-penerimaan-body"></tbody>
-                        </table>
-                        <div class="empty-state" id="audit-penerimaan-empty" style="display:none;">Tidak ada data.</div>
-                    </div>
-                </details>
+            <div class="page page-wide" id="page-audit-po">
+                <div class="page-header">
+                    <h2>🧾 Koreksi PO</h2>
+                    <p>Koreksi qty PO yang salah input. Total harga otomatis dihitung ulang, tidak ada efek ke stok.</p>
+                </div>
+                <div class="form-msg" id="audit-msg-po" style="display:none;"></div>
+                <div class="panel">
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>No. PO</th>
+                                <th>Tanggal</th>
+                                <th>Nama Barang</th>
+                                <th>Qty Saat Ini</th>
+                                <th>Satuan</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-po-body"></tbody>
+                    </table>
+                    <div class="empty-state" id="audit-po-empty" style="display:none;">Tidak ada data.</div>
+                </div>
+            </div>
 
-                <details class="audit-section">
-                    <summary>📤 BKB / Pengambilan (mempengaruhi stok gudang)</summary>
-                    <div class="panel">
-                        <table class="tbl">
-                            <thead>
-                                <tr>
-                                    <th>No. BKB</th>
-                                    <th>Tanggal</th>
-                                    <th>Nama Barang</th>
-                                    <th>Qty Diambil Saat Ini</th>
-                                    <th>Satuan</th>
-                                    <th>Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="audit-bkb-body"></tbody>
-                        </table>
-                        <div class="empty-state" id="audit-bkb-empty" style="display:none;">Tidak ada data.</div>
-                    </div>
-                </details>
-
-                <details class="audit-section">
-                    <summary>🧾 PO</summary>
-                    <div class="panel">
-                        <table class="tbl">
-                            <thead>
-                                <tr>
-                                    <th>No. PO</th>
-                                    <th>Tanggal</th>
-                                    <th>Nama Barang</th>
-                                    <th>Qty Saat Ini</th>
-                                    <th>Satuan</th>
-                                    <th>Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="audit-po-body"></tbody>
-                        </table>
-                        <div class="empty-state" id="audit-po-empty" style="display:none;">Tidak ada data.</div>
-                    </div>
-                </details>
-
-                <details class="audit-section">
-                    <summary>💰 BMB / Faktur</summary>
-                    <div class="panel">
-                        <table class="tbl">
-                            <thead>
-                                <tr>
-                                    <th>No. BMB</th>
-                                    <th>Tanggal</th>
-                                    <th>Nama Barang</th>
-                                    <th>Qty Diterima Saat Ini</th>
-                                    <th>Satuan</th>
-                                    <th>Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="audit-bmb-body"></tbody>
-                        </table>
-                        <div class="empty-state" id="audit-bmb-empty" style="display:none;">Tidak ada data.</div>
-                    </div>
-                </details>
-
+            <div class="page page-wide" id="page-audit-bmb">
+                <div class="page-header">
+                    <h2>💰 Koreksi BMB</h2>
+                    <p>Koreksi qty BMB/Faktur yang salah input. Total harga otomatis dihitung ulang, tidak ada efek ke stok.</p>
+                </div>
+                <div class="form-msg" id="audit-msg-bmb" style="display:none;"></div>
+                <div class="panel">
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>No. BMB</th>
+                                <th>Tanggal</th>
+                                <th>Nama Barang</th>
+                                <th>Qty Diterima Saat Ini</th>
+                                <th>Satuan</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-bmb-body"></tbody>
+                    </table>
+                    <div class="empty-state" id="audit-bmb-empty" style="display:none;">Tidak ada data.</div>
+                </div>
             </div>
 
             <!-- ============================================= -->
@@ -3302,7 +3311,13 @@ const NAV_ITEMS = {
         { id:"finance-dashboard", label:"💳 Dashboard" }
     ],
     audit: [
-        { id:"audit-koreksi", label:"🔍 Audit & Koreksi Qty" }
+        { group:"🔍 Audit", items:[
+            { id:"audit-permintaan", label:"📋 Koreksi Permintaan (PR)" },
+            { id:"audit-penerimaan", label:"📥 Koreksi Penerimaan" },
+            { id:"audit-bkb", label:"📤 Koreksi BKB" },
+            { id:"audit-po", label:"🧾 Koreksi PO" },
+            { id:"audit-bmb", label:"💰 Koreksi BMB" }
+        ]}
     ]
 };
 
@@ -3442,8 +3457,20 @@ window.showPage = function(id){
     if(id === "pimpinan-review"){
         pantauPimpinanReview();
     }
-    if(id === "audit-koreksi"){
-        pantauAuditKoreksi();
+    if(id === "audit-permintaan"){
+        pantauAuditPermintaan();
+    }
+    if(id === "audit-penerimaan"){
+        pantauAuditPenerimaan();
+    }
+    if(id === "audit-bkb"){
+        pantauAuditBKB();
+    }
+    if(id === "audit-po"){
+        pantauAuditPO();
+    }
+    if(id === "audit-bmb"){
+        pantauAuditBMB();
     }
     if(id === "list-penerimaan"){
         pantauSemuaPenerimaan();
@@ -8743,16 +8770,8 @@ window.gantiRentangListPengeluaran = function(val){
 // murni ubah angka, tidak ada efek berantai ke stok.
 // =========================================================
 
-function pantauAuditKoreksi(){
-    pantauAuditPermintaan();
-    pantauAuditPenerimaan();
-    pantauAuditBKB();
-    pantauAuditPO();
-    pantauAuditBMB();
-}
-
-function pesanAuditKoreksi(pesan, sukses){
-    const el = document.getElementById("audit-msg");
+function pesanAuditKoreksi(pesan, sukses, elId){
+    const el = document.getElementById(elId);
     if(!el) return;
     el.textContent = pesan;
     el.className = "form-msg " + (sukses ? "ok" : "err");
@@ -8923,10 +8942,10 @@ window.koreksiQtyPermintaan = async function(docId, itemIdx, qtyLama){
         if(!items[itemIdx]){ alert("Item tidak ditemukan."); return; }
         items[itemIdx].jumlah = qtyBaru;
         await setDoc(ref, { items }, { merge: true });
-        pesanAuditKoreksi("Qty Permintaan berhasil dikoreksi.", true);
+        pesanAuditKoreksi("Qty Permintaan berhasil dikoreksi.", true, "audit-msg-permintaan");
         pantauAuditPermintaan();
     } catch(e){
-        pesanAuditKoreksi("Gagal mengoreksi: " + e.message, false);
+        pesanAuditKoreksi("Gagal mengoreksi: " + e.message, false, "audit-msg-permintaan");
     }
 }
 
@@ -8984,11 +9003,11 @@ window.koreksiQtyPenerimaan = async function(docId, itemIdx, qtyLama){
             }
         });
 
-        pesanAuditKoreksi("Qty Penerimaan berhasil dikoreksi, stok gudang sudah ikut disesuaikan.", true);
+        pesanAuditKoreksi("Qty Penerimaan berhasil dikoreksi, stok gudang sudah ikut disesuaikan.", true, "audit-msg-penerimaan");
         pantauAuditPenerimaan();
 
     } catch(e){
-        pesanAuditKoreksi("Gagal mengoreksi: " + e.message, false);
+        pesanAuditKoreksi("Gagal mengoreksi: " + e.message, false, "audit-msg-penerimaan");
     }
 }
 
@@ -9033,11 +9052,11 @@ window.koreksiQtyBKB = async function(docId, itemIdx, qtyLama){
             }
         });
 
-        pesanAuditKoreksi("Qty BKB berhasil dikoreksi, stok gudang sudah ikut disesuaikan.", true);
+        pesanAuditKoreksi("Qty BKB berhasil dikoreksi, stok gudang sudah ikut disesuaikan.", true, "audit-msg-bkb");
         pantauAuditBKB();
 
     } catch(e){
-        pesanAuditKoreksi("Gagal mengoreksi: " + e.message, false);
+        pesanAuditKoreksi("Gagal mengoreksi: " + e.message, false, "audit-msg-bkb");
     }
 }
 
@@ -9065,10 +9084,10 @@ window.koreksiQtyPO = async function(docId, itemIdx, qtyLama){
         const grandTotal = items.reduce((a, b) => a + (b.total_harga || 0), 0);
 
         await setDoc(ref, { items, grand_total: grandTotal }, { merge: true });
-        pesanAuditKoreksi("Qty PO berhasil dikoreksi, total ikut disesuaikan.", true);
+        pesanAuditKoreksi("Qty PO berhasil dikoreksi, total ikut disesuaikan.", true, "audit-msg-po");
         pantauAuditPO();
     } catch(e){
-        pesanAuditKoreksi("Gagal mengoreksi: " + e.message, false);
+        pesanAuditKoreksi("Gagal mengoreksi: " + e.message, false, "audit-msg-po");
     }
 }
 
@@ -9098,10 +9117,10 @@ window.koreksiQtyBMB = async function(docId, itemIdx, qtyLama){
         const grandTotal = subtotal - (d.diskon || 0) - (d.pph23 || 0) + (d.ppn || 0);
 
         await setDoc(ref, { items, grand_total: grandTotal }, { merge: true });
-        pesanAuditKoreksi("Qty BMB berhasil dikoreksi, total ikut disesuaikan.", true);
+        pesanAuditKoreksi("Qty BMB berhasil dikoreksi, total ikut disesuaikan.", true, "audit-msg-bmb");
         pantauAuditBMB();
     } catch(e){
-        pesanAuditKoreksi("Gagal mengoreksi: " + e.message, false);
+        pesanAuditKoreksi("Gagal mengoreksi: " + e.message, false, "audit-msg-bmb");
     }
 }
 
