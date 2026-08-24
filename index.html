@@ -3008,6 +3008,57 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                 </div>
             </div>
 
+            <div class="page page-wide" id="page-audit-nilai-bkb">
+                <div class="page-header">
+                    <h2>💵 Nilai Barang Terpakai (BKB)</h2>
+                    <p>Kalkulasi nilai rupiah barang yang diambil dari gudang. Harga otomatis dari Harga Terakhir di Master Barang (ikut update tiap PO terbit) -- bisa dikoreksi manual per baris kalau perlu.</p>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+                    <div class="form-group" style="max-width:260px; margin-bottom:0;">
+                        <label>Tampilkan</label>
+                        <select id="audit-nilai-bkb-rentang" onchange="gantiRentangAuditNilaiBKB(this.value)">
+                            <option value="30">30 Hari Terakhir</option>
+                            <option value="90" selected>90 Hari Terakhir</option>
+                            <option value="180">6 Bulan Terakhir</option>
+                            <option value="365">1 Tahun Terakhir</option>
+                            <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
+                        </select>
+                    </div>
+                    <button class="btn-secondary" type="button" onclick="exportTableExcel('#audit-nilai-bkb-table', 'Nilai_Barang_Terpakai')">📊 Export ke Excel</button>
+                </div>
+
+                <div class="panel">
+                    <table class="tbl" id="audit-nilai-bkb-table">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>No</th>
+                                <th>Divisi</th>
+                                <th>No. BKB</th>
+                                <th>Kategori</th>
+                                <th>Nama Barang</th>
+                                <th>Jml</th>
+                                <th>Sat</th>
+                                <th>Untuk</th>
+                                <th>Harga</th>
+                                <th>Total</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-nilai-bkb-body"></tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="10" style="text-align:right; font-weight:700;">GRAND TOTAL</td>
+                                <td class="num" id="audit-nilai-bkb-grand-total" style="font-weight:700;">Rp 0</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    <div class="empty-state" id="audit-nilai-bkb-empty" style="display:none;">Tidak ada data.</div>
+                </div>
+            </div>
+
             <!-- ============================================= -->
             <!-- ROLE LAIN (placeholder, belum ada sub-menu) -->
             <!-- ============================================= -->
@@ -3316,7 +3367,8 @@ const NAV_ITEMS = {
             { id:"audit-penerimaan", label:"📥 Koreksi Penerimaan" },
             { id:"audit-bkb", label:"📤 Koreksi BKB" },
             { id:"audit-po", label:"🧾 Koreksi PO" },
-            { id:"audit-bmb", label:"💰 Koreksi BMB" }
+            { id:"audit-bmb", label:"💰 Koreksi BMB" },
+            { id:"audit-nilai-bkb", label:"💵 Nilai Barang Terpakai" }
         ]}
     ]
 };
@@ -3471,6 +3523,9 @@ window.showPage = function(id){
     }
     if(id === "audit-bmb"){
         pantauAuditBMB();
+    }
+    if(id === "audit-nilai-bkb"){
+        pantauAuditNilaiBKB();
     }
     if(id === "list-penerimaan"){
         pantauSemuaPenerimaan();
@@ -7452,6 +7507,21 @@ window.terbitkanPO = async function(){
             batch.update(doc(db, "permintaan_barang", docId), perubahan);
         });
 
+        // Simpan harga terbaru ke Master Barang tiap barang yang ada di PO ini --
+        // dipakai laporan "Nilai Barang Terpakai (BKB)" di akun audit, supaya
+        // harganya selalu mengikuti PO paling baru tanpa perlu dicari manual.
+        const hargaTerbaruPerBarang = {}; // idBarang -> harga_satuan
+        items.forEach(it => {
+            const idBarang = slugBarang(it.nama_barang || "");
+            if(idBarang) hargaTerbaruPerBarang[idBarang] = it.harga_satuan || 0;
+        });
+        Object.keys(hargaTerbaruPerBarang).forEach(idBarang => {
+            batch.set(doc(db, "master_barang", idBarang), {
+                harga_terakhir: hargaTerbaruPerBarang[idBarang],
+                harga_terakhir_diperbarui: serverTimestamp()
+            }, { merge: true });
+        });
+
         // PO dan jejaknya tersimpan bersamaan — tidak mungkin ada PO
         // yang terbit tanpa item PR-nya ikut tertandai.
         await batch.commit();
@@ -9121,6 +9191,133 @@ window.koreksiQtyBMB = async function(docId, itemIdx, qtyLama){
         pantauAuditBMB();
     } catch(e){
         pesanAuditKoreksi("Gagal mengoreksi: " + e.message, false, "audit-msg-bmb");
+    }
+}
+
+// ---- Laporan Nilai Barang Terpakai (BKB): kalkulasi rupiah barang yang keluar
+// dari gudang. Harga & Kategori diambil dari Master Barang (harga_terakhir
+// otomatis diperbarui tiap PO terbit) -- master_barang cukup diambil SEKALI
+// (bukan per-item query) supaya tetap ringan meski datanya banyak. Harga bisa
+// dikoreksi manual per baris kalau memang tidak ada di Master Barang / salah. ----
+
+let listAuditNilaiBKBRentangHari = "90";
+let auditNilaiBKBMasterMap = {}; // idBarang -> { kategori, harga_terakhir }
+
+async function pantauAuditNilaiBKB(){
+    const tbody = document.getElementById("audit-nilai-bkb-body");
+    const emptyEl = document.getElementById("audit-nilai-bkb-empty");
+    if(!tbody) return;
+
+    try{
+        // Ambil Master Barang sekali buat lookup kategori & harga.
+        const snapMaster = await getDocs(collection(db, "master_barang"));
+        auditNilaiBKBMasterMap = {};
+        snapMaster.forEach(docSnap => {
+            const d = docSnap.data();
+            auditNilaiBKBMasterMap[docSnap.id] = {
+                kategori: d.kategori || "",
+                harga_terakhir: typeof d.harga_terakhir === "number" ? d.harga_terakhir : 0
+            };
+        });
+
+        const constraints = [collection(db, "pengambilan_barang")];
+        if(listAuditNilaiBKBRentangHari !== "all"){
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - Number(listAuditNilaiBKBRentangHari));
+            constraints.push(where("created_at", ">=", cutoff));
+        }
+        constraints.push(orderBy("created_at", "desc"));
+        constraints.push(limit(500));
+        const snap = await getDocs(query(...constraints));
+
+        let html = "";
+        let no = 0;
+
+        [...snap.docs].reverse().forEach(docSnap => {
+            const d = docSnap.data();
+            if(d.status === "draft") return;
+            const tgl = d.tanggal_display || d.tanggal || "-";
+
+            (d.items || []).forEach(it => {
+                no++;
+                const idBarang = slugBarang(it.nama_barang || "");
+                const master = auditNilaiBKBMasterMap[idBarang] || { kategori: "", harga_terakhir: 0 };
+                const jumlah = Number(it.jumlah) || 0;
+                const namaAman = (it.nama_barang || "").replace(/'/g, "\\'");
+
+                html += `
+<tr>
+    <td>${tgl}</td>
+    <td>${no}</td>
+    <td>${d.divisi || "-"}</td>
+    <td>${d.no_bkb || "-"}</td>
+    <td>${master.kategori || "-"}</td>
+    <td style="white-space:normal;">${it.nama_barang || "-"}</td>
+    <td class="num">${jumlah}</td>
+    <td>${it.satuan || "-"}</td>
+    <td style="white-space:normal;">${d.untuk || "-"}</td>
+    <td><input type="number" min="0" class="audit-nilai-bkb-harga" data-jumlah="${jumlah}" oninput="hitungTotalNilaiBKB()" value="${master.harga_terakhir}"></td>
+    <td class="num audit-nilai-bkb-total">Rp 0</td>
+    <td><button class="btn-ic-edit" type="button" onclick="simpanHargaTerakhir(this, '${idBarang}', '${namaAman}')">💾 Simpan Harga</button></td>
+</tr>`;
+            });
+        });
+
+        tbody.innerHTML = html;
+        if(emptyEl) emptyEl.style.display = html ? "none" : "block";
+        window.hitungTotalNilaiBKB();
+
+    } catch(e){
+        console.error("Gagal memuat data Nilai Barang Terpakai:", e);
+    }
+}
+
+window.gantiRentangAuditNilaiBKB = function(val){
+    listAuditNilaiBKBRentangHari = val;
+    pantauAuditNilaiBKB();
+}
+
+window.hitungTotalNilaiBKB = function(){
+    let grandTotal = 0;
+    document.querySelectorAll("#audit-nilai-bkb-body tr").forEach(row => {
+        const hargaEl = row.querySelector(".audit-nilai-bkb-harga");
+        const jumlah = Number(hargaEl.dataset.jumlah) || 0;
+        const harga = Number(hargaEl.value) || 0;
+        const total = jumlah * harga;
+        row.querySelector(".audit-nilai-bkb-total").textContent = `Rp ${total.toLocaleString("id-ID")}`;
+        grandTotal += total;
+    });
+    const grandTotalEl = document.getElementById("audit-nilai-bkb-grand-total");
+    if(grandTotalEl) grandTotalEl.textContent = `Rp ${grandTotal.toLocaleString("id-ID")}`;
+}
+
+// Simpan koreksi harga balik ke Master Barang -- supaya laporan berikutnya
+// (dan barang yang sama di baris lain) otomatis ikut pakai harga yang benar.
+window.simpanHargaTerakhir = async function(btnEl, idBarang, namaBarang){
+    const row = btnEl.closest("tr");
+    const harga = Number(row.querySelector(".audit-nilai-bkb-harga").value) || 0;
+
+    if(!idBarang){
+        alert(`Tidak bisa menyimpan -- nama barang "${namaBarang}" tidak valid untuk dijadikan ID Master Barang.`);
+        return;
+    }
+
+    const labelAsli = btnEl.textContent;
+    btnEl.disabled = true;
+    btnEl.textContent = "Menyimpan...";
+
+    try{
+        await setDoc(doc(db, "master_barang", idBarang), {
+            harga_terakhir: harga,
+            harga_terakhir_diperbarui: serverTimestamp()
+        }, { merge: true });
+        auditNilaiBKBMasterMap[idBarang] = { ...(auditNilaiBKBMasterMap[idBarang] || {}), harga_terakhir: harga };
+        btnEl.textContent = "✔ Tersimpan";
+        setTimeout(() => { btnEl.textContent = labelAsli; btnEl.disabled = false; }, 1500);
+    } catch(e){
+        alert("Gagal menyimpan harga: " + e.message);
+        btnEl.textContent = labelAsli;
+        btnEl.disabled = false;
     }
 }
 
