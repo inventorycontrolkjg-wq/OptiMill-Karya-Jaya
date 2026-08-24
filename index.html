@@ -381,28 +381,74 @@ table.tbl th{
     background:#f7f9fc;
 }
 
-tr.tbl-filter-row th{
-    padding:4px 6px;
-    background:#fff;
+.tbl-filter-icon{
+    display:inline-block;
+    margin-left:4px;
+    cursor:pointer;
+    color:#8d8d8d;
+    font-size:10px;
 }
 
-.tbl-filter-input{
-    width:100%;
-    box-sizing:border-box;
-    padding:5px 6px;
-    font-size:11.5px;
-    font-weight:400;
+.tbl-filter-icon:hover{ color:#1565c0; }
+.tbl-filter-icon.aktif{ color:#1565c0; font-weight:900; }
+
+.tbl-filter-popup{
+    position:absolute;
+    top:100%;
+    left:0;
+    z-index:50;
+    background:#fff;
+    border:1px solid #ccc;
+    border-radius:8px;
+    box-shadow:0 6px 18px rgba(0,0,0,.15);
+    padding:8px;
+    width:220px;
+    text-align:left;
     text-transform:none;
     letter-spacing:normal;
+    font-weight:400;
+}
+
+.tbl-filter-popup-actions{
+    display:flex;
+    justify-content:space-between;
+    gap:6px;
+    margin-bottom:6px;
+    padding-bottom:6px;
+    border-bottom:1px solid #eee;
+}
+
+.tbl-filter-popup-actions button{
+    flex:1;
+    font-size:11px;
+    padding:4px 6px;
     border:1px solid #ccc;
     border-radius:5px;
+    background:#f7f9fc;
+    cursor:pointer;
     color:#333;
 }
 
-.tbl-filter-input:focus{
-    outline:none;
-    border-color:#1565c0;
+.tbl-filter-popup-actions button:hover{ background:#e3f2fd; }
+
+.tbl-filter-popup-list{
+    max-height:220px;
+    overflow-y:auto;
 }
+
+.tbl-filter-popup-item{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:12px;
+    padding:4px 2px;
+    cursor:pointer;
+    color:#333;
+    white-space:normal;
+    word-break:break-word;
+}
+
+.tbl-filter-popup-item:hover{ background:#f2f6fb; }
 
 table.tbl td{
     padding:11px 8px;
@@ -2365,11 +2411,11 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                     <table class="tbl">
                         <thead>
                             <tr>
-                                <th>No. PO</th>
-                                <th>Tanggal</th>
-                                <th>Nama Supplier</th>
-                                <th>Metode Payment</th>
-                                <th>Tenor</th>
+                                <th>No. PO <span class="tbl-filter-icon" onclick="window.bukaFilterPO(0, event)">▾</span></th>
+                                <th>Tanggal <span class="tbl-filter-icon" onclick="window.bukaFilterPO(1, event)">▾</span></th>
+                                <th>Nama Supplier <span class="tbl-filter-icon" onclick="window.bukaFilterPO(2, event)">▾</span></th>
+                                <th>Metode Payment <span class="tbl-filter-icon" onclick="window.bukaFilterPO(3, event)">▾</span></th>
+                                <th>Tenor <span class="tbl-filter-icon" onclick="window.bukaFilterPO(4, event)">▾</span></th>
                                 <th>No PR Urut</th>
                                 <th>Nama Barang</th>
                                 <th>Jumlah</th>
@@ -2383,26 +2429,6 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                                 <th>Keterangan Internal</th>
                                 <th>Dibeli Oleh</th>
                                 <th>Aksi</th>
-                            </tr>
-                            <tr class="tbl-filter-row">
-                                <th><input type="text" class="tbl-filter-input" data-col="0" placeholder="Filter..." oninput="applyListPOFilters()"></th>
-                                <th><input type="text" class="tbl-filter-input" data-col="1" placeholder="Filter..." oninput="applyListPOFilters()"></th>
-                                <th><input type="text" class="tbl-filter-input" data-col="2" placeholder="Filter..." oninput="applyListPOFilters()"></th>
-                                <th><input type="text" class="tbl-filter-input" data-col="3" placeholder="Filter..." oninput="applyListPOFilters()"></th>
-                                <th><input type="text" class="tbl-filter-input" data-col="4" placeholder="Filter..." oninput="applyListPOFilters()"></th>
-                                <th><input type="text" class="tbl-filter-input" data-col="5" placeholder="Filter..." oninput="applyListPOFilters()"></th>
-                                <th><input type="text" class="tbl-filter-input" data-col="6" placeholder="Filter..." oninput="applyListPOFilters()"></th>
-                                <th><input type="text" class="tbl-filter-input" data-col="7" placeholder="Filter..." oninput="applyListPOFilters()"></th>
-                                <th><input type="text" class="tbl-filter-input" data-col="8" placeholder="Filter..." oninput="applyListPOFilters()"></th>
-                                <th><input type="text" class="tbl-filter-input" data-col="9" placeholder="Filter..." oninput="applyListPOFilters()"></th>
-                                <th><input type="text" class="tbl-filter-input" data-col="10" placeholder="Filter..." oninput="applyListPOFilters()"></th>
-                                <th><input type="text" class="tbl-filter-input" data-col="11" placeholder="Filter..." oninput="applyListPOFilters()"></th>
-                                <th><input type="text" class="tbl-filter-input" data-col="12" placeholder="Filter..." oninput="applyListPOFilters()"></th>
-                                <th><input type="text" class="tbl-filter-input" data-col="13" placeholder="Filter..." oninput="applyListPOFilters()"></th>
-                                <th><input type="text" class="tbl-filter-input" data-col="14" placeholder="Filter..." oninput="applyListPOFilters()"></th>
-                                <th><input type="text" class="tbl-filter-input" data-col="15" placeholder="Filter..." oninput="applyListPOFilters()"></th>
-                                <th><input type="text" class="tbl-filter-input" data-col="16" placeholder="Filter..." oninput="applyListPOFilters()"></th>
-                                <th></th>
                             </tr>
                         </thead>
                         <tbody id="po-list-body"></tbody>
@@ -3442,22 +3468,113 @@ window.cekKetersediaanStok = function(){
 // gabungan/rowspan, ikut terbawa jadi merged cell di Excel-nya) -- dipakai semua
 // halaman List di purchasing & gudang, supaya tidak perlu logika terpisah tiap
 // halaman.
-// Filter per kolom di List PO -- mirip AutoFilter Excel, tapi berbasis teks (bukan
-// checklist nilai unik) supaya lebih ringan dibangun. Karena tabelnya pakai rowspan
-// (No PO/Tanggal/Supplier/dst menyatu untuk beberapa baris barang), filternya bekerja
-// per KELOMPOK PO -- satu kelompok tetap ditampilkan utuh kalau SALAH SATU barisnya
-// cocok dengan SEMUA filter kolom yang sedang aktif diisi.
+// Filter List PO ala Excel/Sheets: cuma di 5 kolom yang di-merge (No PO, Tanggal,
+// Supplier, Metode Payment, Tenor) -- karena kolom itu nilainya cuma satu per PO,
+// jadi cukup dicek sekali per grup, tidak perlu cek tiap baris barang satu-satu.
+let poFilterOptions = { 0:[], 1:[], 2:[], 3:[], 4:[] }; // kolom -> daftar nilai unik yang tersedia
+let poActiveFilters = {}; // kolom -> Set nilai yang dicentang (kosong/tidak ada entry = semua dicentang, tidak difilter)
+
+// Dipanggil dari pantauPurchasingListPO() tiap kali data diperbarui, supaya daftar
+// nilai unik di tiap dropdown selalu sesuai data yang sedang tampil.
+function hitungOpsiFilterPO(daftarDoc){
+    const label = { 0:"no_po", 1:"tanggal", 2:"vendor", 3:"metode_payment", 4:"tenor" };
+    const set = { 0:new Set(), 1:new Set(), 2:new Set(), 3:new Set(), 4:new Set() };
+
+    daftarDoc.forEach(d => {
+        set[0].add(d.no_po || "-");
+        set[1].add(d.tanggal_display || d.tanggal || "-");
+        set[2].add(d.vendor || "-");
+        set[3].add(d.metode_payment || "-");
+        set[4].add(d.metode_payment === "KREDIT" ? (d.tenor || "-") : "-");
+    });
+
+    poFilterOptions = {
+        0: Array.from(set[0]).sort(),
+        1: Array.from(set[1]).sort(),
+        2: Array.from(set[2]).sort(),
+        3: Array.from(set[3]).sort(),
+        4: Array.from(set[4]).sort()
+    };
+
+    perbaruiIkonFilterPO();
+}
+
+function perbaruiIkonFilterPO(){
+    document.querySelectorAll("#page-purchasing-list-po .tbl-filter-icon").forEach((icon, col) => {
+        icon.classList.toggle("aktif", !!poActiveFilters[col]);
+    });
+}
+
+window.bukaFilterPO = function(col, event){
+    event.stopPropagation();
+    document.querySelectorAll(".tbl-filter-popup").forEach(p => p.remove());
+
+    const options = poFilterOptions[col] || [];
+    const selected = poActiveFilters[col]; // Set atau undefined (undefined = semua tercentang)
+
+    const popup = document.createElement("div");
+    popup.className = "tbl-filter-popup";
+    popup.onclick = (e) => e.stopPropagation();
+    popup.innerHTML = `
+        <div class="tbl-filter-popup-actions">
+            <button type="button" onclick="window.toggleAllFilterPO(${col}, true)">Pilih Semua</button>
+            <button type="button" onclick="window.toggleAllFilterPO(${col}, false)">Kosongkan</button>
+        </div>
+        <div class="tbl-filter-popup-list">
+            ${options.map(val => `
+                <label class="tbl-filter-popup-item">
+                    <input type="checkbox" value="${String(val).replace(/"/g, "&quot;")}" ${(!selected || selected.has(val)) ? "checked" : ""} onchange="window.onCentangFilterPO(${col}, this)">
+                    <span>${val || "(kosong)"}</span>
+                </label>
+            `).join("")}
+        </div>
+    `;
+
+    const th = event.currentTarget.closest("th");
+    th.style.position = "relative";
+    th.appendChild(popup);
+
+    setTimeout(() => {
+        document.addEventListener("click", function tutupSekali(e){
+            if(!popup.contains(e.target)){
+                popup.remove();
+                document.removeEventListener("click", tutupSekali);
+            }
+        });
+    }, 0);
+}
+
+window.onCentangFilterPO = function(col, checkbox){
+    const options = poFilterOptions[col] || [];
+    if(!poActiveFilters[col]){
+        poActiveFilters[col] = new Set(options); // mulai dari semua tercentang
+    }
+    if(checkbox.checked) poActiveFilters[col].add(checkbox.value);
+    else poActiveFilters[col].delete(checkbox.value);
+
+    // Kalau semua balik tercentang, anggap filter kolom ini tidak aktif lagi.
+    if(poActiveFilters[col].size >= options.length) delete poActiveFilters[col];
+
+    perbaruiIkonFilterPO();
+    window.applyListPOFilters();
+}
+
+window.toggleAllFilterPO = function(col, pilihSemua){
+    if(pilihSemua){
+        delete poActiveFilters[col];
+    } else {
+        poActiveFilters[col] = new Set();
+    }
+    document.querySelectorAll(".tbl-filter-popup-item input").forEach(cb => { cb.checked = pilihSemua; });
+    perbaruiIkonFilterPO();
+    window.applyListPOFilters();
+}
+
 window.applyListPOFilters = function(){
     const table = document.querySelector("#page-purchasing-list-po table");
     if(!table) return;
     const tbody = table.querySelector("tbody");
     if(!tbody) return;
-
-    const filtersAktif = [];
-    table.querySelectorAll(".tbl-filter-input").forEach(inp => {
-        const val = inp.value.trim().toLowerCase();
-        if(val !== "") filtersAktif.push({ col: Number(inp.dataset.col), text: val });
-    });
 
     const allRows = Array.from(tbody.querySelectorAll("tr"));
     const groups = [];
@@ -3474,32 +3591,24 @@ window.applyListPOFilters = function(){
 
     groups.forEach(grpRows => {
         const firstRow = grpRows[0];
+        const cells = Array.from(firstRow.children);
+        // Kolom 0-4 adalah kolom yang di-rowspan, nilainya diambil dari baris pertama grup.
+        const nilaiGrup = {
+            0: (cells[0]?.textContent || "").trim(),
+            1: (cells[1]?.textContent || "").trim(),
+            2: (cells[2]?.textContent || "").trim(),
+            3: (cells[3]?.textContent || "").trim(),
+            4: (cells[4]?.textContent || "").trim()
+        };
 
-        // Nilai kolom yang di-rowspan (No PO/Tanggal/Supplier/Payment/Tenor/Aksi),
-        // diambil dari baris pertama grup -- "diwariskan" ke semua baris di grup itu.
-        const rowspanValues = {};
-        Array.from(firstRow.children).forEach((td, i) => {
-            const span = Number(td.getAttribute("rowspan")) || 1;
-            if(span > 1) rowspanValues[i] = (td.textContent || "").trim().toLowerCase();
+        const cocok = [0, 1, 2, 3, 4].every(col => {
+            const filterSet = poActiveFilters[col];
+            if(!filterSet) return true;
+            return filterSet.has(nilaiGrup[col]);
         });
 
-        let grupCocok = false;
-
-        grpRows.forEach(tr => {
-            const nilaiBaris = { ...rowspanValues };
-            let idx = (tr === firstRow) ? 0 : 5; // baris lanjutan grup mulai dari kolom No PR Urut (index 5)
-            Array.from(tr.children).forEach(td => {
-                const span = Number(td.getAttribute("rowspan")) || 1;
-                if(span === 1) nilaiBaris[idx] = (td.textContent || "").trim().toLowerCase();
-                idx += 1;
-            });
-
-            const cocok = filtersAktif.every(f => (nilaiBaris[f.col] || "").includes(f.text));
-            if(cocok) grupCocok = true;
-        });
-
-        grpRows.forEach(tr => { tr.style.display = grupCocok ? "" : "none"; });
-        if(grupCocok) adaYangTampil = true;
+        grpRows.forEach(tr => { tr.style.display = cocok ? "" : "none"; });
+        if(cocok) adaYangTampil = true;
     });
 
     const emptyEl = document.getElementById("po-list-empty");
@@ -3507,7 +3616,8 @@ window.applyListPOFilters = function(){
 }
 
 window.resetListPOFilters = function(){
-    document.querySelectorAll("#page-purchasing-list-po .tbl-filter-input").forEach(inp => inp.value = "");
+    poActiveFilters = {};
+    perbaruiIkonFilterPO();
     window.applyListPOFilters();
 }
 
@@ -7047,10 +7157,12 @@ function pantauPurchasingListPO(){
 
         let html = "";
         let grp = 0;
+        const daftarDocUntukFilter = [];
 
         [...snapshot.docs].reverse().forEach(docSnap => {
             const d = docSnap.data();
             poListMap[docSnap.id] = d;
+            daftarDocUntukFilter.push(d);
 
             const items = d.items && d.items.length ? d.items : [{}];
             grp++;
@@ -7100,6 +7212,7 @@ function pantauPurchasingListPO(){
         });
 
         tbody.innerHTML = html;
+        hitungOpsiFilterPO(daftarDocUntukFilter);
         window.applyListPOFilters(); // pertahankan filter yang sedang aktif kalau ada update live
 
     }, err => console.error("Gagal memuat List PO:", err));
