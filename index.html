@@ -409,6 +409,22 @@ table.tbl th{
     font-weight:400;
 }
 
+.tbl-filter-popup-search{
+    width:100%;
+    box-sizing:border-box;
+    padding:6px 8px;
+    font-size:12px;
+    border:1px solid #ccc;
+    border-radius:5px;
+    margin-bottom:6px;
+    color:#333;
+}
+
+.tbl-filter-popup-search:focus{
+    outline:none;
+    border-color:#1565c0;
+}
+
 .tbl-filter-popup-actions{
     display:flex;
     justify-content:space-between;
@@ -3516,13 +3532,14 @@ window.bukaFilterPO = function(col, event){
     popup.className = "tbl-filter-popup";
     popup.onclick = (e) => e.stopPropagation();
     popup.innerHTML = `
+        <input type="text" class="tbl-filter-popup-search" placeholder="🔍 Cari nilai..." oninput="window.cariDalamFilterPO(this)">
         <div class="tbl-filter-popup-actions">
             <button type="button" onclick="window.toggleAllFilterPO(${col}, true)">Pilih Semua</button>
             <button type="button" onclick="window.toggleAllFilterPO(${col}, false)">Kosongkan</button>
         </div>
         <div class="tbl-filter-popup-list">
             ${options.map(val => `
-                <label class="tbl-filter-popup-item">
+                <label class="tbl-filter-popup-item" data-label="${String(val).toLowerCase().replace(/"/g, "&quot;")}">
                     <input type="checkbox" value="${String(val).replace(/"/g, "&quot;")}" ${(!selected || selected.has(val)) ? "checked" : ""} onchange="window.onCentangFilterPO(${col}, this)">
                     <span>${val || "(kosong)"}</span>
                 </label>
@@ -3533,6 +3550,7 @@ window.bukaFilterPO = function(col, event){
     const th = event.currentTarget.closest("th");
     th.style.position = "relative";
     th.appendChild(popup);
+    popup.querySelector(".tbl-filter-popup-search").focus();
 
     setTimeout(() => {
         document.addEventListener("click", function tutupSekali(e){
@@ -3542,6 +3560,17 @@ window.bukaFilterPO = function(col, event){
             }
         });
     }, 0);
+}
+
+// Kotak cari cuma menyembunyikan/menampilkan baris checklist -- TIDAK mengubah
+// centang yang sudah dipilih, persis seperti kotak cari di Google Sheets.
+window.cariDalamFilterPO = function(inputEl){
+    const kata = inputEl.value.trim().toLowerCase();
+    const popup = inputEl.closest(".tbl-filter-popup");
+    popup.querySelectorAll(".tbl-filter-popup-item").forEach(item => {
+        const label = item.dataset.label || "";
+        item.style.display = label.includes(kata) ? "" : "none";
+    });
 }
 
 window.onCentangFilterPO = function(col, checkbox){
