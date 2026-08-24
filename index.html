@@ -2481,10 +2481,23 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
 
                 <div class="panel">
 
-                    <div class="form-group" style="max-width:420px; margin-bottom:16px;">
-                        <label>Pilih No. Penerimaan *</label>
-                        <input type="text" id="bmb-pilih-penerimaan" list="bmb-penerimaan-datalist" autocomplete="off" placeholder="Ketik/pilih No. Penerimaan..." onchange="pilihPenerimaanUntukBMB()">
-                        <datalist id="bmb-penerimaan-datalist"></datalist>
+                    <p class="mb-hint" style="margin-bottom:10px;">
+                        Pilih <b>salah satu</b> cara: dari satu Penerimaan spesifik (kalau mau ditagih per pengiriman),
+                        atau dari No. PO (menggabungkan SEMUA penerimaan yang sudah masuk untuk PO itu jadi satu BMB --
+                        cocok kalau satu PO dikirim bertahap beberapa kali). Tidak bisa isi keduanya sekaligus.
+                    </p>
+
+                    <div class="opb-header-grid" style="grid-template-columns:1fr 1fr;">
+                        <div class="form-group">
+                            <label>Pilih No. Penerimaan</label>
+                            <input type="text" id="bmb-pilih-penerimaan" list="bmb-penerimaan-datalist" autocomplete="off" placeholder="Ketik/pilih No. Penerimaan..." onchange="pilihPenerimaanUntukBMB()">
+                            <datalist id="bmb-penerimaan-datalist"></datalist>
+                        </div>
+                        <div class="form-group">
+                            <label>Pilih No. PO (gabungan semua penerimaan)</label>
+                            <input type="text" id="bmb-pilih-po" list="bmb-po-datalist" autocomplete="off" placeholder="Ketik/pilih No. PO..." onchange="pilihPOuntukBMB()">
+                            <datalist id="bmb-po-datalist"></datalist>
+                        </div>
                     </div>
 
                     <div id="bmb-form-detail" style="display:none;">
@@ -3129,6 +3142,7 @@ window.showPage = function(id){
     }
     if(id === "purchasing-input-bmb"){
         pantauPurchasingListPenerimaanUntukBMB();
+        pantauPurchasingListPOuntukBMBAggregat();
         resetFormBMB();
     }
     if(id === "purchasing-list-bmb"){
@@ -7515,10 +7529,47 @@ window.cetakPO = function(id){
 
 let bmbPenerimaanMap = {}; // no_penerimaan -> { id, data }
 let bmbSelectedPenerimaan = null; // { id, data, noPRUrutToDocId }
+let bmbPOAgregatMap = {}; // no_po -> { id, data }
+let bmbSelectedPOAgregat = null; // { id, data, noPRUrutToDocId }
 let unsubListBMB = null;
 let bmbListMap = {};
 let listBMBRentangHari = "90";
 let bmbNoPenerimaanSudahBMB = new Set(); // no_penerimaan yang sudah pernah dibuatkan BMB
+let bmbNoPOSudahAgregat = new Set(); // no_po yang sudah pernah dibuatkan BMB gabungan
+
+// Ambil daftar No. PO untuk datalist pemilih jalur "gabungan" -- HANYA yang belum
+// pernah dibuatkan BMB gabungan sebelumnya (jalur ini terpisah dari jalur per
+// Penerimaan, jadi dilacak dengan penanda field yang berbeda: po_doc_id_agregat).
+async function pantauPurchasingListPOuntukBMBAggregat(){
+    try{
+        const snapBMB = await getDocs(query(collection(db, "bmb_faktur"), limit(1000)));
+        const poDocIdSudahAgregat = new Set();
+        snapBMB.forEach(docSnap => {
+            const dBMB = docSnap.data();
+            if(dBMB.po_doc_id_agregat) poDocIdSudahAgregat.add(dBMB.po_doc_id_agregat);
+        });
+
+        const snapPO = await getDocs(query(collection(db, "po_barang"), orderBy("created_at", "desc"), limit(500)));
+        bmbPOAgregatMap = {};
+        bmbNoPOSudahAgregat = new Set();
+        let optionsHtml = "";
+
+        snapPO.forEach(docSnap => {
+            const d = docSnap.data();
+            if(poDocIdSudahAgregat.has(docSnap.id)){
+                bmbNoPOSudahAgregat.add(d.no_po);
+                return;
+            }
+            bmbPOAgregatMap[d.no_po] = { id: docSnap.id, data: d };
+            optionsHtml += `<option value="${d.no_po}"></option>`;
+        });
+
+        const dl = document.getElementById("bmb-po-datalist");
+        if(dl) dl.innerHTML = optionsHtml;
+    } catch(e){
+        console.error("Gagal memuat daftar PO untuk BMB gabungan:", e);
+    }
+}
 
 // Ambil daftar No. Penerimaan untuk datalist pemilih di form Input BMB -- HANYA
 // yang belum pernah dibuatkan BMB, supaya tidak ada yang tidak sengaja dobel.
@@ -7582,6 +7633,16 @@ window.pilihPenerimaanUntukBMB = async function(){
     const noPnm = document.getElementById("bmb-pilih-penerimaan").value.trim();
     const msgEl = document.getElementById("bmb-msg");
     msgEl.style.display = "none";
+
+    const poField = document.getElementById("bmb-pilih-po");
+
+    if(noPnm === ""){
+        poField.disabled = false;
+        return;
+    }
+    poField.value = "";
+    poField.disabled = true;
+    bmbSelectedPOAgregat = null;
 
     const entry = bmbPenerimaanMap[noPnm];
     if(!entry){
@@ -7673,6 +7734,109 @@ window.pilihPenerimaanUntukBMB = async function(){
     window.hitungTotalBMB();
 }
 
+// Jalur "gabungan" -- pilih dari No. PO, ambil jumlah diterima KUMULATIF (total
+// dari semua Surat Jalan/Penerimaan yang sudah masuk untuk PO ini sampai sekarang,
+// bukan cuma satu pengiriman) dari item_progress.<no_urut>.diterima yang memang
+// sudah otomatis terjumlah tiap ada Input Penerimaan baru. Cocok kalau satu PO
+// dikirim bertahap dan mau ditagih sekali jalan, bukan per pengiriman.
+window.pilihPOuntukBMB = async function(){
+
+    const noPO = document.getElementById("bmb-pilih-po").value.trim();
+    const msgEl = document.getElementById("bmb-msg");
+    msgEl.style.display = "none";
+
+    const pnmField = document.getElementById("bmb-pilih-penerimaan");
+
+    if(noPO === ""){
+        pnmField.disabled = false;
+        return;
+    }
+    pnmField.value = "";
+    pnmField.disabled = true;
+    bmbSelectedPenerimaan = null;
+
+    const entry = bmbPOAgregatMap[noPO];
+    if(!entry){
+        msgEl.textContent = bmbNoPOSudahAgregat.has(noPO)
+            ? `No. PO "${noPO}" sudah pernah dibuatkan BMB gabungan sebelumnya.`
+            : `No. PO "${noPO}" tidak ditemukan. Pilih dari daftar yang muncul.`;
+        msgEl.className = "form-msg err";
+        msgEl.style.display = "block";
+        document.getElementById("bmb-form-detail").style.display = "none";
+        bmbSelectedPOAgregat = null;
+        return;
+    }
+
+    const d = entry.data;
+    const daftarPR = d.daftar_no_pr || [];
+    const noPRUrutToDocId = {};
+    const itemProgressPerNoPR = {};
+    const divisiPerNoPR = {};
+    let adaJejakBMBSebelumnya = false;
+
+    try{
+        for(const noPR of daftarPR){
+            const snapPR = await getDocs(query(collection(db, "permintaan_barang"), where("no_pr", "==", noPR), limit(1)));
+            if(!snapPR.empty){
+                const docSnapPR = snapPR.docs[0];
+                const dPR = docSnapPR.data();
+                const progress = dPR.item_progress || {};
+                itemProgressPerNoPR[noPR] = progress;
+                divisiPerNoPR[noPR] = dPR.divisi || "";
+                (dPR.items || []).forEach((itPR, idx) => {
+                    const noUrut = noUrutItem(noPR, idx);
+                    noPRUrutToDocId[noUrut] = docSnapPR.id;
+                    if(progress[noUrut] && progress[noUrut].bmb) adaJejakBMBSebelumnya = true;
+                });
+            }
+        }
+    } catch(e){
+        msgEl.textContent = "Gagal mengambil data penerimaan dari gudang: " + e.message;
+        msgEl.className = "form-msg err";
+        msgEl.style.display = "block";
+        return;
+    }
+
+    bmbSelectedPOAgregat = { id: entry.id, data: d, noPRUrutToDocId };
+
+    const semuaDivisi = Array.from(new Set(daftarPR.map(np => divisiPerNoPR[np]).filter(Boolean)));
+
+    document.getElementById("bmb-no-penerimaan").value = "(gabungan semua penerimaan PO ini)";
+    document.getElementById("bmb-no-po").value = d.no_po;
+    document.getElementById("bmb-supplier").value = d.vendor || "-";
+    const tanggalHariIni = new Date().toISOString().slice(0, 10);
+    document.getElementById("bmb-tanggal-display").value = formatTanggalIndo(tanggalHariIni);
+    document.getElementById("bmb-pembeli").value = currentUserNama || "-";
+    document.getElementById("bmb-untuk").value = semuaDivisi.join(", ") || "-";
+
+    const tbody = document.getElementById("bmb-items-body");
+    tbody.innerHTML = (d.items || []).map((it, i) => {
+        const progress = itemProgressPerNoPR[it.no_pr] || {};
+        const diterimaKumulatif = Number((progress[it.no_pr_urut] || {}).diterima) || 0;
+        return `
+<tr>
+    <td>${i + 1}</td>
+    <td style="white-space:normal;">${it.nama_barang || "-"}</td>
+    <td>${it.satuan || "-"}</td>
+    <td class="num">${it.jumlah ?? "-"}</td>
+    <td><input type="number" min="0" class="bmb-input-diterima" oninput="hitungTotalBMB()" value="${diterimaKumulatif}"></td>
+    <td><input type="number" min="0" class="bmb-input-harga" oninput="hitungTotalBMB()" value="${it.harga_satuan || 0}"></td>
+    <td class="num" id="bmb-total-${i}">Rp 0</td>
+</tr>`;
+    }).join("");
+
+    document.getElementById("bmb-form-detail").style.display = "block";
+
+    if(adaJejakBMBSebelumnya){
+        msgEl.textContent = "⚠ Perhatian: sebagian barang di PO ini sudah pernah masuk BMB lewat jalur per-Penerimaan sebelumnya. Cek ulang supaya tidak double, sebelum menyimpan.";
+        msgEl.className = "form-msg err";
+        msgEl.style.display = "block";
+    }
+
+    document.getElementById("bmb-no-preview").value = await previewNoBMB();
+    window.hitungTotalBMB();
+}
+
 window.hitungTotalBMB = function(){
     const rows = document.querySelectorAll("#bmb-items-body tr");
     let subtotal = 0;
@@ -7696,6 +7860,9 @@ window.hitungTotalBMB = function(){
 
 function resetFormBMB(){
     document.getElementById("bmb-pilih-penerimaan").value = "";
+    document.getElementById("bmb-pilih-penerimaan").disabled = false;
+    document.getElementById("bmb-pilih-po").value = "";
+    document.getElementById("bmb-pilih-po").disabled = false;
     document.getElementById("bmb-form-detail").style.display = "none";
     document.getElementById("bmb-items-body").innerHTML = "";
     document.getElementById("bmb-diskon").value = "0";
@@ -7704,6 +7871,7 @@ function resetFormBMB(){
     document.getElementById("bmb-keterangan").value = "";
     document.getElementById("bmb-msg").style.display = "none";
     bmbSelectedPenerimaan = null;
+    bmbSelectedPOAgregat = null;
 }
 
 window.submitBMB = async function(){
@@ -7711,14 +7879,16 @@ window.submitBMB = async function(){
     const msgEl = document.getElementById("bmb-msg");
     msgEl.style.display = "none";
 
-    if(!bmbSelectedPenerimaan){
-        msgEl.textContent = "Pilih No. Penerimaan dulu.";
+    if(!bmbSelectedPenerimaan && !bmbSelectedPOAgregat){
+        msgEl.textContent = "Pilih No. Penerimaan atau No. PO dulu.";
         msgEl.className = "form-msg err";
         msgEl.style.display = "block";
         return;
     }
 
-    const d = bmbSelectedPenerimaan.data; // dokumen Penerimaan
+    const jalurPO = !!bmbSelectedPOAgregat; // true = jalur gabungan (dari No. PO)
+    const sumberTerpilih = jalurPO ? bmbSelectedPOAgregat : bmbSelectedPenerimaan;
+    const d = sumberTerpilih.data; // dokumen Penerimaan ATAU dokumen PO, tergantung jalur
     const rows = document.querySelectorAll("#bmb-items-body tr");
     const items = [];
     let subtotal = 0;
@@ -7733,7 +7903,7 @@ window.submitBMB = async function(){
         subtotal += totalHarga;
 
         items.push({
-            no_pr_urut: itemAsli.no_urut || "",
+            no_pr_urut: jalurPO ? (itemAsli.no_pr_urut || "") : (itemAsli.no_urut || ""),
             nama_barang: itemAsli.nama_barang || "",
             satuan: itemAsli.satuan || "",
             jumlah_diterima: diterima,
@@ -7759,14 +7929,16 @@ window.submitBMB = async function(){
 
     try{
         // Cek ulang sesaat sebelum simpan -- jaga-jaga kalau ada dua purchasing yang
-        // kebetulan buka Penerimaan yang sama bersamaan sebelum salah satunya submit.
-        const cekUlang = await getDocs(query(collection(db, "bmb_faktur"), where("penerimaan_doc_id", "==", bmbSelectedPenerimaan.id), limit(1)));
+        // kebetulan pilih sumber yang sama bersamaan sebelum salah satunya submit.
+        const kolomCek = jalurPO ? "po_doc_id_agregat" : "penerimaan_doc_id";
+        const cekUlang = await getDocs(query(collection(db, "bmb_faktur"), where(kolomCek, "==", sumberTerpilih.id), limit(1)));
         if(!cekUlang.empty){
-            msgEl.textContent = "Penerimaan ini baru saja dibuatkan BMB oleh proses lain. Silakan pilih Penerimaan lain.";
+            msgEl.textContent = "Sumber ini baru saja dibuatkan BMB oleh proses lain. Silakan pilih sumber lain.";
             msgEl.className = "form-msg err";
             msgEl.style.display = "block";
             if(btn){ btn.disabled = false; btn.textContent = "🧾 Simpan BMB / Faktur"; }
             pantauPurchasingListPenerimaanUntukBMB();
+            pantauPurchasingListPOuntukBMBAggregat();
             return;
         }
 
@@ -7774,11 +7946,9 @@ window.submitBMB = async function(){
         const tanggalISO = new Date().toISOString().slice(0, 10);
 
         const batch = writeBatch(db);
-
-        batch.set(doc(collection(db, "bmb_faktur")), {
+        const dataBMB = {
             no_bmb: noBMB,
-            no_penerimaan: d.no_penerimaan,
-            penerimaan_doc_id: bmbSelectedPenerimaan.id,
+            sumber: jalurPO ? "po" : "penerimaan",
             no_po: document.getElementById("bmb-no-po").value,
             supplier: document.getElementById("bmb-supplier").value,
             tanggal: tanggalISO,
@@ -7792,13 +7962,23 @@ window.submitBMB = async function(){
             dibuat_oleh_uid: auth.currentUser.uid,
             dibuat_oleh_email: auth.currentUser.email,
             created_at: serverTimestamp()
-        });
+        };
+
+        if(jalurPO){
+            dataBMB.po_doc_id_agregat = sumberTerpilih.id;
+            dataBMB.no_penerimaan = "(gabungan)";
+        } else {
+            dataBMB.no_penerimaan = d.no_penerimaan;
+            dataBMB.penerimaan_doc_id = sumberTerpilih.id;
+        }
+
+        batch.set(doc(collection(db, "bmb_faktur")), dataBMB);
 
         // Tandai jejak "sudah masuk BMB" di item_progress tiap PR terkait -- dipakai
         // kolom Status BMB (✔/✗) di List Permintaan Approve. Lookup langsung per
         // No. PR Urut (bukan lewat No. PR dulu), sama seperti pola PO yang sudah jalan.
         items.forEach(it => {
-            const docId = bmbSelectedPenerimaan.noPRUrutToDocId[it.no_pr_urut];
+            const docId = sumberTerpilih.noPRUrutToDocId[it.no_pr_urut];
             if(!docId) return;
             batch.update(doc(db, "permintaan_barang", docId), {
                 [`item_progress.${it.no_pr_urut}.bmb`]: { no_bmb: noBMB, tanggal: tanggalISO }
@@ -7813,6 +7993,7 @@ window.submitBMB = async function(){
 
         resetFormBMB();
         pantauPurchasingListPenerimaanUntukBMB();
+        pantauPurchasingListPOuntukBMBAggregat();
 
     } catch(e){
         msgEl.textContent = "Gagal menyimpan BMB: " + e.message;
