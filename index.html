@@ -381,6 +381,29 @@ table.tbl th{
     background:#f7f9fc;
 }
 
+tr.tbl-filter-row th{
+    padding:4px 6px;
+    background:#fff;
+}
+
+.tbl-filter-input{
+    width:100%;
+    box-sizing:border-box;
+    padding:5px 6px;
+    font-size:11.5px;
+    font-weight:400;
+    text-transform:none;
+    letter-spacing:normal;
+    border:1px solid #ccc;
+    border-radius:5px;
+    color:#333;
+}
+
+.tbl-filter-input:focus{
+    outline:none;
+    border-color:#1565c0;
+}
+
 table.tbl td{
     padding:11px 8px;
     border:1px solid #000;
@@ -2333,7 +2356,10 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                             <option value="all">Semua (bisa lambat kalau datanya sudah banyak)</option>
                         </select>
                     </div>
-                    <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-purchasing-list-po table', 'List_PO')">📊 Export ke Excel</button>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn-secondary" type="button" onclick="resetListPOFilters()">✕ Reset Filter</button>
+                        <button class="btn-secondary" type="button" onclick="exportTableExcel('#page-purchasing-list-po table', 'List_PO')">📊 Export ke Excel</button>
+                    </div>
                 </div>
                 <div class="panel">
                     <table class="tbl">
@@ -2357,6 +2383,26 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                                 <th>Keterangan Internal</th>
                                 <th>Dibeli Oleh</th>
                                 <th>Aksi</th>
+                            </tr>
+                            <tr class="tbl-filter-row">
+                                <th><input type="text" class="tbl-filter-input" data-col="0" placeholder="Filter..." oninput="applyListPOFilters()"></th>
+                                <th><input type="text" class="tbl-filter-input" data-col="1" placeholder="Filter..." oninput="applyListPOFilters()"></th>
+                                <th><input type="text" class="tbl-filter-input" data-col="2" placeholder="Filter..." oninput="applyListPOFilters()"></th>
+                                <th><input type="text" class="tbl-filter-input" data-col="3" placeholder="Filter..." oninput="applyListPOFilters()"></th>
+                                <th><input type="text" class="tbl-filter-input" data-col="4" placeholder="Filter..." oninput="applyListPOFilters()"></th>
+                                <th><input type="text" class="tbl-filter-input" data-col="5" placeholder="Filter..." oninput="applyListPOFilters()"></th>
+                                <th><input type="text" class="tbl-filter-input" data-col="6" placeholder="Filter..." oninput="applyListPOFilters()"></th>
+                                <th><input type="text" class="tbl-filter-input" data-col="7" placeholder="Filter..." oninput="applyListPOFilters()"></th>
+                                <th><input type="text" class="tbl-filter-input" data-col="8" placeholder="Filter..." oninput="applyListPOFilters()"></th>
+                                <th><input type="text" class="tbl-filter-input" data-col="9" placeholder="Filter..." oninput="applyListPOFilters()"></th>
+                                <th><input type="text" class="tbl-filter-input" data-col="10" placeholder="Filter..." oninput="applyListPOFilters()"></th>
+                                <th><input type="text" class="tbl-filter-input" data-col="11" placeholder="Filter..." oninput="applyListPOFilters()"></th>
+                                <th><input type="text" class="tbl-filter-input" data-col="12" placeholder="Filter..." oninput="applyListPOFilters()"></th>
+                                <th><input type="text" class="tbl-filter-input" data-col="13" placeholder="Filter..." oninput="applyListPOFilters()"></th>
+                                <th><input type="text" class="tbl-filter-input" data-col="14" placeholder="Filter..." oninput="applyListPOFilters()"></th>
+                                <th><input type="text" class="tbl-filter-input" data-col="15" placeholder="Filter..." oninput="applyListPOFilters()"></th>
+                                <th><input type="text" class="tbl-filter-input" data-col="16" placeholder="Filter..." oninput="applyListPOFilters()"></th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody id="po-list-body"></tbody>
@@ -3396,6 +3442,75 @@ window.cekKetersediaanStok = function(){
 // gabungan/rowspan, ikut terbawa jadi merged cell di Excel-nya) -- dipakai semua
 // halaman List di purchasing & gudang, supaya tidak perlu logika terpisah tiap
 // halaman.
+// Filter per kolom di List PO -- mirip AutoFilter Excel, tapi berbasis teks (bukan
+// checklist nilai unik) supaya lebih ringan dibangun. Karena tabelnya pakai rowspan
+// (No PO/Tanggal/Supplier/dst menyatu untuk beberapa baris barang), filternya bekerja
+// per KELOMPOK PO -- satu kelompok tetap ditampilkan utuh kalau SALAH SATU barisnya
+// cocok dengan SEMUA filter kolom yang sedang aktif diisi.
+window.applyListPOFilters = function(){
+    const table = document.querySelector("#page-purchasing-list-po table");
+    if(!table) return;
+    const tbody = table.querySelector("tbody");
+    if(!tbody) return;
+
+    const filtersAktif = [];
+    table.querySelectorAll(".tbl-filter-input").forEach(inp => {
+        const val = inp.value.trim().toLowerCase();
+        if(val !== "") filtersAktif.push({ col: Number(inp.dataset.col), text: val });
+    });
+
+    const allRows = Array.from(tbody.querySelectorAll("tr"));
+    const groups = [];
+    let current = null;
+    allRows.forEach(tr => {
+        if(tr.classList.contains("tbl-grp-first") || !current){
+            current = [];
+            groups.push(current);
+        }
+        current.push(tr);
+    });
+
+    let adaYangTampil = false;
+
+    groups.forEach(grpRows => {
+        const firstRow = grpRows[0];
+
+        // Nilai kolom yang di-rowspan (No PO/Tanggal/Supplier/Payment/Tenor/Aksi),
+        // diambil dari baris pertama grup -- "diwariskan" ke semua baris di grup itu.
+        const rowspanValues = {};
+        Array.from(firstRow.children).forEach((td, i) => {
+            const span = Number(td.getAttribute("rowspan")) || 1;
+            if(span > 1) rowspanValues[i] = (td.textContent || "").trim().toLowerCase();
+        });
+
+        let grupCocok = false;
+
+        grpRows.forEach(tr => {
+            const nilaiBaris = { ...rowspanValues };
+            let idx = (tr === firstRow) ? 0 : 5; // baris lanjutan grup mulai dari kolom No PR Urut (index 5)
+            Array.from(tr.children).forEach(td => {
+                const span = Number(td.getAttribute("rowspan")) || 1;
+                if(span === 1) nilaiBaris[idx] = (td.textContent || "").trim().toLowerCase();
+                idx += 1;
+            });
+
+            const cocok = filtersAktif.every(f => (nilaiBaris[f.col] || "").includes(f.text));
+            if(cocok) grupCocok = true;
+        });
+
+        grpRows.forEach(tr => { tr.style.display = grupCocok ? "" : "none"; });
+        if(grupCocok) adaYangTampil = true;
+    });
+
+    const emptyEl = document.getElementById("po-list-empty");
+    if(emptyEl) emptyEl.style.display = adaYangTampil ? "none" : "block";
+}
+
+window.resetListPOFilters = function(){
+    document.querySelectorAll("#page-purchasing-list-po .tbl-filter-input").forEach(inp => inp.value = "");
+    window.applyListPOFilters();
+}
+
 window.exportTableExcel = function(selector, namaFile){
     const table = document.querySelector(selector);
     if(!table){
@@ -6985,6 +7100,7 @@ function pantauPurchasingListPO(){
         });
 
         tbody.innerHTML = html;
+        window.applyListPOFilters(); // pertahankan filter yang sedang aktif kalau ada update live
 
     }, err => console.error("Gagal memuat List PO:", err));
 }
