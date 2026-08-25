@@ -786,6 +786,21 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
 
 .audit-section{ margin-bottom:16px; }
 
+.audit-nilai-bkb-harga{
+    width:100%;
+    padding:6px 8px;
+    font-size:13px;
+    border:1px solid #ccc;
+    border-radius:5px;
+    background:#fff;
+}
+
+tr.audit-nilai-bkb-subtotal td{
+    background:#d7f5f0 !important;
+    font-weight:700;
+    border-top:2px solid #7fa8d9;
+}
+
 .audit-section summary{
     cursor:pointer;
     font-size:15px;
@@ -3033,29 +3048,29 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                 </div>
 
                 <div class="panel">
-                    <table class="tbl" id="audit-nilai-bkb-table">
+                    <table class="tbl" id="audit-nilai-bkb-table" style="table-layout:fixed;">
                         <thead>
                             <tr>
-                                <th>Tanggal</th>
-                                <th>No</th>
-                                <th>Divisi</th>
-                                <th>No. BKB</th>
-                                <th>Kategori</th>
+                                <th style="width:90px;">Tanggal</th>
+                                <th style="width:36px;">No</th>
+                                <th style="width:100px;">Divisi</th>
+                                <th style="width:90px;">No. BKB</th>
+                                <th style="width:100px;">Kategori</th>
                                 <th>Nama Barang</th>
-                                <th>Jml</th>
-                                <th>Sat</th>
-                                <th>Untuk</th>
-                                <th>Harga</th>
-                                <th>Total</th>
-                                <th>Aksi</th>
+                                <th style="width:50px;">Jml</th>
+                                <th style="width:50px;">Sat</th>
+                                <th style="width:150px;">Untuk</th>
+                                <th style="width:110px;">Harga</th>
+                                <th style="width:120px;">Total</th>
+                                <th style="width:110px;">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="audit-nilai-bkb-body"></tbody>
                         <tfoot>
                             <tr>
-                                <td colspan="10" style="text-align:right; font-weight:700;">GRAND TOTAL</td>
-                                <td class="num" id="audit-nilai-bkb-grand-total" style="font-weight:700;">Rp 0</td>
-                                <td></td>
+                                <td colspan="10" style="text-align:right; font-weight:700; border:1px solid #000;">GRAND TOTAL</td>
+                                <td class="num" id="audit-nilai-bkb-grand-total" style="font-weight:700; border:1px solid #000;">Rp 0</td>
+                                <td style="border:1px solid #000;"></td>
                             </tr>
                         </tfoot>
                     </table>
@@ -9234,37 +9249,80 @@ async function pantauAuditNilaiBKB(){
         constraints.push(limit(500));
         const snap = await getDocs(query(...constraints));
 
-        let html = "";
-        let no = 0;
-
+        // Ratakan dulu jadi baris per barang, urut lama ke baru (biar kelompok
+        // tanggalnya berurutan wajar).
+        const semuaBaris = [];
         [...snap.docs].reverse().forEach(docSnap => {
             const d = docSnap.data();
             if(d.status === "draft") return;
             const tgl = d.tanggal_display || d.tanggal || "-";
 
             (d.items || []).forEach(it => {
-                no++;
                 const idBarang = slugBarang(it.nama_barang || "");
                 const master = auditNilaiBKBMasterMap[idBarang] || { kategori: "", harga_terakhir: 0 };
-                const jumlah = Number(it.jumlah) || 0;
-                const namaAman = (it.nama_barang || "").replace(/'/g, "\\'");
-
-                html += `
-<tr>
-    <td>${tgl}</td>
-    <td>${no}</td>
-    <td>${d.divisi || "-"}</td>
-    <td>${d.no_bkb || "-"}</td>
-    <td>${master.kategori || "-"}</td>
-    <td style="white-space:normal;">${it.nama_barang || "-"}</td>
-    <td class="num">${jumlah}</td>
-    <td>${it.satuan || "-"}</td>
-    <td style="white-space:normal;">${d.untuk || "-"}</td>
-    <td><input type="number" min="0" class="audit-nilai-bkb-harga" data-jumlah="${jumlah}" oninput="hitungTotalNilaiBKB()" value="${master.harga_terakhir}"></td>
-    <td class="num audit-nilai-bkb-total">Rp 0</td>
-    <td><button class="btn-ic-edit" type="button" onclick="simpanHargaTerakhir(this, '${idBarang}', '${namaAman}')">💾 Simpan Harga</button></td>
-</tr>`;
+                semuaBaris.push({
+                    tgl,
+                    divisi: d.divisi || "-",
+                    no_bkb: d.no_bkb || "-",
+                    kategori: master.kategori || "-",
+                    nama_barang: it.nama_barang || "-",
+                    jumlah: Number(it.jumlah) || 0,
+                    satuan: it.satuan || "-",
+                    untuk: d.untuk || "-",
+                    harga: master.harga_terakhir,
+                    idBarang
+                });
             });
+        });
+
+        // Kelompokkan per tanggal -- No reset tiap ganti tanggal, plus baris
+        // subtotal di akhir tiap kelompok, persis pola spreadsheet audit-mu.
+        let html = "";
+        let tglSaatIni = null;
+        let noDalamTanggal = 0;
+
+        semuaBaris.forEach((baris, i) => {
+            if(baris.tgl !== tglSaatIni){
+                if(tglSaatIni !== null){
+                    html += `
+<tr class="audit-nilai-bkb-subtotal">
+    <td colspan="10" style="text-align:right;">Subtotal ${tglSaatIni}</td>
+    <td class="num audit-nilai-bkb-subtotal-total">Rp 0</td>
+    <td></td>
+</tr>`;
+                }
+                tglSaatIni = baris.tgl;
+                noDalamTanggal = 0;
+            }
+            noDalamTanggal++;
+
+            const namaAman = baris.nama_barang.replace(/'/g, "\\'");
+
+            html += `
+<tr>
+    <td>${baris.tgl}</td>
+    <td>${noDalamTanggal}</td>
+    <td>${baris.divisi}</td>
+    <td>${baris.no_bkb}</td>
+    <td>${baris.kategori}</td>
+    <td style="white-space:normal;">${baris.nama_barang}</td>
+    <td class="num">${baris.jumlah}</td>
+    <td>${baris.satuan}</td>
+    <td style="white-space:normal;">${baris.untuk}</td>
+    <td><input type="number" min="0" class="audit-nilai-bkb-harga" data-jumlah="${baris.jumlah}" oninput="hitungTotalNilaiBKB()" value="${baris.harga}"></td>
+    <td class="num audit-nilai-bkb-total">Rp 0</td>
+    <td><button class="btn-ic-edit" type="button" onclick="simpanHargaTerakhir(this, '${baris.idBarang}', '${namaAman}')">💾 Simpan Harga</button></td>
+</tr>`;
+
+            // Baris terakhir keseluruhan -- tutup dengan subtotal tanggal itu juga.
+            if(i === semuaBaris.length - 1){
+                html += `
+<tr class="audit-nilai-bkb-subtotal">
+    <td colspan="10" style="text-align:right;">Subtotal ${tglSaatIni}</td>
+    <td class="num audit-nilai-bkb-subtotal-total">Rp 0</td>
+    <td></td>
+</tr>`;
+            }
         });
 
         tbody.innerHTML = html;
@@ -9283,12 +9341,22 @@ window.gantiRentangAuditNilaiBKB = function(val){
 
 window.hitungTotalNilaiBKB = function(){
     let grandTotal = 0;
+    let subtotalBerjalan = 0;
+
     document.querySelectorAll("#audit-nilai-bkb-body tr").forEach(row => {
+        if(row.classList.contains("audit-nilai-bkb-subtotal")){
+            const totalEl = row.querySelector(".audit-nilai-bkb-subtotal-total");
+            if(totalEl) totalEl.textContent = `Rp ${subtotalBerjalan.toLocaleString("id-ID")}`;
+            subtotalBerjalan = 0;
+            return;
+        }
         const hargaEl = row.querySelector(".audit-nilai-bkb-harga");
+        if(!hargaEl) return;
         const jumlah = Number(hargaEl.dataset.jumlah) || 0;
         const harga = Number(hargaEl.value) || 0;
         const total = jumlah * harga;
         row.querySelector(".audit-nilai-bkb-total").textContent = `Rp ${total.toLocaleString("id-ID")}`;
+        subtotalBerjalan += total;
         grandTotal += total;
     });
     const grandTotalEl = document.getElementById("audit-nilai-bkb-grand-total");
