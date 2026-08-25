@@ -784,6 +784,44 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
 
 .print-footer-note{ margin-top:24px; font-size:9.5px; color:#999; text-align:right; }
 
+.dash-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+    gap:16px;
+    margin-bottom:28px;
+}
+
+.dash-card{
+    background:#fff;
+    border:1px solid #e6e9ee;
+    border-left:5px solid #1565c0;
+    border-radius:12px;
+    padding:18px 20px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+}
+
+.dash-card.warn{ border-left-color:#e53935; }
+.dash-card.ok{ border-left-color:#2e7d32; }
+.dash-card.neutral{ border-left-color:#8d8d8d; }
+.dash-card.info{ border-left-color:#7b1fa2; }
+
+.dash-card-top{ display:flex; justify-content:space-between; align-items:center; }
+.dash-card-icon{ font-size:20px; }
+.dash-card-value{ font-size:30px; font-weight:800; color:#1a1a1a; line-height:1.1; }
+.dash-card-label{ font-size:12.5px; color:#8d8d8d; font-weight:600; }
+.dash-card-sub{ font-size:11.5px; color:#aaa; }
+
+.dash-section-title{
+    font-size:13px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.4px;
+    color:#8d8d8d;
+    margin:0 0 12px 2px;
+}
+
 .audit-section{ margin-bottom:16px; }
 
 .audit-nilai-bkb-harga{
@@ -1446,6 +1484,51 @@ tr.audit-nilai-bkb-subtotal td{
             <!-- ============================================= -->
             <!-- GUDANG: INPUT PERMINTAAN -->
             <!-- ============================================= -->
+            <div class="page page-wide" id="page-gudang-dashboard">
+                <div class="page-header">
+                    <h2>📊 Dashboard Gudang</h2>
+                    <p>Ringkasan cepat kondisi stok dan permintaan barang</p>
+                </div>
+
+                <p class="dash-section-title">Perlu Perhatian</p>
+                <div class="dash-grid">
+                    <div class="dash-card warn">
+                        <div class="dash-card-top"><span class="dash-card-icon">📦</span></div>
+                        <div class="dash-card-value" id="dash-gudang-segera-order">-</div>
+                        <div class="dash-card-label">Barang Perlu Order Ulang</div>
+                    </div>
+                    <div class="dash-card neutral">
+                        <div class="dash-card-top"><span class="dash-card-icon">🔍</span></div>
+                        <div class="dash-card-value" id="dash-gudang-stok-cek">-</div>
+                        <div class="dash-card-label">Stok Perlu Dicek (Followup/Review)</div>
+                    </div>
+                    <div class="dash-card warn">
+                        <div class="dash-card-top"><span class="dash-card-icon">📋</span></div>
+                        <div class="dash-card-value" id="dash-gudang-belum-terpenuhi">-</div>
+                        <div class="dash-card-label">Permintaan Belum Terpenuhi</div>
+                    </div>
+                </div>
+
+                <p class="dash-section-title">Aktivitas Bulan Ini</p>
+                <div class="dash-grid">
+                    <div class="dash-card">
+                        <div class="dash-card-top"><span class="dash-card-icon">📝</span></div>
+                        <div class="dash-card-value" id="dash-gudang-permintaan-masuk">-</div>
+                        <div class="dash-card-label">Permintaan (OPB) Masuk</div>
+                    </div>
+                    <div class="dash-card ok">
+                        <div class="dash-card-top"><span class="dash-card-icon">📥</span></div>
+                        <div class="dash-card-value" id="dash-gudang-penerimaan">-</div>
+                        <div class="dash-card-label">Transaksi Penerimaan</div>
+                    </div>
+                    <div class="dash-card ok">
+                        <div class="dash-card-top"><span class="dash-card-icon">📤</span></div>
+                        <div class="dash-card-value" id="dash-gudang-pengeluaran">-</div>
+                        <div class="dash-card-label">Transaksi Pengeluaran (BKB)</div>
+                    </div>
+                </div>
+            </div>
+
             <div class="page" id="page-input-permintaan">
 
                 <div class="page-header">
@@ -2329,6 +2412,53 @@ tr.audit-nilai-bkb-subtotal td{
             <!-- ============================================= -->
             <!-- PURCHASING -->
             <!-- ============================================= -->
+            <div class="page page-wide" id="page-purchasing-dashboard">
+                <div class="page-header">
+                    <h2>📊 Dashboard Purchasing</h2>
+                    <p>Ringkasan cepat status permintaan, PO, dan BMB</p>
+                </div>
+
+                <p class="dash-section-title">Perlu Perhatian</p>
+                <div class="dash-grid">
+                    <div class="dash-card warn">
+                        <div class="dash-card-top"><span class="dash-card-icon">⏳</span></div>
+                        <div class="dash-card-value" id="dash-pur-menunggu">-</div>
+                        <div class="dash-card-label">Menunggu Approval</div>
+                    </div>
+                    <div class="dash-card warn">
+                        <div class="dash-card-top"><span class="dash-card-icon">📋</span></div>
+                        <div class="dash-card-value" id="dash-pur-belum-terpenuhi">-</div>
+                        <div class="dash-card-label">Permintaan Belum Terpenuhi</div>
+                    </div>
+                    <div class="dash-card warn">
+                        <div class="dash-card-top"><span class="dash-card-icon">🚚</span></div>
+                        <div class="dash-card-value" id="dash-pur-sj-belum-diterima">-</div>
+                        <div class="dash-card-label">Surat Jalan Belum Diterima</div>
+                    </div>
+                </div>
+
+                <p class="dash-section-title">Aktivitas Bulan Ini</p>
+                <div class="dash-grid">
+                    <div class="dash-card">
+                        <div class="dash-card-top"><span class="dash-card-icon">📝</span></div>
+                        <div class="dash-card-value" id="dash-pur-permintaan-masuk">-</div>
+                        <div class="dash-card-label">Permintaan (OPB) Masuk</div>
+                    </div>
+                    <div class="dash-card ok">
+                        <div class="dash-card-top"><span class="dash-card-icon">🧾</span></div>
+                        <div class="dash-card-value" id="dash-pur-po-jumlah">-</div>
+                        <div class="dash-card-label">PO Diterbitkan</div>
+                        <div class="dash-card-sub" id="dash-pur-po-nilai">Rp 0</div>
+                    </div>
+                    <div class="dash-card ok">
+                        <div class="dash-card-top"><span class="dash-card-icon">💰</span></div>
+                        <div class="dash-card-value" id="dash-pur-bmb-jumlah">-</div>
+                        <div class="dash-card-label">BMB Dibuat</div>
+                        <div class="dash-card-sub" id="dash-pur-bmb-nilai">Rp 0</div>
+                    </div>
+                </div>
+            </div>
+
             <div class="page page-wide" id="page-purchasing-list-permintaan">
                 <div class="page-header">
                     <h2>📋 List Permintaan</h2>
@@ -3183,7 +3313,8 @@ import {
     serverTimestamp,
     runTransaction,
     writeBatch,
-    arrayUnion
+    arrayUnion,
+    getCountFromServer
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // =========================================================
@@ -3328,6 +3459,7 @@ window.toggleSidebar = function(){
 // =========================================================
 const NAV_ITEMS = {
     gudang: [
+        { id:"gudang-dashboard", label:"📊 Dashboard" },
         { group:"🛒 OPB", items:[
             { id:"input-permintaan", label:"📝 Input Permintaan" },
             { id:"list-permintaan-global", label:"📋 List Permintaan (Global)" },
@@ -3354,6 +3486,7 @@ const NAV_ITEMS = {
         ]}
     ],
     purchasing: [
+        { id:"purchasing-dashboard", label:"📊 Dashboard" },
         { group:"📋 Permintaan", items:[
             { id:"purchasing-list-permintaan", label:"📋 List Permintaan" },
             { id:"purchasing-list-approve", label:"✅ List Permintaan Approve" }
@@ -3403,27 +3536,30 @@ function buildSidebar(role){
     const nav = document.getElementById("sidebar-nav");
     const items = NAV_ITEMS[role] || [];
 
-    const berkelompok = items.length > 0 && items[0].group !== undefined;
-
-    if(berkelompok){
-        nav.innerHTML = items.map((grp, gi) => `
+    // Setiap elemen dicek sendiri-sendiri: kalau punya "group" berarti grup
+    // collapsible, kalau tidak berarti item biasa berdiri sendiri (mis. Dashboard
+    // di atas, sebelum grup-grup lain).
+    nav.innerHTML = items.map((el, i) => {
+        if(el.group !== undefined){
+            return `
             <div class="nav-group">
-                <div class="nav-group-header" onclick="toggleNavGroup(${gi})">
-                    <span>${grp.group}</span>
-                    <span class="nav-group-arrow" id="nav-group-arrow-${gi}">▸</span>
+                <div class="nav-group-header" onclick="toggleNavGroup(${i})">
+                    <span>${el.group}</span>
+                    <span class="nav-group-arrow" id="nav-group-arrow-${i}">▸</span>
                 </div>
-                <div class="nav-group-body" id="nav-group-body-${gi}" style="display:none;">
-                    ${grp.items.map(bangunNavItemHtml).join("")}
+                <div class="nav-group-body" id="nav-group-body-${i}" style="display:none;">
+                    ${el.items.map(bangunNavItemHtml).join("")}
                 </div>
-            </div>
-        `).join("");
+            </div>`;
+        }
+        return bangunNavItemHtml(el);
+    }).join("");
 
-        // Semua grup terbuka secara default -- tinggal klik judul grup buat menutupnya.
-        if(items[0] && items[0].items.length) showPage(items[0].items[0].id);
-
-    } else {
-        nav.innerHTML = items.map(bangunNavItemHtml).join("");
-        if(items.length) showPage(items[0].id);
+    // Halaman pertama yang tampil: item flat pertama kalau ada, kalau tidak
+    // ambil item pertama dari grup pertama.
+    if(items.length){
+        const pertama = items[0].group !== undefined ? items[0].items[0] : items[0];
+        if(pertama) showPage(pertama.id);
     }
 }
 
@@ -3446,6 +3582,9 @@ window.showPage = function(id){
     const navEl = document.querySelector('.nav-item[data-page="' + id + '"]');
     if(navEl) navEl.classList.add("active");
 
+    if(id === "gudang-dashboard"){
+        muatDashboardGudang();
+    }
     if(id === "input-permintaan"){
         siapkanDropdownOpb();
         resetFormOpb();
@@ -3491,6 +3630,9 @@ window.showPage = function(id){
     }
     if(id === "inventory-control"){
         pantauInventoryControl();
+    }
+    if(id === "purchasing-dashboard"){
+        muatDashboardPurchasing();
     }
     if(id === "purchasing-list-permintaan"){
         pantauPurchasingListPermintaan();
@@ -9390,6 +9532,116 @@ window.simpanHargaTerakhir = async function(btnEl, idBarang, namaBarang){
         alert("Gagal menyimpan harga: " + e.message);
         btnEl.textContent = labelAsli;
         btnEl.disabled = false;
+    }
+}
+
+// =========================================================
+// DASHBOARD GUDANG & PURCHASING
+// Pakai getCountFromServer untuk angka hitung cepat (tidak perlu unduh semua
+// dokumen), kecuali untuk angka yang butuh SUM nilai (PO/BMB bulan ini) --
+// itu tetap fetch dokumen beneran tapi dibatasi rentang bulan berjalan saja,
+// jadi tetap ringan.
+// =========================================================
+
+function awalBulanIni(){
+    const d = new Date();
+    d.setDate(1);
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+
+async function hitungCepat(namaKoleksi, ...kondisi){
+    try{
+        const q = kondisi.length ? query(collection(db, namaKoleksi), ...kondisi) : collection(db, namaKoleksi);
+        const snap = await getCountFromServer(q);
+        return snap.data().count;
+    } catch(e){
+        console.error(`Gagal menghitung ${namaKoleksi}:`, e);
+        return "-";
+    }
+}
+
+async function muatDashboardGudang(){
+    const isi = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+    const awalBulan = awalBulanIni();
+
+    // -- Perlu Perhatian: status stok, dihitung dari Master Barang --
+    try{
+        const snapMaster = await getDocs(collection(db, "master_barang"));
+        let segeraOrder = 0, perluCek = 0;
+        snapMaster.forEach(docSnap => {
+            const ket = tentukanKeteranganStok(docSnap.data());
+            if(!ket) return;
+            if(ket.kode === "order") segeraOrder++;
+            if(ket.kode === "followup" || ket.kode === "review") perluCek++;
+        });
+        isi("dash-gudang-segera-order", segeraOrder);
+        isi("dash-gudang-stok-cek", perluCek);
+    } catch(e){
+        console.error("Gagal memuat status stok dashboard:", e);
+    }
+
+    hitungCepat("permintaan_barang", where("selesai", "==", false))
+        .then(n => isi("dash-gudang-belum-terpenuhi", n));
+
+    hitungCepat("permintaan_barang", where("created_at", ">=", awalBulan))
+        .then(n => isi("dash-gudang-permintaan-masuk", n));
+
+    hitungCepat("penerimaan_barang", where("created_at", ">=", awalBulan))
+        .then(n => isi("dash-gudang-penerimaan", n));
+
+    hitungCepat("pengambilan_barang", where("created_at", ">=", awalBulan))
+        .then(n => isi("dash-gudang-pengeluaran", n));
+}
+
+async function muatDashboardPurchasing(){
+    const isi = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+    const awalBulan = awalBulanIni();
+
+    hitungCepat("permintaan_barang", where("status", "==", "menunggu"))
+        .then(n => isi("dash-pur-menunggu", n));
+
+    hitungCepat("permintaan_barang", where("selesai", "==", false))
+        .then(n => isi("dash-pur-belum-terpenuhi", n));
+
+    hitungCepat("permintaan_barang", where("created_at", ">=", awalBulan))
+        .then(n => isi("dash-pur-permintaan-masuk", n));
+
+    // -- Surat Jalan belum diterima -- butuh baca isi array, bukan cuma hitung
+    // dokumen, jadi dibatasi rentang wajar (500 PR approve terbaru) baru dicek
+    // isi surat_jalan-nya di sisi aplikasi.
+    try{
+        const snapApprove = await getDocs(query(collection(db, "permintaan_barang"), where("status", "==", "approve"), limit(500)));
+        let sjBelumDiterima = 0;
+        snapApprove.forEach(docSnap => {
+            (docSnap.data().surat_jalan || []).forEach(sj => {
+                if(sj.status !== "diterima") sjBelumDiterima++;
+            });
+        });
+        isi("dash-pur-sj-belum-diterima", sjBelumDiterima);
+    } catch(e){
+        console.error("Gagal menghitung SJ belum diterima:", e);
+    }
+
+    // -- PO & BMB bulan ini -- butuh SUM nilai, bukan cuma hitung dokumen.
+    try{
+        const snapPO = await getDocs(query(collection(db, "po_barang"), where("created_at", ">=", awalBulan), limit(500)));
+        let totalNilaiPO = 0;
+        snapPO.forEach(docSnap => { totalNilaiPO += docSnap.data().grand_total || 0; });
+        isi("dash-pur-po-jumlah", snapPO.size);
+        isi("dash-pur-po-nilai", `Rp ${totalNilaiPO.toLocaleString("id-ID")}`);
+    } catch(e){
+        console.error("Gagal menghitung PO bulan ini:", e);
+    }
+
+    try{
+        const snapBMB = await getDocs(query(collection(db, "bmb_faktur"), where("created_at", ">=", awalBulan), limit(500)));
+        let totalNilaiBMB = 0;
+        snapBMB.forEach(docSnap => { totalNilaiBMB += docSnap.data().grand_total || 0; });
+        isi("dash-pur-bmb-jumlah", snapBMB.size);
+        isi("dash-pur-bmb-nilai", `Rp ${totalNilaiBMB.toLocaleString("id-ID")}`);
+    } catch(e){
+        console.error("Gagal menghitung BMB bulan ini:", e);
     }
 }
 
