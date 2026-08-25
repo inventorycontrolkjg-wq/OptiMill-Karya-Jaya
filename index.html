@@ -379,6 +379,9 @@ table.tbl th{
     letter-spacing:.3px;
     border:1px solid #000;
     background:#f7f9fc;
+    position:sticky;
+    top:0;
+    z-index:2;
 }
 
 .tbl-filter-icon{
@@ -3972,7 +3975,6 @@ window.tblBukaFilter = function(tableKey, col, event){
     `;
 
     const th = event.currentTarget.closest("th");
-    th.style.position = "relative";
     th.appendChild(popup);
     popup.querySelector(".tbl-filter-popup-search").focus();
 
