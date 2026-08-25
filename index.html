@@ -2148,14 +2148,15 @@ table.po-cetak-ttd .po-ttd-space td{ height:100px; border-top:none; }
                             <tr>
                                 <th style="width:34px;">No</th>
                                 <th>Nama Barang</th>
-                                <th style="width:60px;">Satuan <span class="tbl-filter-icon" data-table="ic" data-col="2" onclick="window.tblBukaFilter('ic', 2, event)">▾</span></th>
+                                <th style="width:110px;">Kategori <span class="tbl-filter-icon" data-table="ic" data-col="2" onclick="window.tblBukaFilter('ic', 2, event)">▾</span></th>
+                                <th style="width:60px;">Satuan <span class="tbl-filter-icon" data-table="ic" data-col="3" onclick="window.tblBukaFilter('ic', 3, event)">▾</span></th>
                                 <th style="width:200px;">Barcode</th>
                                 <th style="width:100px;">Stok Awal</th>
                                 <th style="width:90px;">Masuk</th>
                                 <th style="width:90px;">Keluar</th>
                                 <th style="width:110px;">Stok Akhir</th>
                                 <th style="width:100px;">Minimal Stok</th>
-                                <th style="width:150px;">Keterangan <span class="tbl-filter-icon" data-table="ic" data-col="9" onclick="window.tblBukaFilter('ic', 9, event)">▾</span></th>
+                                <th style="width:150px;">Keterangan <span class="tbl-filter-icon" data-table="ic" data-col="10" onclick="window.tblBukaFilter('ic', 10, event)">▾</span></th>
                             </tr>
                         </thead>
                         <tbody id="ic-list-body"></tbody>
@@ -3790,7 +3791,7 @@ function htmlBadgeKeterangan(ket){
 }
 
 window.renderInventoryControl = function(){
-    tblDaftarkanTabel("ic", "#ic-main-table", [2,9], "ic-list-empty");
+    tblDaftarkanTabel("ic", "#ic-main-table", [2,3,10], "ic-list-empty");
 
     const cari = (document.getElementById("ic-search")?.value || "").trim().toLowerCase();
     const data = cari
@@ -3828,6 +3829,7 @@ window.renderInventoryControl = function(){
 <tr id="ic-row-${it.id}" class="${i % 2 === 0 ? 'tbl-grp-a' : 'tbl-grp-b'} tbl-grp-first">
     <td>${i + 1}</td>
     <td>${it.nama || "-"}</td>
+    <td>${it.kategori || "-"}</td>
     <td>${it.satuan_default || "-"}</td>
     <td style="word-break:break-all;">${it.barcode || "-"}</td>
     <td class="ic-num">${stokAwal}</td>
@@ -3841,7 +3843,7 @@ window.renderInventoryControl = function(){
 
     tblFilterHitungOpsi("ic", data.map(it => {
         const ket = tentukanKeteranganStok(it);
-        return { 2: it.satuan_default || "-", 9: ket ? ket.label : "-" };
+        return { 2: it.kategori || "-", 3: it.satuan_default || "-", 10: ket ? ket.label : "-" };
     }));
     window.tblTerapkanFilter("ic");
 }
