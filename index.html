@@ -119,6 +119,22 @@ button.btn-login:disabled{ background:#9db8d8; cursor:not-allowed; }
     margin-bottom:14px;
 }
 
+.login-error.login-success{
+    background:#e8f5e9;
+    color:#2e7d32;
+}
+
+.lupa-password-link{
+    text-align:center;
+    font-size:12.5px;
+    color:#1565c0;
+    cursor:pointer;
+    margin-top:14px;
+    margin-bottom:0;
+}
+
+.lupa-password-link:hover{ text-decoration:underline; }
+
 /* ============== APP SHELL (setelah login) ============== */
 
 .app{
@@ -1429,18 +1445,34 @@ tr.audit-nilai-bkb-subtotal td{
         <p class="sub">Masuk untuk melanjutkan</p>
 
         <div class="login-error" id="login-error"></div>
+        <div class="login-error" id="reset-msg" style="display:none;"></div>
 
-        <div class="form-group">
-            <label>Email</label>
-            <input type="email" id="email" placeholder="nama@perusahaan.com" autocomplete="username">
+        <div id="login-fields">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="email" placeholder="nama@perusahaan.com" autocomplete="username">
+            </div>
+
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+            </div>
+
+            <button class="btn-login" id="btn-login" onclick="login()">Masuk</button>
+
+            <p class="lupa-password-link" onclick="tampilkanFormResetPassword()">Lupa Password?</p>
         </div>
 
-        <div class="form-group">
-            <label>Password</label>
-            <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
-        </div>
+        <div id="reset-password-fields" style="display:none;">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="reset-email" placeholder="nama@perusahaan.com" autocomplete="username">
+            </div>
 
-        <button class="btn-login" id="btn-login" onclick="login()">Masuk</button>
+            <button class="btn-login" id="btn-reset-password" onclick="kirimResetPassword()">Kirim Link Reset Password</button>
+
+            <p class="lupa-password-link" onclick="kembaliKeLogin()">← Kembali ke Login</p>
+        </div>
     </div>
 </div>
 
@@ -3270,7 +3302,8 @@ import {
     getAuth,
     signInWithEmailAndPassword,
     onAuthStateChanged,
-    signOut
+    signOut,
+    sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
     getFirestore,
@@ -3421,6 +3454,60 @@ window.login = async function(){
         btn.textContent = "Masuk";
     }
 
+}
+
+window.tampilkanFormResetPassword = function(){
+    document.getElementById("login-fields").style.display = "none";
+    document.getElementById("reset-password-fields").style.display = "block";
+    document.getElementById("login-error").style.display = "none";
+    document.getElementById("reset-msg").style.display = "none";
+
+    // Kalau email di form login sudah sempat diketik, ikut dibawa ke sini
+    // biar tidak perlu ketik ulang.
+    const emailLogin = document.getElementById("email").value.trim();
+    if(emailLogin) document.getElementById("reset-email").value = emailLogin;
+}
+
+window.kembaliKeLogin = function(){
+    document.getElementById("login-fields").style.display = "block";
+    document.getElementById("reset-password-fields").style.display = "none";
+    document.getElementById("reset-msg").style.display = "none";
+}
+
+window.kirimResetPassword = async function(){
+    const email = document.getElementById("reset-email").value.trim();
+    const msgEl = document.getElementById("reset-msg");
+    const btn = document.getElementById("btn-reset-password");
+
+    msgEl.style.display = "none";
+    msgEl.className = "login-error";
+
+    if(email === ""){
+        msgEl.textContent = "Isi email dulu.";
+        msgEl.style.display = "block";
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Mengirim...";
+
+    const pesanNetral = "Kalau email itu terdaftar, link reset password sudah dikirim. Cek inbox atau folder spam.";
+
+    try{
+        await sendPasswordResetEmail(auth, email);
+        msgEl.textContent = pesanNetral;
+        msgEl.className = "login-error login-success";
+        msgEl.style.display = "block";
+    } catch(e){
+        // Pesannya sengaja disamakan baik berhasil maupun email tidak terdaftar --
+        // supaya orang luar tidak bisa dipakai untuk menebak email mana yang aktif.
+        msgEl.textContent = pesanNetral;
+        msgEl.className = "login-error login-success";
+        msgEl.style.display = "block";
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "Kirim Link Reset Password";
+    }
 }
 
 window.logout = function(){
