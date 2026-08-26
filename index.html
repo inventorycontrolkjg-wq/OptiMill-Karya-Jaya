@@ -3129,6 +3129,40 @@ tr.audit-nilai-bkb-subtotal td{
 
                 <div class="form-msg" id="audit-master-barang-msg" style="display:none;"></div>
 
+                <details class="audit-section">
+                    <summary>+ Tambah Barang Baru</summary>
+                    <div class="panel">
+                        <div class="form-msg" id="audit-tambah-barang-msg" style="display:none;"></div>
+                        <div class="opb-header-grid" style="grid-template-columns:1fr 1fr;">
+                            <div class="form-group">
+                                <label>Nama Barang *</label>
+                                <input type="text" id="tb-nama" placeholder="Nama barang">
+                            </div>
+                            <div class="form-group">
+                                <label>Kategori</label>
+                                <input type="text" id="tb-kategori" placeholder="Opsional">
+                            </div>
+                            <div class="form-group">
+                                <label>Satuan *</label>
+                                <input type="text" id="tb-satuan" placeholder="cth: BH, PCS, RIM">
+                            </div>
+                            <div class="form-group">
+                                <label>Barcode</label>
+                                <input type="text" id="tb-barcode" placeholder="Opsional">
+                            </div>
+                            <div class="form-group">
+                                <label>Stok Awal</label>
+                                <input type="number" id="tb-stok-awal" min="0" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Minimal Stok</label>
+                                <input type="number" id="tb-minimal-stok" min="0" value="0">
+                            </div>
+                        </div>
+                        <button class="btn-primary" type="button" style="margin-top:8px;" onclick="submitTambahBarangAudit()">+ Simpan Barang Baru</button>
+                    </div>
+                </details>
+
                 <div class="form-group" style="max-width:320px; margin-bottom:12px;">
                     <label>Cari Barang</label>
                     <input type="text" id="audit-master-barang-cari" placeholder="Ketik nama barang..." oninput="renderAuditMasterBarang()">
@@ -9616,6 +9650,87 @@ window.simpanMasterBarangKoreksi = async function(docId, btnEl){
         }
         btnEl.textContent = labelAsli;
         btnEl.disabled = false;
+    }
+}
+
+// ---- Tambah Barang Baru ke Master Barang lewat akun audit -- cek dulu supaya
+// tidak dobel sama barang yang sudah ada (dicocokkan dari ID slug nama-nya,
+// sama persis pola yang dipakai Import Master Barang). ----
+window.submitTambahBarangAudit = async function(){
+    const msgEl = document.getElementById("audit-tambah-barang-msg");
+    msgEl.style.display = "none";
+
+    const nama = document.getElementById("tb-nama").value.trim();
+    const kategori = document.getElementById("tb-kategori").value.trim();
+    const satuan = document.getElementById("tb-satuan").value.trim();
+    const barcode = document.getElementById("tb-barcode").value.trim();
+    const stokAwal = Number(document.getElementById("tb-stok-awal").value) || 0;
+    const minimalStok = Number(document.getElementById("tb-minimal-stok").value) || 0;
+
+    if(!nama || !satuan){
+        msgEl.textContent = "Nama Barang dan Satuan wajib diisi.";
+        msgEl.className = "form-msg err";
+        msgEl.style.display = "block";
+        return;
+    }
+
+    const idBarang = slugBarang(nama);
+    if(!idBarang){
+        msgEl.textContent = "Nama Barang tidak valid.";
+        msgEl.className = "form-msg err";
+        msgEl.style.display = "block";
+        return;
+    }
+
+    if(auditMasterBarangData.some(it => it.id === idBarang)){
+        msgEl.textContent = `Barang "${nama}" sudah ada di Master Barang -- kalau mau koreksi datanya, cari di tabel bawah, bukan tambah baru.`;
+        msgEl.className = "form-msg err";
+        msgEl.style.display = "block";
+        return;
+    }
+
+    const btn = document.querySelector('#page-audit-master-barang details .btn-primary');
+    if(btn){ btn.disabled = true; btn.textContent = "Menyimpan..."; }
+
+    try{
+        await setDoc(doc(db, "master_barang", idBarang), {
+            nama,
+            kategori,
+            satuan_default: satuan,
+            barcode,
+            stok: stokAwal,
+            stok_awal: stokAwal,
+            total_masuk: 0,
+            total_keluar: 0,
+            minimal_stock: minimalStok,
+            created_at: serverTimestamp(),
+            updated_at: serverTimestamp()
+        });
+
+        auditMasterBarangData.push({
+            id: idBarang, nama, kategori, satuan_default: satuan, barcode,
+            stok: stokAwal, stok_awal: stokAwal, total_masuk: 0, total_keluar: 0,
+            minimal_stock: minimalStok
+        });
+        renderAuditMasterBarang();
+
+        msgEl.textContent = `Barang "${nama}" berhasil ditambahkan.`;
+        msgEl.className = "form-msg ok";
+        msgEl.style.display = "block";
+
+        document.getElementById("tb-nama").value = "";
+        document.getElementById("tb-kategori").value = "";
+        document.getElementById("tb-satuan").value = "";
+        document.getElementById("tb-barcode").value = "";
+        document.getElementById("tb-stok-awal").value = "0";
+        document.getElementById("tb-minimal-stok").value = "0";
+
+    } catch(e){
+        msgEl.textContent = "Gagal menambahkan barang: " + e.message;
+        msgEl.className = "form-msg err";
+        msgEl.style.display = "block";
+    } finally {
+        if(btn){ btn.disabled = false; btn.textContent = "+ Simpan Barang Baru"; }
     }
 }
 
