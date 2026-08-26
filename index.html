@@ -3508,6 +3508,7 @@ function bangunNavItemHtml(it){
     return `<div class="nav-item" data-page="${it.id}" onclick="showPage('${it.id}')">
         <span>${it.label}</span>
         ${it.id === "purchasing-list-permintaan" ? `<span class="nav-badge" id="nav-badge-pur-list" style="display:none;"></span>` : ""}
+        ${it.id === "list-permintaan-proses" ? `<span class="nav-badge" id="nav-badge-gudang-proses" style="display:none;"></span>` : ""}
     </div>`;
 }
 
@@ -5692,6 +5693,17 @@ function pantauPermintaanProses(){
             if(emptyEl) emptyEl.style.display = html ? "none" : "block";
         }
         if(warnEl) warnEl.style.display = snapshot.size >= BATAS_AMAN ? "block" : "none";
+
+        // Badge di sidebar -- jumlah PR yang masih dalam proses (belum selesai).
+        const badgeEl = document.getElementById("nav-badge-gudang-proses");
+        if(badgeEl){
+            if(snapshot.size > 0){
+                badgeEl.textContent = snapshot.size > 99 ? "99+" : snapshot.size;
+                badgeEl.style.display = "inline-flex";
+            } else {
+                badgeEl.style.display = "none";
+            }
+        }
 
         tblFilterHitungOpsi("pbproses", daftarDocUntukFilter);
         window.tblTerapkanFilter("pbproses");
