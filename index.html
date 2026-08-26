@@ -3121,6 +3121,37 @@ tr.audit-nilai-bkb-subtotal td{
                 </div>
             </div>
 
+            <div class="page page-wide" id="page-audit-master-barang">
+                <div class="page-header">
+                    <h2>🏷️ Koreksi Master Barang</h2>
+                    <p>Betulkan Kategori, Satuan, Barcode, atau Minimal Stok yang salah ketik. Nama Barang tidak bisa diubah di sini (jadi acuan ID sistem) -- kalau namanya salah, hubungi developer.</p>
+                </div>
+
+                <div class="form-msg" id="audit-master-barang-msg" style="display:none;"></div>
+
+                <div class="form-group" style="max-width:320px; margin-bottom:12px;">
+                    <label>Cari Barang</label>
+                    <input type="text" id="audit-master-barang-cari" placeholder="Ketik nama barang..." oninput="renderAuditMasterBarang()">
+                </div>
+
+                <div class="panel">
+                    <table class="tbl" style="table-layout:fixed;">
+                        <thead>
+                            <tr>
+                                <th>Nama Barang</th>
+                                <th style="width:130px;">Kategori</th>
+                                <th style="width:90px;">Satuan</th>
+                                <th style="width:160px;">Barcode</th>
+                                <th style="width:100px;">Minimal Stok</th>
+                                <th style="width:110px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-master-barang-body"></tbody>
+                    </table>
+                    <div class="empty-state" id="audit-master-barang-empty" style="display:none;">Tidak ada barang yang cocok.</div>
+                </div>
+            </div>
+
             <!-- ============================================= -->
             <!-- ROLE LAIN (placeholder, belum ada sub-menu) -->
             <!-- ============================================= -->
@@ -3433,7 +3464,8 @@ const NAV_ITEMS = {
             { id:"audit-bkb", label:"📤 Koreksi BKB" },
             { id:"audit-po", label:"🧾 Koreksi PO" },
             { id:"audit-bmb", label:"💰 Koreksi BMB" },
-            { id:"audit-nilai-bkb", label:"💵 Nilai Barang Terpakai" }
+            { id:"audit-nilai-bkb", label:"💵 Nilai Barang Terpakai" },
+            { id:"audit-master-barang", label:"🏷️ Koreksi Master Barang" }
         ]}
     ]
 };
@@ -3651,6 +3683,9 @@ window.showPage = function(id){
     }
     if(id === "audit-nilai-bkb"){
         pantauAuditNilaiBKB();
+    }
+    if(id === "audit-master-barang"){
+        pantauAuditMasterBarang();
     }
     if(id === "list-penerimaan"){
         pantauSemuaPenerimaan();
@@ -9494,6 +9529,91 @@ window.simpanHargaTerakhir = async function(btnEl, idBarang, namaBarang){
         setTimeout(() => { btnEl.textContent = labelAsli; btnEl.disabled = false; }, 1500);
     } catch(e){
         alert("Gagal menyimpan harga: " + e.message);
+        btnEl.textContent = labelAsli;
+        btnEl.disabled = false;
+    }
+}
+
+// ---- Koreksi Master Barang: betulkan data induk (Kategori/Satuan/Barcode/
+// Minimal Stok) yang salah ketik. Nama Barang sengaja tidak diikutkan --
+// itu jadi ID dokumen, kalau diubah tanpa ganti ID, sistem lain yang cari
+// barang lewat nama baru tidak akan ketemu lagi. Stok juga tidak diikutkan --
+// itu harus lewat koreksi Penerimaan/BKB supaya stok_awal/masuk/keluar
+// tetap konsisten satu sama lain. ----
+
+let auditMasterBarangData = [];
+
+async function pantauAuditMasterBarang(){
+    try{
+        const snap = await getDocs(collection(db, "master_barang"));
+        auditMasterBarangData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderAuditMasterBarang();
+    } catch(e){
+        console.error("Gagal memuat Master Barang untuk audit:", e);
+    }
+}
+
+window.renderAuditMasterBarang = function(){
+    const cari = (document.getElementById("audit-master-barang-cari")?.value || "").trim().toLowerCase();
+    const data = cari
+        ? auditMasterBarangData.filter(it => (it.nama || "").toLowerCase().includes(cari))
+        : auditMasterBarangData;
+
+    const tbody = document.getElementById("audit-master-barang-body");
+    const emptyEl = document.getElementById("audit-master-barang-empty");
+    if(!tbody) return;
+
+    if(data.length === 0){
+        tbody.innerHTML = "";
+        if(emptyEl) emptyEl.style.display = "block";
+        return;
+    }
+    if(emptyEl) emptyEl.style.display = "none";
+
+    tbody.innerHTML = data.map(it => `
+<tr>
+    <td style="white-space:normal;">${it.nama || "-"}</td>
+    <td><input type="text" class="am-kategori" value="${(it.kategori || "").replace(/"/g, "&quot;")}"></td>
+    <td><input type="text" class="am-satuan" value="${(it.satuan_default || "").replace(/"/g, "&quot;")}"></td>
+    <td><input type="text" class="am-barcode" value="${(it.barcode || "").replace(/"/g, "&quot;")}"></td>
+    <td><input type="number" min="0" class="am-minimal" value="${typeof it.minimal_stock === "number" ? it.minimal_stock : 0}"></td>
+    <td><button class="btn-ic-edit" type="button" onclick="simpanMasterBarangKoreksi('${it.id}', this)">💾 Simpan</button></td>
+</tr>`).join("");
+}
+
+window.simpanMasterBarangKoreksi = async function(docId, btnEl){
+    const row = btnEl.closest("tr");
+    const kategori = row.querySelector(".am-kategori").value.trim();
+    const satuan = row.querySelector(".am-satuan").value.trim();
+    const barcode = row.querySelector(".am-barcode").value.trim();
+    const minimal = Number(row.querySelector(".am-minimal").value) || 0;
+
+    const labelAsli = btnEl.textContent;
+    btnEl.disabled = true;
+    btnEl.textContent = "Menyimpan...";
+
+    try{
+        await setDoc(doc(db, "master_barang", docId), {
+            kategori, satuan_default: satuan, barcode,
+            minimal_stock: minimal,
+            updated_at: serverTimestamp()
+        }, { merge: true });
+
+        const idx = auditMasterBarangData.findIndex(it => it.id === docId);
+        if(idx > -1){
+            auditMasterBarangData[idx] = { ...auditMasterBarangData[idx], kategori, satuan_default: satuan, barcode, minimal_stock: minimal };
+        }
+
+        btnEl.textContent = "✔ Tersimpan";
+        setTimeout(() => { btnEl.textContent = labelAsli; btnEl.disabled = false; }, 1500);
+
+    } catch(e){
+        const msgEl = document.getElementById("audit-master-barang-msg");
+        if(msgEl){
+            msgEl.textContent = "Gagal menyimpan: " + e.message;
+            msgEl.className = "form-msg err";
+            msgEl.style.display = "block";
+        }
         btnEl.textContent = labelAsli;
         btnEl.disabled = false;
     }
